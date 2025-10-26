@@ -4,7 +4,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Fragment } from 'react';
-import { Slash } from 'lucide-react'; // Icon สำหรับตัวคั่น
+import { ArrowRight, ChevronRight, Slash } from 'lucide-react'; // Icon สำหรับตัวคั่น
 
 import {
   Breadcrumb,
@@ -79,7 +79,7 @@ export function AppBreadcrumbs() {
 
 
   return (
-    <Breadcrumb className="p-4 border-b bg-background"> {/* เพิ่ม padding และ border-b เพื่อให้ดูดี */}
+    <Breadcrumb className="p-4"> {/* เพิ่ม padding และ border-b เพื่อให้ดูดี */}
       <BreadcrumbList>
         {breadcrumbs.map((item, index) => (
           <Fragment key={item.href}>
@@ -99,7 +99,7 @@ export function AppBreadcrumbs() {
             {/* แสดง Separator ยกเว้น item สุดท้าย */}
             {index < breadcrumbs.length - 1 && (
               <BreadcrumbSeparator>
-                <Slash /> {/* ใช้ Slash icon เป็นตัวคั่น */}
+                <ChevronRight/>
               </BreadcrumbSeparator>
             )}
           </Fragment>

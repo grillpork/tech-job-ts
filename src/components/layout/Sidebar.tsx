@@ -35,20 +35,23 @@ export default function Sidebar() {
   const roleMenus: Record<string, { name: string; href: string; icon: any }[]> = {
     admin: [
       { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
-      { name: "Manage Users", href: "/dashboard/admin/users", icon: Users },
+      { name: "Users", href: "/dashboard/admin/users", icon: Users },
       { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
-      { name: "Reports", href: "/dashboard/admin/report", icon: FileText },
+      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
+      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
       { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
     ],
     manager: [
-      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Team Jobs", href: "/dashboard/jobs", icon: Briefcase },
-      { name: "Reports", href: "/dashboard/reports", icon: FileText },
+      { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
+      { name: "Team Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
+      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
     ],
     lead_technician: [
-      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Assigned Jobs", href: "/dashboard/jobs", icon: Briefcase },
-      { name: "Reports", href: "/dashboard/reports", icon: FileText },
+      { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
+      { name: "Assigned Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
+      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
     ],
     employee: [
       { name: "Overview", href: "/dashboard/employee/overview", icon: LayoutDashboard },
@@ -68,7 +71,7 @@ export default function Sidebar() {
       <aside
         className={cn(
           "h-screen bg-white dark:bg-gray-900 border-r flex flex-col transition-all duration-300",
-          collapsed ? "w-20" : "w-64"
+          collapsed ? "w-17" : "w-64"
         )}
       >
         {/* Header */}
@@ -110,7 +113,7 @@ export default function Sidebar() {
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span>{menu.name}</span>}
+                {!collapsed && <span className="w-">{menu.name}</span>}
               </Link>
             );
 

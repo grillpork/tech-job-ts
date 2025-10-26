@@ -14,6 +14,7 @@ import {
 } from "../ui/dropdown-menu";
 import Link from "next/link";
 import { AppBreadcrumbs } from "../AppBreadcrumb";
+import { ModeToggle } from "../ModeToggle";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +40,7 @@ export default function Navbar() {
             </Button>
           </DropdownMenuTrigger>
   
-          <DropdownMenuContent className="w-80 p-2">
+          <DropdownMenuContent className="w-64 p-2" align="end">
             <div className="flex justify-between items-center mb-2 px-2">
               <h2 className="font-semibold">Notifications</h2>
               <Button
@@ -51,16 +52,16 @@ export default function Navbar() {
               </Button>
             </div>
   
-            <div className="space-y-1 max-h-64 overflow-y-auto">
+            <div className="space-y-1 max-h-64 overflow-hidden">
               <AnimatePresence>
                 {notifications.length > 0 ? (
-                  notifications.map((n) => (
+                  notifications.map((n, i) => (
                     <motion.div
                       key={n.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.15 }}
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0  }}
+                      exit={{ opacity: 0, x: -10 }}
+                      transition={{ delay: 0.1 * i }}
                       className={`p-2 rounded hover:bg-muted cursor-pointer ${
                         n.read ? "bg-muted/30" : "bg-muted/60"
                       }`}
@@ -87,8 +88,9 @@ export default function Navbar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-  
-        {/* 👤 UserBox */}
+        {/* ModeToggle */}
+        <ModeToggle />
+        {/*UserBox */}
         <UserBox />
       </div>
     </header>

@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
 
 export function UserBox() {
   const { currentUser, logout } = useUserStore();
@@ -41,7 +42,7 @@ export function UserBox() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => console.log("Go to Profile")}>
+        <DropdownMenuItem onClick={() => redirect("/dashboard/profile")}>
           Profile
         </DropdownMenuItem>
         <DropdownMenuItem onClick={logout}>

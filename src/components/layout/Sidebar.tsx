@@ -17,6 +17,7 @@ import {
   Bell,
   User,
   Calendar,
+  ToolCase,
 } from "lucide-react";
 
 import {
@@ -40,6 +41,7 @@ export default function Sidebar() {
       { name: "Notification", href: "/dashboard/admin/notification", icon: Bell },
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
       { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "Inventorys", href: "/dashboard/admin/inventorys", icon: ToolCase },
       { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
     ],
     manager: [
@@ -52,6 +54,7 @@ export default function Sidebar() {
       { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
       { name: "Assigned Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
       { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "Inventory", href: "/dashboard/employee/inventory", icon: ToolCase },
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
     ],
     employee: [
@@ -60,6 +63,7 @@ export default function Sidebar() {
       { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
       { name: "Notification", href: "/dashboard/employee/notification", icon: Bell },
       { name: "Calendar", href: "/dashboard/employee/calendar", icon: Calendar },
+      { name: "Inventorys", href: "/dashboard/employee/inventorys", icon: ToolCase },
       { name: "Profile", href: "/dashboard/employee/profile", icon: User },
       { name: "Settings", href: "/dashboard/employee/settings", icon: Settings },
     ],

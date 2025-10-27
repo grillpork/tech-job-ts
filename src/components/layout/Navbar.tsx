@@ -16,22 +16,22 @@ import Link from "next/link";
 import { AppBreadcrumbs } from "../AppBreadcrumb";
 import { ModeToggle } from "../ModeToggle";
 import { Menu } from "lucide-react";
+import { useUserStore } from "@/stores/faker/userStore";
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
 }
 
 export default function Navbar({ onToggleSidebar }: NavbarProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const { notifications, unreadCount, markAsRead, clearAll } =
-    useNotificationStore();
+  const { currentUser } = useUserStore();
+  const { notifications, unreadCount, markAsRead, clearAll } =useNotificationStore();
 
   return (
     <header className="w-full h-17 border-b bg-background flex items-center justify-between px-4 shadow-sm relative z-50">
 
        {/* ☰ ปุ่มเปิด sidebar (เฉพาะมือถือ) */}
       <button
-        className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-900 cursor-pointer"
         onClick={onToggleSidebar}
       >
         <Menu className="w-6 h-6" />
@@ -93,12 +93,12 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
             </div>
   
             <DropdownMenuItem asChild className="mt-2">
-              <Link
-                href="/dashboard/employee/notification"
+              {/* <Link
+                href={`/dashboard/${currentUser?.role}/notification`}
                 className="w-full text-center text-sm text-primary font-medium"
               >
                 View All Notifications
-              </Link>
+              </Link> */}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

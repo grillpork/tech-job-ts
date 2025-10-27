@@ -3,7 +3,7 @@ import { useUserStore } from "@/stores/faker/userStore";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   useEffect(() => {
@@ -63,7 +63,6 @@ export default function LoginPage() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-md p-8 space-y-6"
       >
-        
         <form
           onSubmit={step === "email" ? handleNext : handleSubmit}
           className="space-y-6"
@@ -118,14 +117,31 @@ export default function LoginPage() {
                   <label className="block ml-3 mb-1 text-sm font-medium text-gray-700">
                     Password
                   </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500"
-                    placeholder="password123"
-                  />
+                  <div className=" relative  text-gray-700 bg-gray-100 border border-gray-300 rounded-full overflow-clip">
+                    <input
+                      type={passwordVisible ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="w-full px-4 py-2 text-gray-700 bg-gray-100 outline-none"
+                      placeholder="password123"
+                    />
+                    <span>
+                      {passwordVisible ? (
+                        <Eye
+                          className="absolute right-4 top-3 text-neutral-500 cursor-pointer"
+                          size={18}
+                          onClick={() => setPasswordVisible(false)}
+                        />
+                      ) : (
+                        <EyeOff
+                          className="absolute right-4 top-3 text-neutral-500 cursor-pointer"
+                          size={18}
+                          onClick={() => setPasswordVisible(true)}
+                        />
+                      )}
+                    </span>
+                  </div>
                 </div>
 
                 {error && (

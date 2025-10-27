@@ -15,23 +15,37 @@ import {
 import Link from "next/link";
 import { AppBreadcrumbs } from "../AppBreadcrumb";
 import { ModeToggle } from "../ModeToggle";
+import { Menu } from "lucide-react";
 
-export default function Navbar() {
+interface NavbarProps {
+  onToggleSidebar?: () => void;
+}
+
+export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, clearAll } =
     useNotificationStore();
 
   return (
-    <header className="w-full h-16 border-b bg-background flex items-center justify-between px-4 shadow-sm relative z-50">
+    <header className="w-full h-17 border-b bg-background flex items-center justify-between px-4 shadow-sm relative z-50">
+
+       {/* ☰ ปุ่มเปิด sidebar (เฉพาะมือถือ) */}
+      <button
+        className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+        onClick={onToggleSidebar}
+      >
+        <Menu className="w-6 h-6" />
+      </button>
+
       {/* Left Section */}
-      <div className="flex items-center gap-3">
+      <div className="hidden lg:flex items-center gap-3">
         <AppBreadcrumbs/>
       </div>
 
       <div className="flex items-center gap-4">
         {/* Right Section */}
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild className="hidden md:flex ">
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
@@ -40,7 +54,7 @@ export default function Navbar() {
             </Button>
           </DropdownMenuTrigger>
   
-          <DropdownMenuContent className="w-64 p-2" align="end">
+          <DropdownMenuContent className=" w-fit md:w-64 p-2" align="end">
             <div className="flex justify-between items-center mb-2 px-2">
               <h2 className="font-semibold">Notifications</h2>
               <Button

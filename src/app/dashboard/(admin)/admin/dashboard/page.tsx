@@ -1,6 +1,10 @@
+import SearchAI from "@/components/agent/SearchAgent"
+
 const page = () => {
   return (
-    <div>page</div>
+    <div>
+      {/* <SearchAI/> */}
+    </div>
   )
 }
 export default page

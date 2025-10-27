@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { MoreHorizontal, Search, User, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { type Dispatch } from '@uiw/react-signature';
 
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
@@ -94,7 +95,7 @@ export default function JobManagementPage() {
       </div>
 
       {/* Content */}
-      <Card>
+      <div>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
             {filteredJobs.length > 0 ? (
@@ -121,7 +122,7 @@ export default function JobManagementPage() {
             )}
           </div>
         </CardContent>
-      </Card>
+      </div>
 
       {/* Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -158,7 +159,7 @@ function JobCard({ job, onView, onEdit, onDelete }: JobCardProps) {
   const employees = job.assignedEmployees;
 
   return (
-    <Card className="flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+    <Card className="flex flex-col justify-between shadow-sm hover:scale-105 hover:shadow-lg transition-all">
       <CardHeader>
         <div className="flex justify-between items-start gap-2">
           <div>
@@ -180,16 +181,15 @@ function JobCard({ job, onView, onEdit, onDelete }: JobCardProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onView(job.id)}>
-                View Details
+                View
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(job.id)}>
+              {/* <DropdownMenuItem onClick={() => onEdit(job.id)}>
                 Edit
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuItem
                 onClick={() => onDelete(job)}
-                className="text-green-600"
               >
-                Mark as Completed
+               Comleted
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -255,14 +255,16 @@ function JobCard({ job, onView, onEdit, onDelete }: JobCardProps) {
 }
 
 // --- Helper ---
-const getStatusVariant = (status: string) => {
+const getStatusVariant = (
+  status: string
+): "outline" | "default" | "destructive" | "secondary" | null | undefined => {
   switch (status) {
     case "completed":
-      return "success";
+      return "default";
     case "pending_approval":
       return "secondary";
     case "in_progress":
-      return "info";
+      return "outline";
     case "cancelled":
     case "rejected":
       return "destructive";

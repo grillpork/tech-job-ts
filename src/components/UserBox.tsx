@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
+import { History, LogOut, User } from "lucide-react";
+import { Separator } from "./ui/separator";
 
 export function UserBox() {
   const { currentUser, logout } = useUserStore();
@@ -41,11 +43,18 @@ export function UserBox() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => redirect("/dashboard/profile")}>
-          Profile
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem onClick={() => redirect(`/dashboard/${currentUser?.role}/profile`)}>
+          <User/>
+          My Account
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem onClick={() => redirect(`/dashboard/${currentUser?.role}/history`)}>
+          <History/>
+          History
+        </DropdownMenuItem>
+        <Separator/>
+        <DropdownMenuItem onClick={logout} variant="destructive">
+          <LogOut/>
           Logout
         </DropdownMenuItem>
       </DropdownMenuContent>

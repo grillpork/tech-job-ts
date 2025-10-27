@@ -37,6 +37,7 @@ export default function Sidebar() {
       { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
       { name: "Users", href: "/dashboard/admin/users", icon: Users },
       { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
+      { name: "Notification", href: "/dashboard/admin/notification", icon: Bell },
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
       { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
       { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
@@ -70,12 +71,12 @@ export default function Sidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          "h-screen bg-white dark:bg-gray-900 border-r flex flex-col transition-all duration-300",
+          "h-screen bg-white dark:bg-background  flex flex-col transition-all duration-300",
           collapsed ? "w-17" : "w-64"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 ">
           {!collapsed && (
             <h1 className="text-xl font-bold text-primary truncate">
               {currentUser
@@ -85,7 +86,7 @@ export default function Sidebar() {
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-background"
           >
             {collapsed ? (
               <ChevronRight className="h-5 w-5" />
@@ -108,8 +109,8 @@ export default function Sidebar() {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-primary text-white"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    ? "bg-primary dark:bg-neutral-800 text-white"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800"
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -129,20 +130,6 @@ export default function Sidebar() {
             );
           })}
         </nav>
-
-        {/* Footer */}
-        {/* <div className="p-4 border-t dark:border-gray-700">
-          <button
-            onClick={logout}
-            className={cn(
-              "flex items-center gap-2 text-red-500 hover:text-red-600 w-full",
-              collapsed && "justify-center"
-            )}
-          >
-            <LogOut className="w-5 h-5" />
-            {!collapsed && <span>Logout</span>}
-          </button>
-        </div> */}
       </aside>
     </TooltipProvider>
   );

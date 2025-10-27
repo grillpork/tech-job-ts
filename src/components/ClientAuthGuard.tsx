@@ -47,10 +47,10 @@ export function ClientAuthGuard({
         case "admin":
         case "manager":
         case "lead_technician":
-          newRedirectPath = "/dashboard/admin"; 
+          newRedirectPath = "/dashboard/admin/dashboard"; 
           break;
         case "employee":
-          newRedirectPath = "/dashboard/employee";
+          newRedirectPath = "/dashboard/employee/dashboard";
           break;
       }
       setIsRedirecting(true);

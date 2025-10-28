@@ -5,6 +5,7 @@ import { ClientAuthGuard } from "@/components/ClientAuthGuard";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
+import { Card } from "@/components/ui/card";
 
 export default function DashboardLayout({
   children,
@@ -18,7 +19,7 @@ export default function DashboardLayout({
       <div className="flex h-screen overflow-hidden bg-background">
         {/* Sidebar (ซ้าย) */}
         {/* ✅ Desktop */}
-        <aside className="hidden lg:block bg-muted/40 border-r">
+        <aside className="hidden lg:block bg-muted/40 ">
           <Sidebar />
         </aside>
 
@@ -37,7 +38,7 @@ export default function DashboardLayout({
 
               {/* Sidebar */}
               <motion.aside
-                className="fixed top-0 left-0 z-50 h-full w-64 bg-muted/40 border-r shadow-lg lg:hidden"
+                className="fixed top-0 left-0 z-50 h-full w-64 bg-muted/40 border-r lg:hidden"
                 initial={{ x: -300 }}
                 animate={{ x: 0 }}
                 exit={{ x: -300 }}
@@ -55,7 +56,9 @@ export default function DashboardLayout({
           <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
 
           {/* ✅ Content */}
-          <main className="flex-1 p-4 lg:p-6 overflow-y-auto">{children}</main>
+          <main className="flex-1 lg:p-6 overflow-y-auto">
+            <Card className="p-4 h-screen">{children}</Card>
+          </main>
         </div>
       </div>
     </ClientAuthGuard>

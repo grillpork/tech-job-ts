@@ -18,6 +18,8 @@ import {
   User,
   Calendar,
   ToolCase,
+  PanelRight,
+  PanelLeft,
 } from "lucide-react";
 
 import {
@@ -93,9 +95,9 @@ export default function Sidebar() {
             className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-background"
           >
             {collapsed ? (
-              <ChevronRight className="h-5 w-5" />
+              <PanelLeft className="h-5 w-5" />
             ) : (
-              <ChevronLeft className="h-5 w-5" />
+              <PanelLeft className="h-5 w-5" />
             )}
           </button>
         </div>
@@ -119,6 +121,7 @@ export default function Sidebar() {
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 {!collapsed && <span className="w-">{menu.name}</span>}
+                {!collapsed && <div className="flex justify-end w-full">{isActive && <ChevronRight className="w-4 h-4" />}</div>}
               </Link>
             );
 

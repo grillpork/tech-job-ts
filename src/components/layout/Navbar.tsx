@@ -27,7 +27,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const { notifications, unreadCount, markAsRead, clearAll } =useNotificationStore();
 
   return (
-    <header className="w-full h-17 border-b bg-background flex items-center justify-between px-4 shadow-sm relative z-50">
+    <header className="w-full h-17 bg-background flex items-center justify-between px-4  relative z-50">
 
        {/* ☰ ปุ่มเปิด sidebar (เฉพาะมือถือ) */}
       <button

@@ -3,7 +3,14 @@ import { useUserStore } from "@/stores/faker/userStore";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LockKeyhole,
+  MailIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -56,7 +63,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="flex items-center justify-center  min-h-screen bg-gray-50">
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,6 +74,20 @@ export default function LoginPage() {
           onSubmit={step === "email" ? handleNext : handleSubmit}
           className="space-y-6"
         >
+          <div className="w-full grid place-content-center">
+            <div className=" rounded-full border border-neutral-300 px-2 max-w-fit text-black flex items-center gap-2 ">
+              <div className="w-2 h-2 bg-purple-500 rounded-2xl"></div>
+              <span>Tech Job | co</span>
+            </div>
+          </div>
+
+          <div className="text-black text-center space-y-2">
+            <p className="text-4xl font-bold">Welcome Back!</p>
+            <p className="text-neutral-400">Please Login to Your Account</p>
+          </div>
+
+          <hr  className="border-0.5 border-neutral-200"/>
+
           {/* Email */}
           <motion.div
             key="email-field"
@@ -75,15 +96,16 @@ export default function LoginPage() {
             transition={{ duration: 0.4 }}
           >
             <label className="block text-sm font-medium ml-3 text-gray-700">
-              Email
+              Email address
             </label>
-            <div className="flex items-center gap-2 w-full  text-gray-700 bg-gray-100 border border-gray-300 rounded-full overflow-clip">
+            <div className="flex items-center gap-2 w-full  text-gray-700 bg-gray-100 border border-gray-300 rounded-full overflow-clip px-4">
+              <MailIcon size={20} className="text-neutral-400" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2 text-gray-700 bg-gray-100 outline-none"
+                className="w-full py-2 text-gray-700 bg-gray-100 outline-none"
                 placeholder="admin@example.com"
               />
               {step === "email" && isEmailValid && (
@@ -114,10 +136,11 @@ export default function LoginPage() {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block ml-3 mb-1 text-sm font-medium text-gray-700">
+                  <label className="block ml-3 text-sm font-medium text-gray-700">
                     Password
                   </label>
-                  <div className=" relative  text-gray-700 bg-gray-100 border border-gray-300 rounded-full overflow-clip">
+                  <div className=" relative flex items-center text-gray-700 bg-gray-100 border border-gray-300 rounded-full overflow-clip px-4">
+                    <LockKeyhole size={20} className="text-neutral-400" />
                     <input
                       type={passwordVisible ? "text" : "password"}
                       value={password}
@@ -151,7 +174,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-5 font-semibold text-white shadow-white rounded-full hover:bg-neutral-800 disabled:bg-gray-400 cursor-pointer"
+                  className="w-full py-5 font-semibold text-white shadow-white bg-black rounded-full hover:bg-neutral-800 disabled:bg-gray-400 cursor-pointer"
                 >
                   {isLoading ? "กำลังโหลด..." : "เข้าสู่ระบบ"}
                 </Button>

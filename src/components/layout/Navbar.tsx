@@ -12,11 +12,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import Link from "next/link";
 import { AppBreadcrumbs } from "../AppBreadcrumb";
-import { ModeToggle } from "../ModeToggle";
 import { Menu } from "lucide-react";
 import { useUserStore } from "@/stores/faker/userStore";
+import { ModeToggle } from "../ModeToggle";
+import GlobalSearch from "../GlobalSearch";
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -102,9 +102,8 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {/* ModeToggle */}
-        <ModeToggle />
         {/*UserBox */}
+        <GlobalSearch/>
         <UserBox />
       </div>
     </header>

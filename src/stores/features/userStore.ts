@@ -10,7 +10,6 @@ interface Credentials {
   password: string;
 }
 
-
 interface UserStoreState {
   users: User[];
   currentUser: User | null;
@@ -36,8 +35,6 @@ export const useUserStore = create<UserStoreState>()(
       isAuthenticated: false,
       isHydrated: false,
 
-      // --- Auth Actions Implementations ---
-      // (ส่วน login, logout, switchUserById เหมือนเดิม)
       login: async ({ email, password }) => {
         console.log("UserStore: Attempting login with:", { email, password });
         const allUsers = get().users; 
@@ -79,7 +76,6 @@ export const useUserStore = create<UserStoreState>()(
         }
       },
 
-      // --- CRUD User Actions Implementations ---
       createUser: (userData) => {
         set((state) => {
           if (state.users.some((u) => u.email === userData.email)) {
@@ -97,7 +93,6 @@ export const useUserStore = create<UserStoreState>()(
         console.log("UserStore: User created:", userData.name);
       },
 
-      // (ส่วน updateUser, deleteUser, getUserById เหมือนเดิม)
       updateUser: (userId, updatedData) => {
         set((state) => {
           const userIndex = state.users.findIndex((user) => user.id === userId);
@@ -136,7 +131,6 @@ export const useUserStore = create<UserStoreState>()(
       name: 'user-management-storage',
       storage: createJSONStorage(() => localStorage),
       
-      //  อัปเดต onRehydrateStorage ให้ใช้ MOCK_USERS
       onRehydrateStorage: () => (state) => {
           if (state && (!state.users || state.users.length === 0)) {
               console.log("UserStore: Initializing mock users from MOCK_USERS array...");
@@ -156,7 +150,6 @@ export const useUserStore = create<UserStoreState>()(
           }
       },
 
-      // ✅ อัปเดต migrate ให้ลบ faker ออก
       migrate: (persistedState, version) => {
         if (version === 0) {
           const state = persistedState as any;
@@ -172,7 +165,6 @@ export const useUserStore = create<UserStoreState>()(
           if (state.users) {
             state.users = state.users.map((user: User) => ({
               ...user,
-              //  เปลี่ยนจาก faker เป็นค่า placeholder ที่คาดเดาได้
               email: user.email || `migrated-${user.id.substring(0, 4)}@example.com`, 
               password: user.password || "password123",
               role: user.role && ['manager', 'lead_technician', 'employee', 'admin'].includes(user.role) ? user.role : 'employee', 

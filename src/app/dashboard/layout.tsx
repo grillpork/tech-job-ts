@@ -56,8 +56,8 @@ export default function DashboardLayout({
           <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
 
           {/* ✅ Content */}
-          <main className="flex-1 lg:p-6 overflow-y-auto">
-            <Card className="p-4 h-screen">{children}</Card>
+          <main className="flex-1 px-4 overflow-y-auto">
+            <Card className="p-4 h-full overflow-auto">{children}</Card>
           </main>
         </div>
       </div>

@@ -11,15 +11,13 @@ import {
   Briefcase,
   FileText,
   Settings,
-  LogOut,
-  ChevronLeft,
   ChevronRight,
   Bell,
   User,
   Calendar,
   ToolCase,
-  PanelRight,
-  PanelLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 import {
@@ -40,7 +38,7 @@ export default function Sidebar() {
       { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
       { name: "Users", href: "/dashboard/admin/users", icon: Users },
       { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
-      { name: "Notification", href: "/dashboard/admin/notification", icon: Bell },
+      { name: "Notifications", href: "/dashboard/admin/notifications", icon: Bell },
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
       { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
       { name: "Inventorys", href: "/dashboard/admin/inventorys", icon: ToolCase },
@@ -63,7 +61,7 @@ export default function Sidebar() {
       { name: "Overview", href: "/dashboard/employee/overview", icon: LayoutDashboard },
       { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
       { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
-      { name: "Notification", href: "/dashboard/employee/notification", icon: Bell },
+      { name: "Notifications", href: "/dashboard/employee/notifications", icon: Bell },
       { name: "Calendar", href: "/dashboard/employee/calendar", icon: Calendar },
       { name: "Inventorys", href: "/dashboard/employee/inventorys", icon: ToolCase },
       { name: "Profile", href: "/dashboard/employee/profile", icon: User },
@@ -95,9 +93,9 @@ export default function Sidebar() {
             className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-background"
           >
             {collapsed ? (
-              <PanelLeft className="h-5 w-5" />
+              <PanelLeftOpen className="h-5 w-5" />
             ) : (
-              <PanelLeft className="h-5 w-5" />
+              <PanelLeftClose className="h-5 w-5" />
             )}
           </button>
         </div>
@@ -106,22 +104,24 @@ export default function Sidebar() {
         <nav className="flex-1 p-3 space-y-1">
           {menus.map((menu) => {
             const Icon = menu.icon;
-            const isActive = pathname === menu.href;
-
+            // const isActive = pathname === menu.href;
+            const isActive = pathname.startsWith(menu.href);
             const menuItem = (
               <Link
                 key={menu.href}
                 href={menu.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors group relative",
                   isActive
-                    ? "bg-primary dark:bg-neutral-800 text-white"
+                    ? "bg-neutral-100 dark:bg-neutral-800"
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800"
                 )}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className="w-5 h-5 flex-shrink-0 group-hover:animate-bounce"  />
                 {!collapsed && <span className="w-">{menu.name}</span>}
-                {!collapsed && <div className="flex justify-end w-full">{isActive && <ChevronRight className="w-4 h-4" />}</div>}
+                {!collapsed && <div className="flex justify-end w-full">
+                  {isActive && <div className="w-2 h-5 bg-black dark:bg-white absolute -right-1 dark:shadow-[0_0_12px_rgba(255,255,255,1)] shadow-[0_0_12px_rgba(0,0,0,1)] rounded-full top-1/2 transform -translate-y-1/2"></div>}
+                </div>}
               </Link>
             );
 

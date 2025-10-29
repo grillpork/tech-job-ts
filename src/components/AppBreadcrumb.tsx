@@ -84,7 +84,7 @@ export function AppBreadcrumbs() {
         {breadcrumbs.map((item, index) => (
           <Fragment key={item.href}>
             <BreadcrumbItem>
-              {item.isCurrent ? (
+              {item.isCurrent || item.href.includes('[') ? (
                 // ถ้าเป็น item สุดท้าย ไม่ต้องมี Link
                 <span className="font-semibold text-foreground">
                   {item.label}

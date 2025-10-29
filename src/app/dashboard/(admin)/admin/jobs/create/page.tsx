@@ -9,8 +9,10 @@ import {
   Trash2,
   File as FileIcon,
   X,
+  Check,
+  UploadCloud, // <-- NEW: Import ไอคอนสำหรับ Dropzone
 } from "lucide-react";
-import { cn } from "@/lib/utils"; // Import utility ของ shadcn
+import { cn } from "@/lib/utils";
 
 // Import components จาก shadcn/ui
 import { Button } from "@/components/ui/button";
@@ -31,8 +33,16 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
-import { MapPicker } from "@/components/map/MapPicker";
+// import { MapPicker } from "@/components/map/MapPicker"; // (ถ้ามี)
 
 // Interface สำหรับ Task
 interface Task {
@@ -41,18 +51,40 @@ interface Task {
   description: string;
 }
 
+// Interface และข้อมูลตัวอย่างสำหรับพนักงาน
+interface Employee {
+  value: string;
+  label: string;
+}
+
+const ALL_EMPLOYEES: Employee[] = [
+  { value: "emp1", label: "ณัฐพล (Nattapon)" },
+  { value: "emp2", label: "สมชาย (Somchai)" },
+  { value: "emp3", label: "สุภาพร (Supaporn)" },
+  { value: "emp4", label: "อลิสา (Alisa)" },
+  { value: "emp5", label: "เจฟ (Jeff)" },
+];
+
 export default function CreateJobPage() {
   // State สำหรับ Date Pickers
-  const [startDate, setStartDate] = React.useState<Date | undefined>();
-  const [endDate, setEndDate] = React.useState<Date | undefined>();
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
 
-  // State สำหรับ Attachments
-  const [attachments, setAttachments] = useState(["attachment.pef"]);
+  // <-- UPDATED: State สำหรับ Attachments (เปลี่ยนเป็น File[])
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   // State สำหรับ Tasks
   const [tasks, setTasks] = useState<Task[]>([
     { id: 1, header: "task header", description: "Task discription" },
   ]);
+
+  // State สำหรับ Popover และ พนักงานที่ถูกเลือก
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
+
+  // <-- NEW: State สำหรับ Drag and Drop
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // ฟังก์ชันเพิ่ม Task
   const addTask = () => {
@@ -64,10 +96,47 @@ export default function CreateJobPage() {
     setTasks(tasks.filter((task) => task.id !== id));
   };
 
-  // ฟังก์ชันลบ Attachment
+  // <-- UPDATED: ฟังก์ชันลบ Attachment (ลบจาก File[])
   const deleteAttachment = (fileName: string) => {
-    setAttachments(attachments.filter((file) => file !== fileName));
+    setAttachments(attachments.filter((file) => file.name !== fileName));
   };
+
+  // ฟังก์ชันสำหรับลบพนักงานออกจาก Badge
+  const handleRemoveEmployee = (value: string) => {
+    setSelectedEmployees(
+      selectedEmployees.filter((emp) => emp.value !== value)
+    );
+  };
+
+  // <-- NEW: 5 ฟังก์ชันสำหรับจัดการ Drag and Drop
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    setAttachments((prevFiles) => [...prevFiles, ...files]);
+  };
+
+  // สำหรับการคลิกเลือกไฟล์
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setAttachments((prevFiles) => [...prevFiles, ...files]);
+  };
+
+  // สำหรับการคลิกปุ่ม "browse"
+  const openFileDialog = () => {
+    fileInputRef.current?.click();
+  };
+  // --> END NEW
 
   return (
     // Container หลักของหน้า
@@ -131,16 +200,83 @@ export default function CreateJobPage() {
 
           {/* Assign Employee */}
           <div>
-            <Label htmlFor="assignEmployee">Assign employee</Label>
-            <Select>
-              <SelectTrigger id="assignEmployee" className="mt-2">
-                <SelectValue placeholder="Employee name" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="emp1">Employee 1</SelectItem>
-                <SelectItem value="emp2">Employee 2</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Assign employee</Label>
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={popoverOpen}
+                  className="w-full justify-between mt-2 h-auto min-h-10"
+                >
+                  <div className="flex gap-1 flex-wrap">
+                    {selectedEmployees.length > 0 ? (
+                      selectedEmployees.map((emp) => (
+                        <Badge
+                          key={emp.value}
+                          variant="secondary"
+                          className="gap-1.5"
+                        >
+                          {emp.label}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveEmployee(emp.value);
+                            }}
+                            className="rounded-full hover:bg-muted-foreground/20"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground font-normal">
+                        Employee name
+                      </span>
+                    )}
+                  </div>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+              >
+                <Command>
+                  <CommandInput placeholder="Search employee..." />
+                  <CommandList>
+                    <CommandEmpty>No employee found.</CommandEmpty>
+                    <CommandGroup>
+                      {ALL_EMPLOYEES.map((emp) => {
+                        const isSelected = selectedEmployees.some(
+                          (s) => s.value === emp.value
+                        );
+                        return (
+                          <CommandItem
+                            key={emp.value}
+                            onSelect={() => {
+                              if (isSelected) {
+                                handleRemoveEmployee(emp.value);
+                              } else {
+                                setSelectedEmployees([...selectedEmployees, emp]);
+                              }
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                isSelected ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {emp.label}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Grid ย่อยสำหรับ Date Pickers */}
@@ -201,45 +337,90 @@ export default function CreateJobPage() {
             </div>
           </div>
 
-          {/* Attachments */}
+          {/* ================================================== */}
+          {/* <-- START: Attachments (เวอร์ชัน Drag and Drop) --> */}
+          {/* ================================================== */}
           <div>
             <Label>Attachments</Label>
-            <div className="space-y-2 mt-2">
+
+            {/* Dropzone Area */}
+            <div
+              className={cn(
+                "mt-2 flex justify-center rounded-lg border border-dashed border-input px-6 py-10 transition-colors",
+                isDragging && "border-primary bg-muted/50" // Visual feedback
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="text-center">
+                <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-4 text-sm text-muted-foreground">
+                  <span className="font-semibold text-primary">
+                    Drag 'n' drop
+                  </span>{" "}
+                  files here, or{" "}
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 h-auto font-semibold text-primary"
+                    onClick={openFileDialog}
+                  >
+                    click to browse
+                  </Button>
+                  .
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Max file size: 5MB
+                </p>
+              </div>
+
+              {/* Hidden File Input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+            </div>
+
+            {/* File List */}
+            <div className="space-y-2 mt-4">
               {attachments.map((file, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between p-2.5 rounded-md border bg-muted/50"
                 >
-                  <div className="flex items-center gap-2">
-                    <FileIcon className="h-4 w-4" />
-                    <span className="text-sm">{file}</span>
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <FileIcon className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-sm truncate" title={file.name}>
+                      {file.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">
+                      ({(file.size / 1024).toFixed(1)} KB)
+                    </span>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
-                    onClick={() => deleteAttachment(file)}
+                    className="h-6 w-6 flex-shrink-0"
+                    onClick={() => deleteAttachment(file.name)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-4 mt-3">
-              <Button type="button" variant="outline">
-                <Plus className="mr-2 h-4 w-4" />
-                Add new file
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                This file 5 mb.
-              </span>
-            </div>
           </div>
+          {/* ================================================ */}
+          {/* <-- END: Attachments (เวอร์ชัน Drag and Drop) --> */}
+          {/* ================================================ */}
         </form>
 
         {/* =================================== */}
-        {/* ======     คอลัมน์ขวา (Map & Tasks)    ====== */}
+        {/* ======    คอลัมน์ขวา (Map & Tasks)    ====== */}
         {/* =================================== */}
         <div className="lg:col-span-2 space-y-8">
           {/* Map Picker */}
@@ -267,7 +448,6 @@ export default function CreateJobPage() {
                   className="p-4 rounded-md border space-y-3 bg-muted/50"
                 >
                   <div className="flex justify-between items-start">
-                    {/* ใช้ Input ที่ดูเหมือน Text ธรรมดา */}
                     <Input
                       placeholder="task header"
                       defaultValue={task.header}
@@ -281,7 +461,6 @@ export default function CreateJobPage() {
                       delete
                     </Button>
                   </div>
-                  {/* ใช้ Textarea ที่ดูเหมือน Text ธรรมดา */}
                   <Textarea
                     placeholder="Task discription"
                     defaultValue={task.description}
@@ -305,7 +484,7 @@ export default function CreateJobPage() {
       </div>
 
       {/* =================================== */}
-      {/* ======     Footer Buttons    ====== */}
+      {/* ======     Footer Buttons     ====== */}
       {/* =================================== */}
       <div className="flex justify-end gap-4 pt-6 border-t">
         <Button variant="ghost">cancel</Button>

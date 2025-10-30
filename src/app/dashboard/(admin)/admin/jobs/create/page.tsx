@@ -10,7 +10,13 @@ import {
   File as FileIcon,
   X,
   Check,
-  UploadCloud, // <-- NEW: Import ไอคอนสำหรับ Dropzone
+  UploadCloud,
+  MoreHorizontal,
+  // ==================================
+  // NEW: เพิ่ม Icons สำหรับปุ่มย้าย
+  // ==================================
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +47,29 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+  DialogPortal,
+  DialogOverlay,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  // ==================================
+  // NEW: เพิ่ม Separator
+  // ==================================
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 // import { MapPicker } from "@/components/map/MapPicker"; // (ถ้ามี)
 
@@ -65,81 +94,312 @@ const ALL_EMPLOYEES: Employee[] = [
   { value: "emp5", label: "เจฟ (Jeff)" },
 ];
 
+// ==================================
+// ==================================
+// NEW: Task Item Component (อัปเดต Props)
+// ==================================
+// ==================================
+interface TaskItemProps {
+  task: Task;
+  onDelete: (id: number) => void;
+  onSelect: (id: number) => void;
+  isChecked: boolean;
+  onEdit: (task: Task) => void;
+  // ==================================
+  // NEW: เพิ่ม Props สำหรับการย้ายตำแหน่ง
+  // ==================================
+  onMoveUp: (id: number) => void;
+  onMoveDown: (id: number) => void;
+  index: number;
+  totalTasks: number;
+  // ==================================
+}
+
+function TaskItem({
+  task,
+  onDelete,
+  onSelect,
+  isChecked,
+  onEdit,
+  // ==================================
+  // NEW: รับ Props ใหม่
+  // ==================================
+  onMoveUp,
+  onMoveDown,
+  index,
+  totalTasks,
+}: TaskItemProps) {
+  return (
+    <div
+      key={task.id}
+      className={cn(
+        "rounded-lg border bg-card p-4 shadow-sm transition-all",
+        "hover:bg-muted/60 hover:shadow-md",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        {/* Checkbox */}
+        <Checkbox
+          id={`task-${task.id}`}
+          checked={isChecked}
+          onCheckedChange={() => onSelect(task.id)}
+          className="mt-1"
+        />
+
+        {/* Main content */}
+        <div className="flex-1 space-y-1">
+          <div className="flex justify-between items-start gap-4">
+            <Label
+              htmlFor={`task-${task.id}`}
+              className={cn(
+                "flex-1 text-base font-medium leading-tight cursor-pointer",
+                isChecked && "line-through text-muted-foreground"
+              )}
+            >
+              {task.header}
+            </Label>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 flex-shrink-0 text-muted-foreground"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {/* ================================== */}
+                {/* NEW: ปุ่ม Move Up / Move Down */}
+                {/* ================================== */}
+                <DropdownMenuItem
+                  onClick={() => onMoveUp(task.id)}
+                  disabled={index === 0} // ปิดปุ่มถ้าอยู่บนสุด
+                >
+                  <ArrowUp className="mr-2 h-4 w-4" />
+                  Move Up
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onMoveDown(task.id)}
+                  disabled={index === totalTasks - 1} // ปิดปุ่มถ้าอยู่ล่างสุด
+                >
+                  <ArrowDown className="mr-2 h-4 w-4" />
+                  Move Down
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {/* ================================== */}
+                <DropdownMenuItem onClick={() => onEdit(task)}>
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onDelete(task.id)}
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                >
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {task.description && (
+            <p
+              className={cn(
+                "text-sm text-muted-foreground pl-0",
+                isChecked && "line-through"
+              )}
+            >
+              {task.description}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+// ==================================
+// ==================================
+
 export default function CreateJobPage() {
   // State สำหรับ Date Pickers
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
 
-  // <-- UPDATED: State สำหรับ Attachments (เปลี่ยนเป็น File[])
+  // State สำหรับ Attachments (File[])
   const [attachments, setAttachments] = useState<File[]>([]);
 
   // State สำหรับ Tasks
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, header: "task header", description: "Task discription" },
-  ]);
+    { id: 1, header: "Task 1", description: "Description 1" },
+    { id: 2, header: "Task 2", description: "Description 2" },
+    { id: 3, header: "Task 3", description: "Description 3" },
+    { id: 4, header: "Task 4", description: "Description 4" },
+    { id: 5, header: "Task 5", description: "Description 5" },
+    { id: 6, header: "Task 6", description: "Description 6" },
+  ]); // เพิ่ม Task เริ่มต้นให้เห็นผลชัดเจน
+
+  // NEW: State สำหรับ Task ที่ถูกเลือก
+  const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
 
   // State สำหรับ Popover และ พนักงานที่ถูกเลือก
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
 
-  // <-- NEW: State สำหรับ Drag and Drop
+  // State สำหรับ Drag and Drop
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // ฟังก์ชันเพิ่ม Task
-  const addTask = () => {
-    setTasks([...tasks, { id: Date.now(), header: "", description: "" }]);
-  };
+  // State สำหรับ Popup "Add Task"
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [newTaskHeader, setNewTaskHeader] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
 
-  // ฟังก์ชันลบ Task
+  // State สำหรับ Popup "Edit Task"
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [editHeader, setEditHeader] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+
+  // (ฟังก์ชันจัดการ Task ส่วนใหญ่ ... เหมือนเดิม)
   const deleteTask = (id: number) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+    setTasks((prev) => prev.filter((task) => task.id !== id));
+    setSelectedTasks((prev) => prev.filter((selectedId) => selectedId !== id));
   };
 
-  // <-- UPDATED: ฟังก์ชันลบ Attachment (ลบจาก File[])
   const deleteAttachment = (fileName: string) => {
     setAttachments(attachments.filter((file) => file.name !== fileName));
   };
 
-  // ฟังก์ชันสำหรับลบพนักงานออกจาก Badge
   const handleRemoveEmployee = (value: string) => {
     setSelectedEmployees(
       selectedEmployees.filter((emp) => emp.value !== value)
     );
   };
 
-  // <-- NEW: 5 ฟังก์ชันสำหรับจัดการ Drag and Drop
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
-
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
   };
-
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
     setAttachments((prevFiles) => [...prevFiles, ...files]);
   };
-
-  // สำหรับการคลิกเลือกไฟล์
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setAttachments((prevFiles) => [...prevFiles, ...files]);
   };
-
-  // สำหรับการคลิกปุ่ม "browse"
   const openFileDialog = () => {
     fileInputRef.current?.click();
   };
-  // --> END NEW
+
+  const handleTaskSelection = (taskId: number) => {
+    setSelectedTasks((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
+  const deleteSelectedTasks = () => {
+    setTasks((prev) => prev.filter((task) => !selectedTasks.includes(task.id)));
+    setSelectedTasks([]);
+  };
+  const deleteAllTasks = () => {
+    setTasks([]);
+    setSelectedTasks([]);
+  };
+  const handleSelectAll = () => {
+    if (selectedTasks.length === tasks.length) {
+      setSelectedTasks([]);
+    } else {
+      setSelectedTasks(tasks.map((task) => task.id));
+    }
+  };
+  const handleAddNewTask = () => {
+    if (newTaskHeader.trim() === "") return;
+    const newTask: Task = {
+      id: Date.now(),
+      header: newTaskHeader,
+      description: newTaskDescription,
+    };
+    // CHANGED: เพิ่ม Task ใหม่ *ต่อท้าย* array
+    setTasks((prevTasks) => [...prevTasks, newTask]);
+    setNewTaskHeader("");
+    setNewTaskDescription("");
+    setIsAddTaskDialogOpen(false);
+  };
+
+  // (ฟังก์ชัน Edit Task ... เหมือนเดิม)
+  const handleOpenEditDialog = (task: Task) => {
+    setTaskToEdit(task);
+    setEditHeader(task.header);
+    setEditDescription(task.description);
+    setIsEditDialogOpen(true);
+  };
+  const handleSaveEdit = () => {
+    if (!taskToEdit) return;
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskToEdit.id
+          ? { ...task, header: editHeader, description: editDescription }
+          : task
+      )
+    );
+    setIsEditDialogOpen(false);
+    setTaskToEdit(null);
+    setEditHeader("");
+    setEditDescription("");
+  };
+
+  // ==================================
+  // NEW: ฟังก์ชันสำหรับย้ายตำแหน่ง Task
+  // ==================================
+  const handleMoveTaskUp = (id: number) => {
+    setTasks((prevTasks) => {
+      const currentIndex = prevTasks.findIndex((t) => t.id === id);
+      if (currentIndex <= 0) return prevTasks; // อยู่บนสุดแล้ว
+
+      const newTasks = [...prevTasks];
+      // สลับตำแหน่ง
+      [newTasks[currentIndex - 1], newTasks[currentIndex]] = [
+        newTasks[currentIndex],
+        newTasks[currentIndex - 1],
+      ];
+      return newTasks;
+    });
+  };
+
+  const handleMoveTaskDown = (id: number) => {
+    setTasks((prevTasks) => {
+      const currentIndex = prevTasks.findIndex((t) => t.id === id);
+      if (currentIndex === -1 || currentIndex >= prevTasks.length - 1) {
+        return prevTasks; // ไม่พบ หรือ อยู่ล่างสุดแล้ว
+      }
+
+      const newTasks = [...prevTasks];
+      // สลับตำแหน่ง
+      [newTasks[currentIndex + 1], newTasks[currentIndex]] = [
+        newTasks[currentIndex],
+        newTasks[currentIndex + 1],
+      ];
+      return newTasks;
+    });
+  };
+  // ==================================
+
+  // ตัวแปรช่วยเช็คสถานะ Checkbox
+  const isAllSelected = tasks.length > 0 && selectedTasks.length === tasks.length;
+  const isIndeterminate =
+    selectedTasks.length > 0 && selectedTasks.length < tasks.length;
 
   return (
-    // Container หลักของหน้า
+    // Container หลักของหน้า (p-4 สำหรับ mobile, md:p-8 สำหรับ tablet ขึ้นไป)
     <div className="p-4 md:p-8 space-y-8">
       {/* ส่วน Header ของหน้า */}
       <div className="items-center">
@@ -147,11 +407,11 @@ export default function CreateJobPage() {
       </div>
 
       {/* Main Content Grid (Responsive) */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
         {/* ================================== */}
-        {/* ======     คอลัมน์ซ้าย (ฟอร์ม)    ====== */}
+        {/* ======       คอลัมน์ซ้าย (ฟอร์ม)        ====== */}
         {/* ================================== */}
-        <form id="create-job-form" className="lg:col-span-3 space-y-6">
+        <form id="create-job-form" className="md:col-span-3 space-y-6">
           {/* Job Title */}
           <div>
             <Label htmlFor="jobTitle">Job Title</Label>
@@ -164,12 +424,11 @@ export default function CreateJobPage() {
             <Textarea
               id="jobDescription"
               placeholder="Enter job description"
-              rows={5}
-              className="mt-2"
+              className="mt-2 resize-none h-26overflow-y-auto" // (FIXED: h-32)
             />
           </div>
 
-          {/* Grid ย่อยสำหรับ Selects */}
+          {/* Grid ย่อยสำหรับ Selects (Responsive อยู่แล้ว) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="leadTechnician">Lead technician</Label>
@@ -279,7 +538,7 @@ export default function CreateJobPage() {
             </Popover>
           </div>
 
-          {/* Grid ย่อยสำหรับ Date Pickers */}
+          {/* Grid ย่อยสำหรับ Date Pickers (Responsive อยู่แล้ว) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="startDate">Start date</Label>
@@ -337,12 +596,9 @@ export default function CreateJobPage() {
             </div>
           </div>
 
-          {/* ================================================== */}
-          {/* <-- START: Attachments (เวอร์ชัน Drag and Drop) --> */}
-          {/* ================================================== */}
+          {/* Attachments (เวอร์ชัน Drag and Drop) */}
           <div>
             <Label>Attachments</Label>
-
             {/* Dropzone Area */}
             <div
               className={cn(
@@ -414,15 +670,12 @@ export default function CreateJobPage() {
               ))}
             </div>
           </div>
-          {/* ================================================ */}
-          {/* <-- END: Attachments (เวอร์ชัน Drag and Drop) --> */}
-          {/* ================================================ */}
         </form>
 
         {/* =================================== */}
-        {/* ======    คอลัมน์ขวา (Map & Tasks)    ====== */}
+        {/* ======     คอลัมน์ขวา (Map & Tasks)      ====== */}
         {/* =================================== */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="md:col-span-2 space-y-8">
           {/* Map Picker */}
           <div className="space-y-2">
             <Label htmlFor="location">Map Picker</Label>
@@ -438,57 +691,305 @@ export default function CreateJobPage() {
             </div>
           </div>
 
-          {/* Tasks */}
+          {/* =================================== */}
+          {/* ======         NEW: Tasks Section       ====== */}
+          {/* =================================== */}
           <div className="space-y-4">
-            <Label className="text-lg font-medium">Tasks</Label>
-            <div className="space-y-4">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="p-4 rounded-md border space-y-3 bg-muted/50"
-                >
-                  <div className="flex justify-between items-start">
-                    <Input
-                      placeholder="task header"
-                      defaultValue={task.header}
-                      className="font-semibold border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-1.5 h-auto bg-transparent"
-                    />
+            {/* Dialog นี้สำหรับ "View All" */}
+            <Dialog>
+              {/* Header (Main Page) */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="select-all-tasks"
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    data-state={
+                      isIndeterminate
+                        ? "indeterminate"
+                        : isAllSelected
+                        ? "checked"
+                        : "unchecked"
+                    }
+                    disabled={tasks.length === 0}
+                  />
+                  <Label
+                    htmlFor="select-all-tasks"
+                    className="text-lg font-medium"
+                  >
+                    Tasks
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedTasks.length > 0 && (
                     <Button
+                      type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={() => deleteTask(task.id)}
+                      onClick={deleteSelectedTasks}
                     >
-                      delete
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete ({selectedTasks.length})
                     </Button>
-                  </div>
-                  <Textarea
-                    placeholder="Task discription"
-                    defaultValue={task.description}
-                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 bg-transparent"
-                    rows={2}
-                  />
+                  )}
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={tasks.length === 0}
+                    >
+                      View All ({tasks.length})
+                    </Button>
+                  </DialogTrigger>
                 </div>
-              ))}
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={addTask}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add task
-            </Button>
+              </div>
+
+              {/* Scroll Area (Main Page) */}
+              <ScrollArea className="h-48 w-full rounded-md border">
+                {tasks.length > 0 ? (
+                  <div className="p-4 space-y-4">
+                    {/* ================================== */}
+                    {/* NEW: ส่ง Props (index, total, handlers) */}
+                    {/* ================================== */}
+                    {tasks.map((task, index) => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        onDelete={deleteTask}
+                        onSelect={handleTaskSelection}
+                        isChecked={selectedTasks.includes(task.id)}
+                        onEdit={handleOpenEditDialog}
+                        // NEW
+                        index={index}
+                        totalTasks={tasks.length}
+                        onMoveUp={handleMoveTaskUp}
+                        onMoveDown={handleMoveTaskDown}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <p className="text-sm text-muted-foreground text-center">
+                      No tasks added yet.
+                    </p>
+                  </div>
+                )}
+              </ScrollArea>
+
+              {/* ปุ่ม "Add task" (ห่อด้วย Dialog ของมันเอง) */}
+              <Dialog
+                open={isAddTaskDialogOpen}
+                onOpenChange={setIsAddTaskDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" className="w-full">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add task
+                  </Button>
+                </DialogTrigger>
+
+                {/* (FIXED: Overlay) */}
+                <DialogPortal>
+                  <DialogOverlay className="bg-black/40" />
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add New Task</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-task-header">Task Header</Label>
+                        <Input
+                          id="new-task-header"
+                          placeholder="Enter task header"
+                          value={newTaskHeader}
+                          onChange={(e) => setNewTaskHeader(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-task-description">
+                          Description
+                        </Label>
+                        <Textarea
+                          id="new-task-description"
+                          placeholder="Enter task description"
+                          value={newTaskDescription}
+                          onChange={(e) =>
+                            setNewTaskDescription(e.target.value)
+                          }
+                          rows={3}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="ghost">
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                      <Button type="button" onClick={handleAddNewTask}>
+                        Save Task
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </DialogPortal>
+              </Dialog>
+
+              {/* Dialog สำหรับ "Edit Task" */}
+              <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                {/* (FIXED: Overlay) */}
+                <DialogPortal>
+                  <DialogOverlay className="bg-black/40" />
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Edit Task</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-task-header">Task Header</Label>
+                        <Input
+                          id="edit-task-header"
+                          value={editHeader}
+                          onChange={(e) => setEditHeader(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-task-description">
+                          Description
+                        </Label>
+                        <Textarea
+                          id="edit-task-description"
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          rows={3}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="ghost">
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                      <Button type="button" onClick={handleSaveEdit}>
+                        Save Changes
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </DialogPortal>
+              </Dialog>
+
+              {/* DialogContent นี้สำหรับ "View All" */}
+              {/* (FIXED: Overlay) */}
+              <DialogPortal>
+                <DialogOverlay className="bg-black/40" />
+                <DialogContent className="sm:max-w-xl md:max-w-2xl h-[80vh] flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>All Tasks ({tasks.length})</DialogTitle>
+                  </DialogHeader>
+
+                  {/* แถบควบคุม (Select All, Delete Selected, Delete All) ใน Popup "View All" */}
+                  <div className="flex justify-between items-center p-1 border-b pb-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="select-all-tasks-popup"
+                        checked={isAllSelected}
+                        onCheckedChange={handleSelectAll}
+                        data-state={
+                          isIndeterminate
+                            ? "indeterminate"
+                            : isAllSelected
+                            ? "checked"
+                            : "unchecked"
+                        }
+                        disabled={tasks.length === 0}
+                      />
+                      <Label
+                        htmlFor="select-all-tasks-popup"
+                        className="text-sm font-medium"
+                      >
+                        Select All
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selectedTasks.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={deleteSelectedTasks}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete ({selectedTasks.length})
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={deleteAllTasks}
+                        disabled={tasks.length === 0}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        Delete All
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Scroll Area (Dialog) */}
+                  <ScrollArea className="flex-1 min-h-0">
+                    <div className="p-1 space-y-4 pr-4">
+                      {/* ================================== */}
+                      {/* NEW: ส่ง Props (index, total, handlers) */}
+                      {/* ================================== */}
+                      {tasks.map((task, index) => (
+                        <TaskItem
+                          key={task.id}
+                          task={task}
+                          onDelete={deleteTask}
+                          onSelect={handleTaskSelection}
+                          isChecked={selectedTasks.includes(task.id)}
+                          onEdit={handleOpenEditDialog}
+                          // NEW
+                          index={index}
+                          totalTasks={tasks.length}
+                          onMoveUp={handleMoveTaskUp}
+                          onMoveDown={handleMoveTaskDown}
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
+
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button type="button" variant="secondary">
+                        Close
+                      </Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </DialogPortal>
+            </Dialog>
           </div>
+          {/* =================================== */}
         </div>
       </div>
 
       {/* =================================== */}
-      {/* ======     Footer Buttons     ====== */}
+      {/* ======         Footer Buttons         ====== */}
       {/* =================================== */}
-      <div className="flex justify-end gap-4 pt-6 border-t">
-        <Button variant="ghost">cancel</Button>
-        <Button type="submit" form="create-job-form">
+      <div className="grid grid-cols-2 sm:flex sm:justify-end gap-4 pt-6 border-t">
+        <Button variant="ghost" className="w-full sm:w-auto">
+          cancel
+        </Button>
+        <Button
+          type="submit"
+          form="create-job-form"
+          className="w-full sm:w-auto"
+        >
           Save
         </Button>
       </div>

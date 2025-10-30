@@ -1,6 +1,6 @@
 // src/lib/utils/route-helper.ts
 export function getNotificationPathByRole(role: string): string {
-  if (["admin", "manager", "lead_tech"].includes(role)) {
+  if (["admin", "manager", "lead_technician"].includes(role)) {
     return "/dashboard/admin/notifications";
   }
   return "/dashboard/employee/notifications";

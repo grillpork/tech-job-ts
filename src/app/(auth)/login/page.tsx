@@ -6,8 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   Eye,
-  EyeOff,
-  KeyRound,
+  EyeClosed,
   LockKeyhole,
   MailIcon,
 } from "lucide-react";
@@ -30,8 +29,8 @@ export default function LoginPage() {
       const path = ["admin", "manager", "lead_technician"].includes(
         currentUser.role
       )
-        ? "/dashboard/admin/"
-        : "/dashboard/employee/";
+        ? "/dashboard/admin/dashboard"
+        : "/dashboard/employee/dashboard";
       router.replace(path);
     }
   }, [isAuthenticated, currentUser, router]);
@@ -53,8 +52,8 @@ export default function LoginPage() {
       const user = useUserStore.getState().currentUser;
       if (user) {
         const path = ["admin", "manager", "lead_technician"].includes(user.role)
-          ? "/dashboard/admin/"
-          : "/dashboard/employee/";
+          ? "/dashboard/admin/dashboard"
+          : "/dashboard/employee/dashboard";
         router.replace(path);
       }
     } else {
@@ -98,8 +97,8 @@ export default function LoginPage() {
             <label className="block text-sm font-medium ml-3 text-gray-700">
               Email address
             </label>
-            <div className="flex items-center gap-2 w-full  text-gray-700 bg-gray-100 border border-gray-300 rounded-full overflow-clip px-4">
-              <MailIcon size={20} className="text-neutral-400" />
+            <div className="flex items-center gap-2 w-full  text-gray-700 bg-gray-100 border border-gray-300 rounded-full overflow-clip ">
+              <MailIcon size={20} className="text-neutral-400 ml-4" />
               <input
                 type="email"
                 value={email}
@@ -157,7 +156,7 @@ export default function LoginPage() {
                           onClick={() => setPasswordVisible(false)}
                         />
                       ) : (
-                        <EyeOff
+                        <EyeClosed
                           className="absolute right-4 top-3 text-neutral-500 cursor-pointer"
                           size={18}
                           onClick={() => setPasswordVisible(true)}

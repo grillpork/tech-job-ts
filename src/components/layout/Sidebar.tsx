@@ -58,7 +58,7 @@ export default function Sidebar() {
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
     ],
     employee: [
-      { name: "Overview", href: "/dashboard/employee/overview", icon: LayoutDashboard },
+      { name: "Dashboard", href: "/dashboard/employee/dashboard", icon: LayoutDashboard },
       { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
       { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
       { name: "Notifications", href: "/dashboard/employee/notifications", icon: Bell },
@@ -118,7 +118,7 @@ export default function Sidebar() {
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0 group-hover:animate-bounce"  />
-                {!collapsed && <span className="w-">{menu.name}</span>}
+                {!collapsed && <span className="w-full">{menu.name}</span>}
                 {!collapsed && <div className="flex justify-end w-full">
                   {isActive && <div className="w-2 h-5 bg-black dark:bg-white absolute -right-1 dark:shadow-[0_0_12px_rgba(255,255,255,1)] shadow-[0_0_12px_rgba(0,0,0,1)] rounded-full top-1/2 transform -translate-y-1/2"></div>}
                 </div>}

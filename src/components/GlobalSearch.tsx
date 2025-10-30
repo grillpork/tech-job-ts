@@ -21,45 +21,76 @@ export default function GlobalSearch() {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const router = useRouter();
-  const {currentUser} = useUserStore();
+  const { currentUser } = useUserStore();
+
+  // mock data
   const { jobs } = useJobStore();
   const { users } = useUserStore();
   const { inventories } = useInventoryStore(); // 👈 mock store
 
+  // ดึง role ของผู้ใช้จาก store หรือ context
+  const role = currentUser?.role;
+
+  // 🔍 กำหนดสิทธิ์ตาม role
+  const rolePermissions: Record<string, string[]> = {
+    admin: ["jobs", "users", "inventory"],
+    manager: ["jobs", "users", "inventory"],
+    lead_technician: ["jobs", "users"],
+    employee: ["jobs"],
+  };
+
+  // ✅ ฟังก์ชันกรองข้อมูลตามสิทธิ์
+  const canSearch = (type: string) => role ? rolePermissions[role]?.includes(type) : false;
+
+  // ✅ รวมผลการค้นหา
+  const results = [
+    ...(canSearch("jobs")
+      ? jobs.filter((j) => j.title.toLowerCase().includes(query.toLowerCase()))
+      : []),
+    ...(canSearch("users")
+      ? users.filter((u) => u.name.toLowerCase().includes(query.toLowerCase()))
+      : []),
+    ...(canSearch("inventory")
+      ? inventories.filter((i) =>
+          i.name.toLowerCase().includes(query.toLowerCase())
+        )
+      : []),
+  ];
+
   const filteredJobs = React.useMemo(
     () =>
-      query
+      canSearch("jobs")
         ? jobs.filter((j) =>
             j.title.toLowerCase().includes(query.toLowerCase())
           )
         : [],
-    [query, jobs]
+    [query, jobs, role]
   );
 
   const filteredUsers = React.useMemo(
     () =>
-      query
+      canSearch("users")
         ? users.filter((u) =>
             u.name.toLowerCase().includes(query.toLowerCase())
           )
         : [],
-    [query, users]
+    [query, users, role]
   );
 
   const filteredInventories = React.useMemo(
     () =>
-      query
+      canSearch("inventory")
         ? inventories.filter((i) =>
             i.name.toLowerCase().includes(query.toLowerCase())
           )
         : [],
-    [query, inventories]
+    [query, inventories, role]
   );
 
   // ✅ เปิด/ปิด popup ด้วย Ctrl + K / Cmd + K
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if ((e.key === "k" && (e.metaKey || e.ctrlKey))) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((o) => !o);
       }
@@ -68,9 +99,14 @@ export default function GlobalSearch() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
+  const basePath =
+    role === "admin" || role === "manager" || role === "lead_technician"
+      ? "/dashboard/admin"
+      : "/dashboard/employee";
+
   const handleSelect = (type: string, id: string) => {
     setOpen(false);
-    router.push(`/dashboard/${currentUser?.role}/${type}/${id}`);
+    router.push(`${basePath}/${type}/${id}`);
   };
 
   return (
@@ -87,7 +123,11 @@ export default function GlobalSearch() {
         </kbd>
       </Button>
 
-      <CommandDialog className="top-60 lg:top-1/2" open={open} onOpenChange={setOpen}>
+      <CommandDialog
+        className="top-60 lg:top-1/2"
+        open={open}
+        onOpenChange={setOpen}
+      >
         <CommandInput
           placeholder="Search job, user, or inventory..."
           value={query}

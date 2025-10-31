@@ -113,8 +113,8 @@ export default function Sidebar() {
                 className={cn(
                   "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors group relative",
                   isActive
-                    ? "bg-neutral-100 dark:bg-neutral-800"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800"
+                    ? "bg-neutral-100 dark:bg-neutral-800 btn-link"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 "
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0 group-hover:animate-bounce"  />

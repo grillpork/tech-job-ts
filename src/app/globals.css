@@ -120,3 +120,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+.btn-link {
+  box-shadow:  2px 2px 8px rgba(54, 54, 54, 0.8), inset 1px 1px 3px rgb(255, 255, 255, 0.3);
+  /* box-shadow: 1px 1px  4px var(--background); */
+  background-color: rgb(24, 24, 24);
+}

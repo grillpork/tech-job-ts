@@ -29,6 +29,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogOverlay
 } from '@/components/ui/alert-dialog';
 
 interface InventoryItem {
@@ -85,7 +86,7 @@ const InventoryManagement = () => {
   ]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 8;
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -98,12 +99,17 @@ const InventoryManagement = () => {
     requiteFrom: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  const filteredItems = items.filter(item =>
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.requiteFrom.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.requiteFrom.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -197,7 +203,7 @@ const InventoryManagement = () => {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white mb-2">Inventory Management</h1>
-        <p className="text-gray-400">จัดการอุปกรณ์และครุภัณฑ์ทางเทคโนโลยี</p>
+        <p className="text-gray-400">หน้าจัดการอุปกรณ์</p>
       </div>
 
       <div className="bg-[#1a1d29] rounded-xl border border-gray-800 mb-6 p-4">
@@ -228,9 +234,25 @@ const InventoryManagement = () => {
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Title</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                  <Select value={statusFilter} onValueChange={(value) => {
+                    setStatusFilter(value);
+                    setCurrentPage(1);
+                  }}>
+                    <SelectTrigger className="w-[140px] h-8 bg-transparent border-gray-700 text-gray-300 hover:bg-[#0f1117] focus:border-blue-600">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1d29] border-gray-800">
+                      <SelectItem value="all" className="text-white hover:bg-[#0f1117]">All Status</SelectItem>
+                      <SelectItem value="Available" className="text-white hover:bg-[#0f1117]">Available</SelectItem>
+                      <SelectItem value="In Use" className="text-white hover:bg-[#0f1117]">In Use</SelectItem>
+                      <SelectItem value="Maintenance" className="text-white hover:bg-[#0f1117]">Maintenance</SelectItem>
+                      <SelectItem value="Out of Stock" className="text-white hover:bg-[#0f1117]">Out of Stock</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Type</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Quantity</th>
+                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-300">Quantity</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Requite From</th>
                 <th className="px-6 py-4 text-center text-sm font-semibold text-gray-300">Actions</th>
               </tr>
@@ -246,7 +268,7 @@ const InventoryManagement = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-300">{item.type}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       <span className="text-sm font-semibold text-white">
                         {item.quantity}
                       </span>
@@ -295,7 +317,7 @@ const InventoryManagement = () => {
           <p className="text-sm text-gray-400">
             แสดง <span className="font-medium text-white">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredItems.length)}</span> จาก <span className="font-medium text-white">{filteredItems.length}</span> รายการ
           </p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -304,18 +326,11 @@ const InventoryManagement = () => {
             >
               ก่อนหน้า
             </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                onClick={() => setCurrentPage(page)}
-                className={currentPage === page 
-                  ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                  : "bg-transparent border-gray-700 text-gray-300 hover:bg-[#1a1d29]"}
-              >
-                {page}
-              </Button>
-            ))}
+            <div className="flex items-center gap-2">
+              <span className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium min-w-[3rem] text-center">
+                {currentPage}
+              </span>
+            </div>
             <Button
               variant="outline"
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
@@ -347,35 +362,37 @@ const InventoryManagement = () => {
                 className="bg-[#0f1117] border-gray-800 text-white placeholder:text-gray-500 focus:border-blue-600"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="status" className="text-sm font-medium text-gray-300">Status <span className="text-red-500">*</span></Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                <SelectTrigger className="bg-[#0f1117] border-gray-800 text-white focus:border-blue-600">
-                  <SelectValue placeholder="เลือกสถานะ" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1d29] border-gray-800">
-                  <SelectItem value="Available" className="text-white hover:bg-[#0f1117]">Available</SelectItem>
-                  <SelectItem value="In Use" className="text-white hover:bg-[#0f1117]">In Use</SelectItem>
-                  <SelectItem value="Maintenance" className="text-white hover:bg-[#0f1117]">Maintenance</SelectItem>
-                  <SelectItem value="Out of Stock" className="text-white hover:bg-[#0f1117]">Out of Stock</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="type" className="text-sm font-medium text-gray-300">Type <span className="text-red-500">*</span></Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                <SelectTrigger className="bg-[#0f1117] border-gray-800 text-white focus:border-blue-600">
-                  <SelectValue placeholder="เลือกประเภท" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1d29] border-gray-800">
-                  <SelectItem value="Laptop" className="text-white hover:bg-[#0f1117]">Laptop</SelectItem>
-                  <SelectItem value="Monitor" className="text-white hover:bg-[#0f1117]">Monitor</SelectItem>
-                  <SelectItem value="Peripheral" className="text-white hover:bg-[#0f1117]">Peripheral</SelectItem>
-                  <SelectItem value="Network" className="text-white hover:bg-[#0f1117]">Network</SelectItem>
-                  <SelectItem value="Server" className="text-white hover:bg-[#0f1117]">Server</SelectItem>
-                  <SelectItem value="Other" className="text-white hover:bg-[#0f1117]">Other</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2 w-full">
+                <Label htmlFor="status" className="text-sm font-medium text-gray-300">Status <span className="text-red-500">*</span></Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger className="bg-[#0f1117] border-gray-800 text-white focus:border-blue-600 w-full">
+                    <SelectValue placeholder="เลือกสถานะ" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1d29] border-gray-800">
+                    <SelectItem value="Available" className="text-white hover:bg-[#0f1117]">Available</SelectItem>
+                    <SelectItem value="In Use" className="text-white hover:bg-[#0f1117]">In Use</SelectItem>
+                    <SelectItem value="Maintenance" className="text-white hover:bg-[#0f1117]">Maintenance</SelectItem>
+                    <SelectItem value="Out of Stock" className="text-white hover:bg-[#0f1117]">Out of Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2 w-full">
+                <Label htmlFor="type" className="text-sm font-medium text-gray-300">Type <span className="text-red-500">*</span></Label>
+                <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                  <SelectTrigger className="bg-[#0f1117] border-gray-800 text-white focus:border-blue-600 w-full">
+                    <SelectValue placeholder="เลือกประเภท" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1d29] border-gray-800">
+                    <SelectItem value="Laptop" className="text-white hover:bg-[#0f1117]">Laptop</SelectItem>
+                    <SelectItem value="Monitor" className="text-white hover:bg-[#0f1117]">Monitor</SelectItem>
+                    <SelectItem value="Peripheral" className="text-white hover:bg-[#0f1117]">Peripheral</SelectItem>
+                    <SelectItem value="Network" className="text-white hover:bg-[#0f1117]">Network</SelectItem>
+                    <SelectItem value="Server" className="text-white hover:bg-[#0f1117]">Server</SelectItem>
+                    <SelectItem value="Other" className="text-white hover:bg-[#0f1117]">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="quantity" className="text-sm font-medium text-gray-300">Quantity <span className="text-red-500">*</span></Label>
@@ -416,6 +433,7 @@ const InventoryManagement = () => {
       </Dialog>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogOverlay className="backdrop-blur-sm" />
         <AlertDialogContent className="bg-[#1a1d29] border-gray-800">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">ยืนยันการลบ</AlertDialogTitle>

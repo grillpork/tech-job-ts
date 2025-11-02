@@ -11,6 +11,7 @@ export interface User {
   name: string;
   imageUrl?: string | null; // URL รูปภาพโปรไฟล์ (อาจมีหรือไม่มีก็ได้)
   role: 'admin' | 'manager' | 'lead_technician' | 'employee'; // บทบาทของผู้ใช้
+  department?: string | null; // แผนก
   email?: string; // Email ผู้ใช้
   password?: string;
 }

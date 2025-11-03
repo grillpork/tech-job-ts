@@ -1,12 +1,4 @@
-// lib/mocks/inventory.ts
-export interface InventoryItem {
-  id: number;
-  title: string;
-  status: string;
-  type: string;
-  quantity: number;
-  requiteFrom: string;
-}
+import { InventoryItem } from "../types/inventory";
 
 export const mockInventoryData: InventoryItem[] = [
   { id: 1, title: 'Laptop Dell XPS 15', status: 'Available', type: 'Laptop', quantity: 5, requiteFrom: 'IT Department' },

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CellContext } from '@tanstack/react-table';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, Pen, Plus } from 'lucide-react';
 import { useJobStore } from '@/stores/features/jobStore';
 import { Job } from '@/lib/types/job';
 
@@ -36,8 +36,7 @@ export function JobClient() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => handleEdit(job)}>Edit</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEdit(job)}><Pen/>Edit</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

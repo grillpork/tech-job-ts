@@ -38,7 +38,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 // Mock data
-import { mockInventoryData, type InventoryItem } from '@/lib/mocks/inventory';
+import { mockInventoryData } from '@/lib/mocks/inventory';
+import { InventoryItem } from '@/lib/types/inventory';
 
 // ===========================
 // MAIN COMPONENT
@@ -426,9 +427,6 @@ const InventoryManagement = () => {
 
       {/* ADD/EDIT DIALOG */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        {isFormOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" />
-        )}
         <DialogContent className="sm:max-w-[550px] w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto bg-[#1a1d29] border-gray-800 z-50 fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl text-white">{editingItem ? 'แก้ไขอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</DialogTitle>

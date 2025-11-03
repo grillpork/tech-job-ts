@@ -22,12 +22,12 @@ L.Icon.Default.mergeOptions({
 
 // 3. สร้าง custom icon ไว้ข้างนอก 1 ครั้ง เพื่อประสิทธิภาพ
 const customMarkerIcon = L.icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+  iconUrl: "https://www.reedps.com/wp-content/themes/bunker/src/media/neon-green.png",
   iconSize: [32, 32],
 });
 
 // 4. Component สำหรับ Routing ที่ปรับปรุงด้วย useEffect
-const RoutingMachine = ({ waypoints }) => {
+const RoutingMachine = ({ waypoints } : { waypoints: [number, number][] }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -39,8 +39,9 @@ const RoutingMachine = ({ waypoints }) => {
       show: false,
       lineOptions: {
     styles: [
-      { color: "blue", opacity: 0.8, weight: 6 },  // main line
-      { color: "yellow", opacity: 0.5, weight: 4 } 
+      { color: "green", opacity: 0.9, weight: 2 , dashArray: '10,5', dashOffset: '0' },  
+      // { color: "white", opacity: 0.5, weight: 6 } 
+
     ],
   },
       createMarker: function (i, waypoint) {
@@ -56,8 +57,6 @@ const RoutingMachine = ({ waypoints }) => {
   return null;
 };
 
-// 5. ลบ Component `FlyToMarker` ออกไป เพราะ `MapContainer`
-//    มี prop `center` ที่ทำงานนี้อยู่แล้ว
 
 export default function MapMockup() {
   const [markers] = useState([
@@ -71,10 +70,10 @@ export default function MapMockup() {
     <MapContainer
       center={markers[0].position} // Map จะเริ่มที่จุดนี้
       zoom={8}
-      style={{ height: "100%", width: "100%" }}
+      style={{ height: "100%", width: "100%", zIndex: 30}}
     >
       <TileLayer
-        url="https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png"
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
       />
 

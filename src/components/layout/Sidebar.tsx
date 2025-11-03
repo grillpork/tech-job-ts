@@ -18,6 +18,7 @@ import {
   ToolCase,
   PanelLeftClose,
   PanelLeftOpen,
+  Bot,
 } from "lucide-react";
 
 import {
@@ -26,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { motion } from "framer-motion";
 
 export default function Sidebar() {
   const { currentUser, logout } = useUserStore();
@@ -41,6 +43,7 @@ export default function Sidebar() {
       { name: "Notifications", href: "/dashboard/admin/notifications", icon: Bell },
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
       { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
       { name: "Inventorys", href: "/dashboard/admin/inventorys", icon: ToolCase },
       { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
     ],
@@ -104,7 +107,6 @@ export default function Sidebar() {
         <nav className="flex-1 p-3 space-y-1">
           {menus.map((menu) => {
             const Icon = menu.icon;
-            // const isActive = pathname === menu.href;
             const isActive = pathname.startsWith(menu.href);
             const menuItem = (
               <Link
@@ -120,7 +122,15 @@ export default function Sidebar() {
                 <Icon className="w-5 h-5 flex-shrink-0 group-hover:animate-bounce"  />
                 {!collapsed && <span className="w-full">{menu.name}</span>}
                 {!collapsed && <div className="flex justify-end w-full">
-                  {isActive && <div className="w-2 h-5 bg-black dark:bg-white absolute -right-1 dark:shadow-[0_0_12px_rgba(255,255,255,1)] shadow-[0_0_12px_rgba(0,0,0,1)] rounded-full top-1/2 transform -translate-y-1/2"></div>}
+                  {/* Active indicator */}
+                  {isActive && (
+              <motion.div
+                layoutId="activeIndicator"
+                className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-5 bg-green-500 dark:bg-green-500 rounded-full shadow-[0_0_10px_rgba(0,255,0,0.6)] dark:[0_0_10px_rgba(0,255,0,0.6)]"
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            )}
+                  {/* {isActive && <div className="w-2 h-5 bg-black dark:bg-white absolute -right-1 dark:shadow-[0_0_12px_rgba(255,255,255,1)] shadow-[0_0_12px_rgba(0,0,0,1)] rounded-full top-1/2 transform -translate-y-1/2"></div>} */}
                 </div>}
               </Link>
             );

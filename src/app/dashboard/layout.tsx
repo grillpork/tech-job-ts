@@ -1,17 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ClientAuthGuard } from "@/components/ClientAuthGuard";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
-
+import { usePathname } from "next/navigation";
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [isMobile, setIsMobile] = useState(false);
+  const pathname = usePathname();
+  // ✅ ตรวจขนาดจอหลังจาก mount แล้ว
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    handleResize(); // เรียกครั้งแรก
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -52,12 +62,21 @@ export default function DashboardLayout({
 
         {/* Main content (ขวา) */}
         <div className="flex flex-col flex-1">
-          {/* ✅ Navbar ด้านบน */}
           <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
-
-          {/* ✅ Content */}
-          <main className="flex-1 px-4 overflow-y-auto">
-            <Card className="p-4 h-full overflow-auto">{children}</Card>
+            
+          <main className="flex-1 px-4 pb-4 overflow-y-auto">
+            <Card className="p-4 h-full overflow-auto">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={pathname}
+                  initial={{ opacity: 0, y: 20, filter: "blur(20px)" }}
+                  animate={{ opacity: 1, y: 0 , filter: "blur(0px)"  }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
+            </Card>
           </main>
         </div>
       </div>

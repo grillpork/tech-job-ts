@@ -30,6 +30,7 @@ import {
 import { chartData } from "@/lib/mocks/chart-date";
 import { ArrowUpRight, ArrowDownRight, ChartArea } from "lucide-react";
 import MapMockup from "@/components/map/MapMockup";
+import MapViewer from "@/components/map/MapContainer";
 
 export const description = "Interactive Area + Bar chart with NumberFlow";
 
@@ -206,7 +207,7 @@ export default function Page() {
 
       {/* Right Column: Map */}
       <Card className="w-full md:w-1/3 h-[400px] sm:h-[500px] overflow-clip">
-        <MapMockup />
+        {/* <MapViewer } /> */}
       </Card>
     </div>
   );

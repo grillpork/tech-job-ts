@@ -1,13 +1,8 @@
 "use client"; // ต้องเป็น Client Component เพราะมีการใช้ state
 
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  memo,
-  type DragEvent,
-  type ChangeEvent,
-} from "react";
+import * as React from "react";
+import { useState, useCallback, useRef, memo, type DragEvent, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation"; // ✅ 1. Import router
 import { format } from "date-fns";
 import {
   Calendar as CalendarIcon,
@@ -22,6 +17,11 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// ✅ 2. Import Store, Types, and Mocks
+import { useJobStore } from "@/stores/features/jobStore"; // (แก้ path ถ้าจำเป็น)
+import { MOCK_USERS } from "@/lib/mocks/user";
+import { Task as JobTask } from "@/lib/types/job";
 
 // Import components จาก shadcn/ui
 import { Button } from "@/components/ui/button";
@@ -70,8 +70,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+// ✅ 3. Import Alert Dialog
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-// import { MapPicker } from "@/components/map/MapPicker"; // (ถ้ามี)
 
 // Interface สำหรับ Task
 interface Task {
@@ -86,14 +95,12 @@ interface Employee {
   label: string;
 }
 
-const ALL_EMPLOYEES: Employee[] = [
-  { value: "emp1", label: "ณัฐพล (Nattapon)" },
-  { value: "emp2", label: "สมชาย (Somchai)" },
-  { value: "emp3", label: "สุภาพร (Supaporn)" },
-  { value: "emp4", label: "อลิสา (Alisa)" },
-  { value: "emp5", label: "เจฟ (Jeff)" },
-];
+// ✅ 4. สร้าง ALL_EMPLOYEES จาก MOCK_USERS ของเรา
+const ALL_EMPLOYEES: Employee[] = MOCK_USERS
+    .filter(u => u.role === 'employee')
+    .map(u => ({ value: u.id, label: u.name }));
 
+// (ข้อมูล initialTasks เดิมของคุณ)
 const initialTasks: Task[] = [
   { id: 1, header: "Task 1", description: "Description 1" },
   { id: 2, header: "Task 2", description: "Description 2" },
@@ -103,11 +110,7 @@ const initialTasks: Task[] = [
   { id: 6, header: "Task 6", description: "Description 6" },
 ];
 
-// ==================================
-// ==================================
-// Task Item Component (เพิ่ม React.memo)
-// ==================================
-// ==================================
+// (TaskItem Component เดิมของคุณ)
 interface TaskItemProps {
   task: Task;
   onDelete: (id: number) => void;
@@ -119,8 +122,6 @@ interface TaskItemProps {
   index: number;
   totalTasks: number;
 }
-
-// ใช้ React.memo เพื่อป้องกันการ re-render ที่ไม่จำเป็น
 const TaskItem = memo(function TaskItem({
   task,
   onDelete,
@@ -142,15 +143,12 @@ const TaskItem = memo(function TaskItem({
       )}
     >
       <div className="flex items-start gap-3">
-        {/* Checkbox */}
         <Checkbox
           id={`task-${task.id}`}
           checked={isChecked}
           onCheckedChange={() => onSelect(task.id)}
           className="mt-1"
         />
-
-        {/* Main content */}
         <div className="flex-1 space-y-1">
           <div className="flex justify-between items-start gap-4">
             <Label
@@ -162,7 +160,6 @@ const TaskItem = memo(function TaskItem({
             >
               {task.header}
             </Label>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -176,14 +173,14 @@ const TaskItem = memo(function TaskItem({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => onMoveUp(task.id)}
-                  disabled={index === 0} // ปิดปุ่มถ้าอยู่บนสุด
+                  disabled={index === 0}
                 >
                   <ArrowUp className="mr-2 h-4 w-4" />
                   Move Up
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => onMoveDown(task.id)}
-                  disabled={index === totalTasks - 1} // ปิดปุ่มถ้าอยู่ล่างสุด
+                  disabled={index === totalTasks - 1}
                 >
                   <ArrowDown className="mr-2 h-4 w-4" />
                   Move Down
@@ -201,7 +198,6 @@ const TaskItem = memo(function TaskItem({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-
           {task.description && (
             <p
               className={cn(
@@ -217,88 +213,77 @@ const TaskItem = memo(function TaskItem({
     </div>
   );
 });
-// ==================================
-// ==================================
 
 export default function CreateJobPage() {
-  // ==================================
-  // === 1. STATE MANAGEMENT (จัดกลุ่ม) ===
-  // ==================================
+  
+  // ✅ --- 5. เพิ่ม Logic การเชื่อมต่อ Store และ Router --- ✅
+  const router = useRouter();
+  const createJob = useJobStore((state) => state.createJob);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  // Form Core State
+  // --- 1. STATE MANAGEMENT (เหมือนเดิม) ---
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
-
-  // Employee Selector State
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
-
-  // Attachment State
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Task State
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>([]); // ✅ แก้ไข: เริ่มต้นเป็น Array ว่าง
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
-
-  // "Add Task" Dialog State
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const [newTaskHeader, setNewTaskHeader] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
-
-  // "Edit Task" Dialog State
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [editHeader, setEditHeader] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  
+  // ✅ 6. เพิ่ม State สำหรับ Department, Lead Tech, และ Alert
+  const [department, setDepartment] = useState<string>("Electrical");
+  const [leadTechnician, setLeadTechnician] = useState<string>("user-lead-1");
+  const [isErrorAlertOpen, setIsErrorAlertOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // ==================================
-  // === 2. EVENT HANDLERS (จัดกลุ่ม) ===
-  // ==================================
+  // ✅ 7. เพิ่ม Logic กรองพนักงาน
+  const availableEmployees: Employee[] = React.useMemo(() => {
+    return MOCK_USERS
+      .filter(u => u.role === 'employee' && u.department === department)
+      .map(u => ({ value: u.id, label: u.name }));
+  }, [department]);
 
-  // --- Employee Handlers ---
+  // --- 2. EVENT HANDLERS (เหมือนเดิม) ---
   const handleRemoveEmployee = useCallback((value: string) => {
     setSelectedEmployees((prev) => prev.filter((emp) => emp.value !== value));
-  }, []); // Dependency: setSelectedEmployees is stable
-
-  // --- Attachment Handlers ---
+  }, []);
   const deleteAttachment = useCallback((fileName: string) => {
     setAttachments((prev) => prev.filter((file) => file.name !== fileName));
-  }, []); // Dependency: setAttachments is stable
-
+  }, []);
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
   }, []);
-
   const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
   }, []);
-
   const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
     setAttachments((prevFiles) => [...prevFiles, ...files]);
   }, []);
-
   const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setAttachments((prevFiles) => [...prevFiles, ...files]);
   }, []);
-
   const openFileDialog = useCallback(() => {
     fileInputRef.current?.click();
-  }, [fileInputRef]); // Dependency: fileInputRef
-
-  // --- Task Handlers ---
+  }, [fileInputRef]);
   const deleteTask = useCallback((id: number) => {
     setTasks((prev) => prev.filter((task) => task.id !== id));
     setSelectedTasks((prev) => prev.filter((selectedId) => selectedId !== id));
   }, []);
-
   const handleTaskSelection = useCallback((taskId: number) => {
     setSelectedTasks((prev) =>
       prev.includes(taskId)
@@ -306,25 +291,21 @@ export default function CreateJobPage() {
         : [...prev, taskId]
     );
   }, []);
-
   const deleteSelectedTasks = useCallback(() => {
     setTasks((prev) => prev.filter((task) => !selectedTasks.includes(task.id)));
     setSelectedTasks([]);
-  }, [selectedTasks]); // Dependency: selectedTasks
-
+  }, [selectedTasks]);
   const deleteAllTasks = useCallback(() => {
     setTasks([]);
     setSelectedTasks([]);
   }, []);
-
   const handleSelectAll = useCallback(() => {
     if (selectedTasks.length === tasks.length) {
       setSelectedTasks([]);
     } else {
       setSelectedTasks(tasks.map((task) => task.id));
     }
-  }, [selectedTasks.length, tasks]); // Dependency: selectedTasks.length, tasks
-
+  }, [selectedTasks.length, tasks]);
   const handleAddNewTask = useCallback(() => {
     if (newTaskHeader.trim() === "") return;
     const newTask: Task = {
@@ -336,15 +317,13 @@ export default function CreateJobPage() {
     setNewTaskHeader("");
     setNewTaskDescription("");
     setIsAddTaskDialogOpen(false);
-  }, [newTaskHeader, newTaskDescription]); // Dependency: newTaskHeader, newTaskDescription
-
+  }, [newTaskHeader, newTaskDescription]);
   const handleOpenEditDialog = useCallback((task: Task) => {
     setTaskToEdit(task);
     setEditHeader(task.header);
     setEditDescription(task.description);
     setIsEditDialogOpen(true);
-  }, []); // Dependencies: all setters are stable
-
+  }, []);
   const handleSaveEdit = useCallback(() => {
     if (!taskToEdit) return;
     setTasks((prevTasks) =>
@@ -358,8 +337,7 @@ export default function CreateJobPage() {
     setTaskToEdit(null);
     setEditHeader("");
     setEditDescription("");
-  }, [taskToEdit, editHeader, editDescription]); // Dependencies: state variables
-
+  }, [taskToEdit, editHeader, editDescription]);
   const handleMoveTaskUp = useCallback((id: number) => {
     setTasks((prevTasks) => {
       const currentIndex = prevTasks.findIndex((t) => t.id === id);
@@ -372,7 +350,6 @@ export default function CreateJobPage() {
       return newTasks;
     });
   }, []);
-
   const handleMoveTaskDown = useCallback((id: number) => {
     setTasks((prevTasks) => {
       const currentIndex = prevTasks.findIndex((t) => t.id === id);
@@ -388,42 +365,75 @@ export default function CreateJobPage() {
     });
   }, []);
 
-  // --- Derived State ---
-  // ตัวแปรช่วยเช็คสถานะ Checkbox
+  // --- Derived State (เหมือนเดิม) ---
   const isAllSelected = tasks.length > 0 && selectedTasks.length === tasks.length;
   const isIndeterminate =
     selectedTasks.length > 0 && selectedTasks.length < tasks.length;
+
+  // ✅ --- 8. สร้างฟังก์ชัน handleSubmit --- ✅
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    const formElements = e.currentTarget.elements as typeof e.currentTarget.elements & {
+        jobTitle: { value: string };
+        jobDescription: { value: string };
+    };
+    const title = formElements.jobTitle.value;
+
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!title || title.trim() === "") {
+      setErrorMessage("กรุณากรอก Job Title ให้ครบถ้วน");
+      setIsErrorAlertOpen(true);
+      return; // หยุดการทำงาน
+    }
+
+    setIsSubmitting(true);
+    const jobData = {
+      title: title,
+      description: formElements.jobDescription.value,
+      leadTechnicianId: leadTechnician,
+      department: department,
+      assignedEmployeeIds: selectedEmployees.map(emp => emp.value),
+      startDate: startDate,
+      endDate: endDate,
+      tasks: tasks.map(t => ({ description: t.header })), // ส่ง Tasks ที่แปลงแล้ว
+      attachments: attachments,
+      creatorId: leadTechnician, // ใช้ Lead Tech เป็น Creator
+    };
+
+    createJob(jobData);
+    router.push("/dashboard/admin/jobs");
+  };
+
 
   // ==================================
   // === 3. RENDER / JSX ===
   // ==================================
   return (
-    // Container หลักของหน้า (p-4 สำหรับ mobile, md:p-8 สำหรับ tablet ขึ้นไป)
     <div className="p-4 md:p-8 space-y-8">
-      {/* ส่วน Header ของหน้า */}
       <div className="items-center">
         <Badge variant="secondary">pending</Badge>
       </div>
 
-      {/* Main Content Grid (Responsive) */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-        {/* ================================== */}
-        {/* ======       คอลัมน์ซ้าย (ฟอร์ม)        ====== */}
-        {/* ================================== */}
-        <form id="create-job-form" className="md:col-span-3 space-y-6">
+        {/* ✅ 9. เพิ่ม onSubmit ที่นี่ */}
+        <form id="create-job-form" className="md:col-span-3 space-y-6" onSubmit={handleSubmit}>
           {/* Job Title */}
           <div>
             <Label htmlFor="jobTitle">Job Title</Label>
-            <Input id="jobTitle" placeholder="Enter job title" className="mt-2" />
+            {/* ✅ 10. เพิ่ม name attribute */}
+            <Input id="jobTitle" name="jobTitle" placeholder="Enter job title" className="mt-2" />
           </div>
 
           {/* Job Discriptions */}
           <div>
             <Label htmlFor="jobDescription">Job Discriptions</Label>
+            {/* ✅ 10. เพิ่ม name attribute */}
             <Textarea
               id="jobDescription"
+              name="jobDescription"
               placeholder="Enter job description"
-              className="mt-2 resize-none h-15 overflow-y-auto" // (FIXED: h-32)
+              className="mt-2 resize-none h-15 overflow-y-auto"
             />
           </div>
 
@@ -431,26 +441,32 @@ export default function CreateJobPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="leadTechnician">Lead technician</Label>
-              <Select defaultValue="leader1">
+              {/* ✅ 11. เชื่อมต่อ State กับ Select */}
+              <Select name="leadTechnician" value={leadTechnician} onValueChange={setLeadTechnician}>
                 <SelectTrigger id="leadTechnician" className="w-full mt-2">
                   <SelectValue placeholder="Select leader" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="leader1">Leader1</SelectItem>
-                  <SelectItem value="leader2">Leader2</SelectItem>
+                  <SelectItem value="user-lead-1">สมศักดิ์ ช่างใหญ่</SelectItem>
+                  <SelectItem value="user-manager-1">วิภา หัวหน้าทีม</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label htmlFor="department">Select Department</Label>
-              <Select defaultValue="it">
+              {/* ✅ 11. เชื่อมต่อ State กับ Select */}
+              <Select name="department" value={department} onValueChange={(value) => {
+                  setDepartment(value);
+                  setSelectedEmployees([]); // ล้างค่าพนักงานเมื่อเปลี่ยนแผนก
+              }}>
                 <SelectTrigger id="department" className="w-full mt-2">
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="it">IT Suport</SelectItem>
-                  <SelectItem value="hr">HR</SelectItem>
-                  <SelectItem value="ops">Operations</SelectItem>
+                  <SelectItem value="Electrical">แผนกช่างไฟ (Electrical)</SelectItem>
+                  <SelectItem value="Mechanical">แผนกช่างกล (Mechanical)</SelectItem>
+                  <SelectItem value="Technical">แผนกช่างเทคนิค (Technical)</SelectItem>
+                  <SelectItem value="Civil">แผนกช่างโยธา (Civil)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -476,16 +492,16 @@ export default function CreateJobPage() {
                           className="gap-1.5"
                         >
                           {emp.label}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveEmployee(emp.value);
-                            }}
+                          {/* ✅ 12. แก้ปัญหาปุ่มซ้อนปุ่ม (เปลี่ยนเป็น <div>) */}
+                          <div
+                            role="button" tabIndex={0}
+                            aria-label={`Remove ${emp.label}`}
+                            onClick={(e) => { e.stopPropagation(); handleRemoveEmployee(emp.value); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleRemoveEmployee(emp.value); } }}
                             className="rounded-full hover:bg-muted-foreground/20"
                           >
                             <X className="h-3 w-3" />
-                          </button>
+                          </div>
                         </Badge>
                       ))
                     ) : (
@@ -503,9 +519,10 @@ export default function CreateJobPage() {
                 <Command>
                   <CommandInput placeholder="Search employee..." />
                   <CommandList>
-                    <CommandEmpty>No employee found.</CommandEmpty>
+                    <CommandEmpty>No employee found in this department.</CommandEmpty>
                     <CommandGroup>
-                      {ALL_EMPLOYEES.map((emp) => {
+                      {/* ✅ 13. ใช้ 'availableEmployees' ที่กรองแล้ว */}
+                      {availableEmployees.map((emp) => {
                         const isSelected = selectedEmployees.some(
                           (s) => s.value === emp.value
                         );
@@ -602,8 +619,8 @@ export default function CreateJobPage() {
             <div
               className={cn(
                 "mt-2 rounded-lg border border-dashed border-input transition-colors",
-                "flex flex-col", // Use flex column
-                "h-45.5", // (FIXED: h-72)
+                "flex flex-col",
+                "h-45.5",
                 isDragging && "border-primary bg-muted/50"
               )}
               onDragOver={handleDragOver}
@@ -611,6 +628,7 @@ export default function CreateJobPage() {
               onDrop={handleDrop}
             >
               {/* Hidden File Input */}
+              {/* ✅ 14. แก้ไข Typo 'handlerFileSelect' -> 'handleFileSelect' */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -711,7 +729,7 @@ export default function CreateJobPage() {
         </form>
 
         {/* =================================== */}
-        {/* ======     คอลัมน์ขวา (Map & Tasks)      ====== */}
+        {/* ======     คอลัมน์ขวา (Map & Tasks)      ====== */}
         {/* =================================== */}
         <div className="md:col-span-2 space-y-8">
           {/* Map Picker */}
@@ -886,9 +904,7 @@ export default function CreateJobPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-task-description">
-                          Description
-                        </Label>
+                        <Label htmlFor="edit-task-description">Description</Label>
                         <Textarea
                           id="edit-task-description"
                           value={editDescription}
@@ -920,7 +936,6 @@ export default function CreateJobPage() {
                     <DialogTitle>All Tasks ({tasks.length})</DialogTitle>
                   </DialogHeader>
 
-                  {/* แถบควบคุม (Select All, Delete Selected, Delete All) ใน Popup "View All" */}
                   <div className="flex justify-between items-center p-1 border-b pb-4 mb-4">
                     <div className="flex items-center gap-3">
                       <Checkbox
@@ -951,8 +966,7 @@ export default function CreateJobPage() {
                           size="sm"
                           onClick={deleteSelectedTasks}
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete ({selectedTasks.length})
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete ({selectedTasks.length})
                         </Button>
                       )}
                       <Button
@@ -968,7 +982,6 @@ export default function CreateJobPage() {
                     </div>
                   </div>
 
-                  {/* Scroll Area (Dialog) */}
                   <ScrollArea className="flex-1 min-h-0">
                     <div className="p-1 space-y-4 pr-4">
                       {tasks.map((task, index) => (
@@ -1002,21 +1015,34 @@ export default function CreateJobPage() {
         </div>
       </div>
 
-      {/* =================================== */}
-      {/* ======         Footer Buttons         ====== */}
-      {/* =================================== */}
-      <div className="grid grid-cols-2 sm:flex sm:justify-end gap-4 pt-6 border-t">
-        <Button variant="ghost" className="w-full sm:w-auto">
-          cancel
-        </Button>
+      <div className="flex justify-end gap-4 pt-6 border-t">
+        <Button variant="ghost" type="button" onClick={() => router.back()}>cancel</Button>
         <Button
           type="submit"
           form="create-job-form"
-          className="w-full sm:w-auto"
+          disabled={isSubmitting}
         >
           Save
         </Button>
       </div>
+
+      {/* ✅ Alert Dialog สำหรับ Validation */}
+      <AlertDialog open={isErrorAlertOpen} onOpenChange={setIsErrorAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ข้อมูลไม่ครบถ้วน</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsErrorAlertOpen(false)}>
+              ตกลง
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

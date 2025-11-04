@@ -18,12 +18,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+// ✅ Tweak 1: แก้ไข Interface ให้รับ onRowClick
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onRowClick?: (row: TData) => void; // เพิ่ม prop onRowClick (เป็นฟังก์ชันที่รับ data ของแถว)
 }
 
-export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({ 
+  columns, 
+  data, 
+  onRowClick // ✅ Tweak 2: รับ onRowClick มาจาก props
+}: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
@@ -64,7 +70,13 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                // ✅ Tweak 3: เพิ่ม onClick และ className ที่ TableRow
+                <TableRow 
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  onClick={() => onRowClick && onRowClick(row.original)} // เมื่อคลิก ให้เรียกฟังก์ชัน onRowClick
+                  className={onRowClick ? "cursor-pointer" : ""} // ถ้ามี onRowClick ให้เปลี่ยน cursor เป็นรูปมือ
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}

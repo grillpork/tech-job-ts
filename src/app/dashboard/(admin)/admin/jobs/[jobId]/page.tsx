@@ -122,7 +122,7 @@ export default function JobViewPage({ params }: JobViewPageProps) {
   dayjs.locale('th');
 
   return (
-    <div className="p-4">
+    <div className="p-">
       <div className="border rounded-lg p-6"> 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
 

@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Bot,
+  Map,
 } from "lucide-react";
 
 import {
@@ -43,6 +44,7 @@ export default function Sidebar() {
       { name: "Notifications", href: "/dashboard/admin/notifications", icon: Bell },
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
       { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "Map", href: "/dashboard/admin/map", icon: Map },
       { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
       { name: "Inventorys", href: "/dashboard/admin/inventorys", icon: ToolCase },
       { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },

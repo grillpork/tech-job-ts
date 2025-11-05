@@ -64,8 +64,8 @@ export default function DashboardLayout({
         <div className="flex flex-col flex-1">
           <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
             
-          <main className="flex-1 px-4 pb-4 overflow-y-auto">
-            <Card className="p-4 h-full overflow-auto">
+          <main className="flex-1 pr-4 pb-4 overflow-y-auto">
+            <Card className="p-0 h-full overflow-auto">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={pathname}

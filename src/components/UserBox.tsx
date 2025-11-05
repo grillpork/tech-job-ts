@@ -37,13 +37,10 @@ export function UserBox() {
   if (!currentUser) return null;
 
   return (
-    <div>
+    <div >
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2 px-2 py-1 rounded transition"
-          >
+       
             <Avatar className="h-8 w-8">
               {currentUser.imageUrl ? (
                 <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
@@ -51,19 +48,25 @@ export function UserBox() {
                 <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
               )}
             </Avatar>
-            <div className="hidden flex-col items-start leading-tight sm:flex">
-              <span className="text-sm font-medium">{currentUser.name}</span>
-              <span className="text-xs text-muted-foreground capitalize">
-                {currentUser.role.replace("_", " ")}
-              </span>
-            </div>
-            <div className="px-2 hidden sm:block">
-              <ChevronsUpDown/>
-            </div>
-          </Button>
         </DropdownMenuTrigger>
   
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent align="end" className="w-52 space-y-2 mt-3.5">
+          <div className="flex gap-2 items-center p-2">
+            <Avatar className="h-8 w-8">
+                {currentUser.imageUrl ? (
+                  <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
+                ) : (
+                  <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
+                )}
+              </Avatar>
+              <div className="hidden flex-col items-start leading-tight sm:flex">
+                <span className="text-sm font-medium">{currentUser.name}</span>
+                <span className="text-xs text-muted-foreground capitalize">
+                  {currentUser.role.replace("_", " ")}
+                </span>
+              </div>
+          </div>
+          <Separator/>
           <DropdownMenuItem onClick={handleProfile}>
             <User/>
             My Account

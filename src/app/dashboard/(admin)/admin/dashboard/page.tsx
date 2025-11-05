@@ -29,14 +29,13 @@ import {
 } from "@/components/ui/select";
 import { chartData } from "@/lib/mocks/chart-date";
 import { ArrowUpRight, ArrowDownRight, ChartArea } from "lucide-react";
-import MapMockup from "@/components/map/MapMockup";
-import MapViewer from "@/components/map/MapContainer";
 
 export const description = "Interactive Area + Bar chart with NumberFlow";
 
 const chartConfig = {
   complete: { label: "Complete", color: "var(--chart-1)" },
   progressing: { label: "Progressing", color: "var(--chart-2)" },
+  pending: { label: "Pending", color: "var(--chart-3)" },
 } satisfies ChartConfig;
 
 export default function Page() {
@@ -55,6 +54,7 @@ export default function Page() {
     () => ({
       complete: filteredData.reduce((acc, curr) => acc + curr.complete, 0),
       progressing: filteredData.reduce((acc, curr) => acc + curr.progressing, 0),
+      pending: filteredData.reduce((acc, curr) => acc + curr.pending, 0),
     }),
     [filteredData]
   );
@@ -71,6 +71,7 @@ export default function Page() {
     return {
       complete: prevRange.reduce((acc, curr) => acc + curr.complete, 0),
       progressing: prevRange.reduce((acc, curr) => acc + curr.progressing, 0),
+      pending: prevRange.reduce((acc, curr) => acc + curr.pending, 0),
     };
   }, [timeRange]);
 
@@ -86,12 +87,12 @@ export default function Page() {
   }, [filteredData]);
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6 w-full">
+    <div className="p-4">
       {/* Left Column */}
-      <div className="flex flex-col gap-4 w-full md:w-2/3">
+      <div className="flex flex-col gap-4 w-full">
         {/* Summary Cards */}
         <div className="flex flex-col sm:flex-row gap-4 w-full">
-          {(["complete", "progressing"] as (keyof typeof chartConfig)[]).map((chart) => {
+          {(["complete", "progressing", "pending"] as (keyof typeof chartConfig)[]).map((chart) => {
             const pct = percentChange(chart);
             const isUp = pct >= 0;
             return (
@@ -115,20 +116,30 @@ export default function Page() {
                       {pct.toFixed(1)}%
                     </span>
                     <span className="text-muted-foreground ml-1">
-                      {timeRange === "7d" ? "vs last week" : timeRange === "30d" ? "vs last month" : "vs last 3 months"}
+                      {timeRange === "7d"
+                        ? "vs last week"
+                        : timeRange === "30d"
+                        ? "vs last month"
+                        : "vs last 3 months"}
                     </span>
                   </div>
                 </div>
                 <div className="w-24 h-16">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={miniData}>
-                      <Bar
+                    <AreaChart data={miniData}>
+                      <Area
+                        type="monotone"
+                        fill='none'
                         dataKey={chart}
-                        fill={chart === "complete" ? "var(--chart-1)" : "var(--chart-2)"}
-                        radius={[4, 4, 0, 0]}
-                        barSize={6}
+                        stroke={
+                          chart === "complete"
+                            ? "var(--chart-1)"
+                            : chart === "progressing"
+                            ? "var(--chart-2)"
+                            : "var(--chart-3)"
+                        }
                       />
-                    </BarChart>
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </Card>
@@ -137,78 +148,81 @@ export default function Page() {
         </div>
 
         {/* Area Chart */}
-        <Card className="py-4 gap-2 sm:py-0">
-          <div className="flex flex-col sm:flex-row justify-between items-center p-4 gap-2">
-            <div className="flex items-center gap-2">
-              <ChartArea />
-              <h2 className="text-lg font-semibold">Job Progress Overview</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card className="py-4 w-full gap-2 sm:py-0 col-span-2">
+            <div className="flex flex-col sm:flex-row justify-between items-center p-4 gap-2">
+              <div className="flex items-center gap-2">
+                <ChartArea />
+                <h2 className="text-lg font-semibold">Job Progress Overview</h2>
+              </div>
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-[160px] rounded-lg hidden sm:flex">
+                  <SelectValue placeholder="Last 30 days" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                  <SelectItem value="30d">Last 30 days</SelectItem>
+                  <SelectItem value="90d">Last 3 months</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-[160px] rounded-lg hidden sm:flex">
-                <SelectValue placeholder="Last 30 days" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 3 months</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <CardContent className="px-2 sm:p-6 space-y-10">
-            <ChartContainer config={chartConfig} className="h-[250px] w-full">
-              <AreaChart data={filteredData} margin={{ left: 12, right: 12 }}>
-                <defs>
-                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={`var(--color-${activeChart})`} stopOpacity={0.8} />
-                    <stop offset="95%" stopColor={`var(--color-${activeChart})`} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  minTickGap={32}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                  }}
-                />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      className="w-[150px]"
-                      nameKey="views"
-                      labelFormatter={(value) =>
-                        new Date(value).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      }
-                    />
-                  }
-                />
-                <Area
-                  type="monotone"
-                  dataKey={activeChart}
-                  stroke={`var(--color-${activeChart})`}
-                  fill="url(#colorGradient)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+            <CardContent className="px-2 sm:p-6 space-y-10">
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                <AreaChart data={filteredData} margin={{ left: 12, right: 12 }}>
+                  <defs>
+                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={`var(--color-${activeChart})`} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={`var(--color-${activeChart})`} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    minTickGap={32}
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                    }}
+                  />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        className="w-[150px]"
+                        nameKey="views"
+                        labelFormatter={(value) =>
+                          new Date(value).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        }
+                      />
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey={activeChart}
+                    stroke={`var(--color-${activeChart})`}
+                    fill="url(#colorGradient)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </AreaChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
 
-      {/* Right Column: Map */}
-      <Card className="w-full md:w-1/3 h-[400px] sm:h-[500px] overflow-clip">
-        {/* <MapViewer } /> */}
-      </Card>
+          <Card className="col-span-1">
+            <CardContent>
+              Hhh
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

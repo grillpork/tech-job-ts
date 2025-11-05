@@ -44,6 +44,8 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
       <div className="flex items-center gap-4">
         {/* Right Section */}
+        <GlobalSearch/>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild className="hidden md:flex ">
             <Button variant="ghost" size="icon" className="relative">
@@ -103,7 +105,6 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
         {/*UserBox */}
-        <GlobalSearch/>
         <UserBox />
       </div>
     </header>

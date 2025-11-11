@@ -15,13 +15,16 @@ import {
   MoreHorizontal,
   ArrowUp,
   ArrowDown,
+  ToolCase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ✅ 2. Import Store, Types, and Mocks
 import { useJobStore } from "@/stores/features/jobStore"; // (แก้ path ถ้าจำเป็น)
+import { useInventoryStore } from "@/stores/features/inventoryStore";
 import { MOCK_USERS } from "@/lib/mocks/user";
 import { Task as JobTask } from "@/lib/types/job";
+import { MapPicker } from '@/components/map/MapPicker';
 
 // Import components จาก shadcn/ui
 import { Button } from "@/components/ui/button";
@@ -93,6 +96,12 @@ interface Task {
 interface Employee {
   value: string;
   label: string;
+}
+
+interface InventoryOption {
+  value: string;
+  label: string;
+  qty?: number;
 }
 
 // ✅ 4. สร้าง ALL_EMPLOYEES จาก MOCK_USERS ของเรา
@@ -225,6 +234,7 @@ export default function CreateJobPage() {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [invPopoverOpen, setInvPopoverOpen] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -238,6 +248,12 @@ export default function CreateJobPage() {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [editHeader, setEditHeader] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  // ✅ Inventory selection state
+  const inventories = useInventoryStore((s) => s.inventories);
+  const [selectedInventory, setSelectedInventory] = useState<InventoryOption[]>([]);
+  // Location selected from MapPicker
+  const [location, setLocation] = useState<{ lat: number; lng: number; name?: string | null } | null>(null);
+
   
   // ✅ 6. เพิ่ม State สำหรับ Department, Lead Tech, และ Alert
   const [department, setDepartment] = useState<string>("Electrical");
@@ -251,6 +267,18 @@ export default function CreateJobPage() {
       .filter(u => u.role === 'employee' && u.department === department)
       .map(u => ({ value: u.id, label: u.name }));
   }, [department]);
+
+  const availableInventories: InventoryOption[] = React.useMemo(() => {
+    return inventories.map((i) => ({ value: i.id, label: i.name, qty: i.quantity }));
+  }, [inventories]);
+
+  const handleRemoveInventory = useCallback((value: string) => {
+    setSelectedInventory((prev) => prev.filter((inv) => inv.value !== value));
+  }, []);
+
+  const handleChangeInventoryQty = useCallback((value: string, qty: number) => {
+    setSelectedInventory((prev) => prev.map((inv) => (inv.value === value ? { ...inv, qty } : inv)));
+  }, []);
 
   // --- 2. EVENT HANDLERS (เหมือนเดิม) ---
   const handleRemoveEmployee = useCallback((value: string) => {
@@ -394,11 +422,13 @@ export default function CreateJobPage() {
       leadTechnicianId: leadTechnician,
       department: department,
       assignedEmployeeIds: selectedEmployees.map(emp => emp.value),
-      startDate: startDate,
-      endDate: endDate,
-      tasks: tasks.map(t => ({ description: t.header })), // ส่ง Tasks ที่แปลงแล้ว
-      attachments: attachments,
+  usedInventory: selectedInventory.map(inv => ({ id: inv.value, qty: inv.qty ?? 1 })),
+  status: "pending" as const,
+  startDate: startDate ? startDate.toISOString() : null,
+  endDate: endDate ? endDate.toISOString() : null,
+  tasks: tasks.map(t => ({ description: t.header })), // ส่ง Tasks ที่แปลงแล้ว
       creatorId: leadTechnician, // ใช้ Lead Tech เป็น Creator
+      location: location ?? null,
     };
 
     createJob(jobData);
@@ -544,6 +574,90 @@ export default function CreateJobPage() {
                               )}
                             />
                             {emp.label}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Used Inventory */}
+          <div>
+            <Label>Used inventory <span className="text-xs text-muted-foreground">(select items used on site)</span></Label>
+            <Popover open={invPopoverOpen} onOpenChange={setInvPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={invPopoverOpen}
+                  className="w-full justify-between mt-2 h-auto min-h-10"
+                >
+                  <div className="flex gap-1 flex-wrap items-center">
+                    <ToolCase className="h-4 w-4 text-muted-foreground mr-1" />
+                      {selectedInventory.length > 0 ? (
+                      selectedInventory.map((inv) => (
+                        <div key={inv.value} className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="gap-1.5"
+                            title={`${inv.label} — ${inv.qty ?? "-"} pcs`}
+                          >
+                            {inv.label}
+                            <div
+                              role="button" tabIndex={0}
+                              aria-label={`Remove ${inv.label}`}
+                              onClick={(e) => { e.stopPropagation(); handleRemoveInventory(inv.value); }}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleRemoveInventory(inv.value); } }}
+                              className="rounded-full hover:bg-muted-foreground/20"
+                            >
+                              <X className="h-3 w-3" />
+                            </div>
+                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              min={1}
+                              value={String(inv.qty ?? 1)}
+                              onChange={(e) => handleChangeInventoryQty(inv.value, Math.max(1, Number(e.target.value || 1)))}
+                              className="w-16 h-7 text-sm"
+                            />
+                            <span className="text-xs text-muted-foreground">pcs</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground font-normal">No items selected</span>
+                    )}
+                  </div>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search inventory..." />
+                  <CommandList>
+                    <CommandEmpty>No inventory found.</CommandEmpty>
+                    <CommandGroup>
+                      {availableInventories.map((inv) => {
+                        const isSelected = selectedInventory.some((s) => s.value === inv.value);
+                        return (
+                          <CommandItem
+                            key={inv.value}
+                            onSelect={() => {
+                              if (isSelected) {
+                                handleRemoveInventory(inv.value);
+                              } else {
+                                setSelectedInventory([...selectedInventory, { ...inv, qty: 1 }]);
+                              }
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
+                            <div className="flex items-center justify-between w-full">
+                              <div className="truncate">{inv.label}</div>
+                              <div className="text-xs text-muted-foreground">{inv.qty ?? 0} pcs</div>
+                            </div>
                           </CommandItem>
                         );
                       })}
@@ -735,15 +849,8 @@ export default function CreateJobPage() {
           {/* Map Picker */}
           <div className="space-y-2">
             <Label htmlFor="location">Map Picker</Label>
-            <div className="flex gap-2 mt-2">
-              <Input id="location" placeholder="location name...." />
-              <Button variant="ghost">clear</Button>
-            </div>
-            {/* Map Placeholder */}
-            <div className="h-64 w-full rounded-md bg-muted flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">
-                [Map Component (e.g., Google Maps, Leaflet) goes here]
-              </p>
+            <div className="mt-2">
+              <MapPicker initialPosition={location} onPositionChange={setLocation} />
             </div>
           </div>
 

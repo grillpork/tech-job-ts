@@ -16,12 +16,15 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
+import { ToolCase } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ✅ Import Store, Types, and Mocks
 import { useJobStore } from "@/stores/features/jobStore"; // (แก้ path ถ้าจำเป็น)
+import { useInventoryStore } from "@/stores/features/inventoryStore";
 import { MOCK_USERS } from "@/lib/mocks/user";
 import { Job } from "@/lib/types/job";
+import { MapPicker } from '@/components/map/MapPicker';
 
 // Import components จาก shadcn/ui
 import { Button } from "@/components/ui/button";
@@ -143,6 +146,14 @@ export default function EditJobPage() {
   const [editHeader, setEditHeader] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
+  // Inventory selection state
+  const inventories = useInventoryStore((s) => s.inventories);
+  const [selectedInventory, setSelectedInventory] = useState<{ value: string; label: string; qty?: number }[]>([]);
+  const [invPopoverOpen, setInvPopoverOpen] = useState(false);
+  // location selected from MapPicker
+  const [location, setLocation] = useState<{ lat: number; lng: number; name?: string | null } | null>(null);
+
+  const availableInventories = React.useMemo(() => inventories.map(i => ({ value: i.id, label: i.name, qty: i.quantity })), [inventories]);
   
   // ✅ State สำหรับ Alert
   const [isErrorAlertOpen, setIsErrorAlertOpen] = useState(false);
@@ -176,6 +187,12 @@ export default function EditJobPage() {
       setSelectedEmployees(job.assignedEmployees.map(u => ({ value: u.id, label: u.name })));
       setDepartment(job.department || 'Electrical'); // ใช้ค่าจาก job
       setLeadTechnician(job.leadTechnician?.id || 'user-lead-1'); // ใช้ค่าจาก job
+      // load used inventory if present
+      if (job.usedInventory && Array.isArray(job.usedInventory)) {
+        setSelectedInventory(job.usedInventory.map((ui) => ({ value: ui.id, label: inventories.find(i => i.id === ui.id)?.name || ui.id, qty: ui.qty })));
+      }
+      // load location if present
+      setLocation(job.location ?? null);
     } else {
       router.push("/dashboard/admin/jobs"); // ถ้าไม่เจอ Job ให้เด้งกลับ
     }
@@ -233,6 +250,9 @@ export default function EditJobPage() {
     });
   };
 
+  const handleRemoveInventory = (value: string) => setSelectedInventory((prev) => prev.filter((inv) => inv.value !== value));
+  const handleChangeInventoryQty = (value: string, qty: number) => setSelectedInventory((prev) => prev.map((inv) => inv.value === value ? { ...inv, qty } : inv));
+
   const isAllSelected = tasks.length > 0 && selectedTasks.length === tasks.length;
   const isIndeterminate = selectedTasks.length > 0 && selectedTasks.length < tasks.length;
 
@@ -260,10 +280,11 @@ export default function EditJobPage() {
       leadTechnicianId: leadTechnician,
       department: department,
       assignedEmployeeIds: selectedEmployees.map(emp => emp.value),
-      startDate: startDate,
-      endDate: endDate,
-      tasks: tasks.map(t => ({ description: t.header })),
-      attachments: attachments,
+      usedInventory: selectedInventory.map(inv => ({ id: inv.value, qty: inv.qty ?? 1 })),
+  startDate: startDate ? startDate.toISOString() : null,
+  endDate: endDate ? endDate.toISOString() : null,
+  tasks: tasks.map(t => ({ description: t.header })),
+      location: location ?? null,
     };
 
     updateJob(jobToEdit.id, updatedData);
@@ -388,6 +409,66 @@ export default function EditJobPage() {
             </Popover>
           </div>
 
+          {/* Used Inventory */}
+          <div>
+            <Label>Used inventory <span className="text-xs text-muted-foreground">(select items used on site)</span></Label>
+            <Popover open={invPopoverOpen} onOpenChange={setInvPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={invPopoverOpen} className="w-full justify-between mt-2 h-auto min-h-10">
+                  <div className="flex gap-1 flex-wrap items-center">
+                    <ToolCase className="h-4 w-4 text-muted-foreground mr-1" />
+                    {selectedInventory.length > 0 ? (
+                      selectedInventory.map((inv) => (
+                        <div key={inv.value} className="flex items-center gap-2">
+                          <Badge variant="secondary" className="gap-1.5" title={`${inv.label} — ${inv.qty ?? "-"} pcs`}>
+                            {inv.label}
+                            <div role="button" tabIndex={0} aria-label={`Remove ${inv.label}`} onClick={(e) => { e.stopPropagation(); handleRemoveInventory(inv.value); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleRemoveInventory(inv.value); } }} className="rounded-full hover:bg-muted-foreground/20">
+                              <X className="h-3 w-3" />
+                            </div>
+                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Input type="number" min={1} value={String(inv.qty ?? 1)} onChange={(e) => handleChangeInventoryQty(inv.value, Math.max(1, Number(e.target.value || 1)))} className="w-16 h-7 text-sm" />
+                            <span className="text-xs text-muted-foreground">pcs</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground font-normal">No items selected</span>
+                    )}
+                  </div>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search inventory..." />
+                  <CommandList>
+                    <CommandEmpty>No inventory found.</CommandEmpty>
+                    <CommandGroup>
+                      {availableInventories.map((inv) => {
+                        const isSelected = selectedInventory.some((s) => s.value === inv.value);
+                        return (
+                          <CommandItem key={inv.value} onSelect={() => {
+                            if (isSelected) {
+                              handleRemoveInventory(inv.value);
+                            } else {
+                              setSelectedInventory([...selectedInventory, { ...inv, qty: 1 }]);
+                            }
+                          }}>
+                            <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
+                            <div className="flex items-center justify-between w-full">
+                              <div className="truncate">{inv.label}</div>
+                              <div className="text-xs text-muted-foreground">{inv.qty ?? 0} pcs</div>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="startDate">Start date</Label>
@@ -452,12 +533,8 @@ export default function EditJobPage() {
         <div className="md:col-span-2 space-y-8">
           <div className="space-y-2">
             <Label htmlFor="location">Map Picker</Label>
-            <div className="flex gap-2 mt-2">
-              <Input id="location" placeholder="location name...." />
-              <Button variant="ghost">clear</Button>
-            </div>
-            <div className="h-64 w-full rounded-md bg-muted flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">[Map Component (e.g., Google Maps, Leaflet) goes here]</p>
+            <div className="mt-2">
+              <MapPicker initialPosition={location} onPositionChange={setLocation} />
             </div>
           </div>
 

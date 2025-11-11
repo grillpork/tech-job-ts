@@ -26,7 +26,7 @@ export default function DashboardLayout({
 
   return (
     <ClientAuthGuard>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="flex h-screen overflow-hidden">
         {/* Sidebar (ซ้าย) */}
         {/* ✅ Desktop */}
         <aside className="hidden lg:block bg-muted/40 ">
@@ -39,7 +39,7 @@ export default function DashboardLayout({
             <>
               {/* Backdrop */}
               <motion.div
-                className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -64,19 +64,18 @@ export default function DashboardLayout({
         <div className="flex flex-col flex-1">
           <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
             
-          <main className="flex-1 pr-4 pb-4 overflow-y-auto">
-            <Card className="p-0 h-full overflow-auto">
+          <main className="flex-1 overflow-y-auto">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={pathname}
                   initial={{ opacity: 0, y: 20, filter: "blur(20px)" }}
                   animate={{ opacity: 1, y: 0 , filter: "blur(0px)"  }}
                   transition={{ duration: 0.25 }}
+                  className="h-full"
                 >
                   {children}
                 </motion.div>
               </AnimatePresence>
-            </Card>
           </main>
         </div>
       </div>

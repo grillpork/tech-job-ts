@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUserStore } from "@/stores/faker/userStore";
+import { useUserStore } from "@/stores/features/userStore";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -36,43 +36,92 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   // ✅ เมนูตาม role
-  const roleMenus: Record<string, { name: string; href: string; icon: any }[]> = {
-    admin: [
-      { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
-      { name: "Users", href: "/dashboard/admin/users", icon: Users },
-      { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
-      { name: "Notifications", href: "/dashboard/admin/notifications", icon: Bell },
-      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
-      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
-      { name: "Map", href: "/dashboard/admin/map", icon: Map },
-      { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
-      { name: "Inventorys", href: "/dashboard/admin/inventorys", icon: ToolCase },
-      { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
-    ],
-    manager: [
-      { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
-      { name: "Team Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
-      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
-      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
-    ],
-    lead_technician: [
-      { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutDashboard },
-      { name: "Assigned Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
-      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
-      { name: "Inventory", href: "/dashboard/employee/inventory", icon: ToolCase },
-      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
-    ],
-    employee: [
-      { name: "Dashboard", href: "/dashboard/employee/dashboard", icon: LayoutDashboard },
-      { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
-      { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
-      { name: "Notifications", href: "/dashboard/employee/notifications", icon: Bell },
-      { name: "Calendar", href: "/dashboard/employee/calendar", icon: Calendar },
-      { name: "Inventorys", href: "/dashboard/employee/inventorys", icon: ToolCase },
-      { name: "Profile", href: "/dashboard/employee/profile", icon: User },
-      { name: "Settings", href: "/dashboard/employee/settings", icon: Settings },
-    ],
-  };
+  const roleMenus: Record<string, { name: string; href: string; icon: any }[]> =
+    {
+      admin: [
+        {
+          name: "Dashboard",
+          href: "/dashboard/admin/dashboard",
+          icon: LayoutDashboard,
+        },
+        { name: "Users", href: "/dashboard/admin/users", icon: Users },
+        { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
+        {
+          name: "Notifications",
+          href: "/dashboard/admin/notifications",
+          icon: Bell,
+        },
+        { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
+        { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+        { name: "Map", href: "/dashboard/admin/map", icon: Map },
+        { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
+        {
+          name: "Inventorys",
+          href: "/dashboard/admin/inventorys",
+          icon: ToolCase,
+        },
+        { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
+      ],
+      manager: [
+        {
+          name: "Dashboard",
+          href: "/dashboard/admin/dashboard",
+          icon: LayoutDashboard,
+        },
+        { name: "Team Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
+        { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+        { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
+      ],
+      lead_technician: [
+        {
+          name: "Dashboard",
+          href: "/dashboard/admin/dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          name: "Assigned Jobs",
+          href: "/dashboard/admin/jobs",
+          icon: Briefcase,
+        },
+        { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+        {
+          name: "Inventory",
+          href: "/dashboard/employee/inventory",
+          icon: ToolCase,
+        },
+        { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
+      ],
+      employee: [
+        {
+          name: "Dashboard",
+          href: "/dashboard/employee/dashboard",
+          icon: LayoutDashboard,
+        },
+        { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
+        { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
+        {
+          name: "Notifications",
+          href: "/dashboard/employee/notifications",
+          icon: Bell,
+        },
+        {
+          name: "Calendar",
+          href: "/dashboard/employee/calendar",
+          icon: Calendar,
+        },
+        {
+          name: "Inventorys",
+          href: "/dashboard/employee/inventorys",
+          icon: ToolCase,
+        },
+        { name: "Profile", href: "/dashboard/employee/profile", icon: User },
+        {
+          name: "Settings",
+          href: "/dashboard/employee/settings",
+          icon: Settings,
+        },
+      ],
+    };
 
   const menus = roleMenus[currentUser?.role || "employee"] || [];
 
@@ -80,7 +129,7 @@ export default function Sidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          "h-screen bg-white dark:bg-background  flex flex-col transition-all duration-300",
+          "h-screen flex flex-col transition-all duration-300",
           collapsed ? "w-17" : "w-64"
         )}
       >
@@ -121,19 +170,25 @@ export default function Sidebar() {
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 "
                 )}
               >
-                <Icon className="w-5 h-5 flex-shrink-0 group-hover:animate-bounce"  />
+                <Icon className="w-5 h-5 flex-shrink-0 group-hover:animate-bounce" />
                 {!collapsed && <span className="w-full">{menu.name}</span>}
-                {!collapsed && <div className="flex justify-end w-full">
-                  {/* Active indicator */}
-                  {isActive && (
-              <motion.div
-                layoutId="activeIndicator"
-                className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-5 bg-green-500 dark:bg-green-500 rounded-full shadow-[0_0_10px_rgba(0,255,0,0.6)] dark:[0_0_10px_rgba(0,255,0,0.6)]"
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              />
-            )}
-                  {/* {isActive && <div className="w-2 h-5 bg-black dark:bg-white absolute -right-1 dark:shadow-[0_0_12px_rgba(255,255,255,1)] shadow-[0_0_12px_rgba(0,0,0,1)] rounded-full top-1/2 transform -translate-y-1/2"></div>} */}
-                </div>}
+                {!collapsed && (
+                  <div className="flex justify-end w-full">
+                    {/* Active indicator */}
+                    {/* {isActive && (
+                      <motion.div
+                        layoutId="activeIndicator"
+                        className="absolute -right-1 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-green-500 dark:bg-green-500 rounded-full shadow-[0_0_10px_rgba(0,255,0,0.6)] dark:[0_0_10px_rgba(0,255,0,0.6)]"
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 30,
+                        }}
+                      />
+                    )} */}
+                    {isActive && <div className="w-2 h-5 bg-black dark:bg-white absolute -right-1 dark:shadow-[0_0_12px_rgba(255,255,255,1)] shadow-[0_0_12px_rgba(0,0,0,1)] rounded-full top-1/2 transform -translate-y-1/2"></div>}
+                  </div>
+                )}
               </Link>
             );
 

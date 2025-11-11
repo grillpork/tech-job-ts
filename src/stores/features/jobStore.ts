@@ -47,6 +47,7 @@ export interface Job {
   assignedEmployees: JobUser[];
   leadTechnician: JobUser | null;
   tasks: Task[];
+  usedInventory?: { id: string; qty: number }[];
   createdAt: string;
   startDate?: string | null;
   endDate?: string | null;
@@ -73,6 +74,7 @@ interface JobStoreState {
       | "attachments"
     > & {
       creatorId: string;
+      usedInventory?: { id: string; qty: number }[];
       assignedEmployeeIds?: string[];
       leadTechnicianId?: string | null;
       tasks?: { description: string }[];
@@ -84,6 +86,7 @@ interface JobStoreState {
     updatedData: Partial<
       Omit<Job, "creator" | "assignedEmployees" | "leadTechnician" | "tasks" | "attachments"> & {
         creatorId?: string;
+        usedInventory?: { id: string; qty: number }[];
         assignedEmployeeIds?: string[];
         leadTechnicianId?: string | null;
         tasks?: { id?: string; description: string; details?: string | null; isCompleted?: boolean; order?: number }[];
@@ -145,6 +148,7 @@ export const useJobStore = create<JobStoreState>()(
                 details: null,
                 order: i,
               })) || [],
+            usedInventory: newJobData.usedInventory || [],
             createdAt: new Date().toISOString(),
             startDate: newJobData.startDate || null,
             endDate: newJobData.endDate || null,
@@ -199,6 +203,10 @@ export const useJobStore = create<JobStoreState>()(
                 t.isCompleted !== undefined ? t.isCompleted : false,
               order: t.order !== undefined ? t.order : i,
             }));
+          }
+
+          if (updatedData.usedInventory !== undefined) {
+            currentJob.usedInventory = updatedData.usedInventory;
           }
 
           if (updatedData.attachments !== undefined) {

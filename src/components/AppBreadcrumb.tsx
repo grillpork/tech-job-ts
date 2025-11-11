@@ -79,7 +79,7 @@ export function AppBreadcrumbs() {
 
 
   return (
-    <Breadcrumb className="p-4"> {/* เพิ่ม padding และ border-b เพื่อให้ดูดี */}
+    <Breadcrumb className="p-2"> {/* เพิ่ม padding และ border-b เพื่อให้ดูดี */}
       <BreadcrumbList>
         {breadcrumbs.map((item, index) => (
           <Fragment key={item.href}>

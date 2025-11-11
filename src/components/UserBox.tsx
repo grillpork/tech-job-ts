@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUserStore } from "@/stores/faker/userStore";
+import { useUserStore } from "@/stores/features/userStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -59,7 +59,7 @@ export function UserBox() {
                   <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
                 )}
               </Avatar>
-              <div className="hidden flex-col items-start leading-tight sm:flex">
+              <div className=" flex-col items-start leading-tight flex">
                 <span className="text-sm font-medium">{currentUser.name}</span>
                 <span className="text-xs text-muted-foreground capitalize">
                   {currentUser.role.replace("_", " ")}

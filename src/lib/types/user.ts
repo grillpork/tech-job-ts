@@ -5,5 +5,6 @@ export interface User {
   role: 'admin' | 'manager' | 'lead_technician' | 'employee';
   department?: string | null; // ✅ เพิ่ม field นี้
   email?: string;
+  status? : string
   password?: string;
 }

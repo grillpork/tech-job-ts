@@ -15,7 +15,7 @@ export const MOCK_JOBS: Job[] = [
     },
     assignedEmployees: [
         MOCK_USERS[3], // อ้างอิง user-emp-1
-        MOCK_USERS[4]  // อ้างอิง user-emp-2
+        MOCK_USERS[2]  // อ้างอิง user-emp-2
     ],
     leadTechnician: MOCK_USERS[2], // อ้างอิง user-lead-1
     tasks: [
@@ -38,6 +38,7 @@ export const MOCK_JOBS: Job[] = [
     startDate: "2025-10-21",
     endDate: "2025-10-22",
     location: { lat: 13.7563, lng: 100.5018, name: "อาคารสำนักงานใหญ่" },
+    locationImage : "https://pix10.agoda.net/hotelImages/124/1246280/1246280_16061017110043391702.jpg?ca=6&ce=1&s=414x232",
     attachments: []
   },
   {

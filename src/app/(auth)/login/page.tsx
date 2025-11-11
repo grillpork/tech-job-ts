@@ -1,5 +1,5 @@
 "use client";
-import { useUserStore } from "@/stores/faker/userStore";
+import { useUserStore } from "@/stores/features/userStore";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";

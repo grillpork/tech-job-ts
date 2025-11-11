@@ -14,9 +14,9 @@ import {
 } from "../ui/dropdown-menu";
 import { AppBreadcrumbs } from "../AppBreadcrumb";
 import { Menu } from "lucide-react";
-import { useUserStore } from "@/stores/faker/userStore";
+import { useUserStore } from "@/stores/features/userStore";
 import { ModeToggle } from "../ModeToggle";
-import GlobalSearch from "../GlobalSearch";
+import GlobalSearch from "../global/GlobalSearch";
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -27,7 +27,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const { notifications, unreadCount, markAsRead, clearAll } =useNotificationStore();
 
   return (
-    <header className="w-full h-17 bg-background flex items-center justify-between px-4  relative z-50">
+    <header className="w-full py-2 bg-background flex items-center justify-between px-4  relative z-50">
 
        {/* ☰ ปุ่มเปิด sidebar (เฉพาะมือถือ) */}
       <button

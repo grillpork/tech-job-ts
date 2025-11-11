@@ -38,5 +38,6 @@ export interface Job {
   startDate?: string | null;
   endDate?: string | null;
   location?: { lat: number; lng: number; name?: string | null } | null;
+  locationImage?: string;
   attachments: Attachment[];
 }

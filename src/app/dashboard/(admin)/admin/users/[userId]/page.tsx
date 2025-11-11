@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { redirect, useParams } from "next/navigation";
+import { useUserStore } from "@/stores/features/userStore";
+import { useJobStore } from "@/stores/features/jobStore";
 import {
   Avatar,
   AvatarFallback,
@@ -22,156 +25,122 @@ import {
   Users,
   ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
 
-// --- Mock Data ---
-const userProfile = {
-  name: "John Doe",
-  role: "Junior Web Developer",
-  avatarUrl: "https://github.com/shadcn.png",
-  availability: "Available",
-};
-
-const analyticsStats = [
-  {
-    title: "งานที่ทำเสร็จแล้ว",
-    value: "42",
-    description: "งานทั้งหมดที่เสร็จสมบูรณ์",
-    icon: <CheckCheck className="h-5 w-5 text-green-500" />,
-  },
-  {
-    title: "จำนวนงานที่ทำอยู่",
-    value: "5",
-    description: "Tasks in progress",
-    icon: <CircleDotDashed className="h-5 w-5 text-blue-500" />,
-  },
-  {
-    title: "จำนวนการเข้างาน (30 วัน)",
-    value: "28",
-    description: "Active days in last 30 days",
-    icon: <LogIn className="h-5 w-5 text-gray-500" />,
-  },
-];
-
-const jobHistory = [
-  {
-    id: "JOB-001",
-    taskName: "Develop Landing Page",
-    project: "Project Phoenix",
-    status: "Completed",
-    date: "2025-11-05",
-  },
-  {
-    id: "JOB-002",
-    taskName: "Setup Authentication",
-    project: "Tech Job App",
-    status: "Completed",
-    date: "2025-11-01",
-  },
-  {
-    id: "JOB-003",
-    taskName: "Fix API Bug",
-    project: "Internal Tools",
-    status: "In Progress",
-    date: "2025-11-09",
-  },
-  {
-    id: "JOB-004",
-    taskName: "Design Dashboard UI",
-    project: "Project Phoenix",
-    status: "Declined",
-    date: "2025-10-28",
-  },
-  {
-    id: "JOB-005",
-    taskName: "Refactor Database Schema",
-    project: "Tech Job App",
-    status: "In Progress",
-    date: "2025-11-10",
-  },
-  {
-    id: "JOB-006",
-    taskName: "Write E2E Tests",
-    project: "Project Phoenix",
-    status: "Completed",
-    date: "2025-10-30",
-  },
-  {
-    id: "JOB-007",
-    taskName: "Deploy to Vercel",
-    project: "Tech Job App",
-    status: "Completed",
-    date: "2025-11-11",
-  },
-];
-
-const agendaDates = [
-  { weekday: "Mo", day: 12 },
-  { weekday: "Tu", day: 13 },
-  { weekday: "We", day: 14 },
-  { weekday: "Th", day: 15 },
-  { weekday: "Fr", day: 16 },
-  { weekday: "Sa", day: 17 },
-  { weekday: "Su", day: 18 },
-];
-
-const userAgenda = [
-  {
-    id: "A-1",
-    day: 13,
-    title: "Calm & Focus Group",
-    time: "12:30-13:30",
-    icon: <Users className="h-5 w-5 text-muted-foreground" />,
-    team: [
-      { id: "t1", name: "A", fallback: "A", img: "/avatars/01.png" },
-      { id: "t2", name: "B", fallback: "B", img: "/avatars/02.png" },
-      { id: "t3", name: "C", fallback: "C", img: "/avatars/03.png" },
-      { id: "t5", name: "D", fallback: "D", img: "/avatars/05.png" },
-    ],
-  },
-  {
-    id: "A-2",
-    day: 13,
-    title: "1:1 with T. Morgan",
-    time: "14:30-15:15",
-    icon: <Users className="h-5 w-5 text-muted-foreground" />,
-    team: [{ id: "t4", name: "M", fallback: "M", img: "/avatars/04.png" }],
-  },
-  {
-    id: "A-3",
-    day: 13,
-    title: "1:1 with S. Green",
-    time: "16:30-17:00",
-    icon: <Users className="h-5 w-5 text-muted-foreground" />,
-    team: [{ id: "t2", name: "B", fallback: "B", img: "/avatars/02.png" }],
-  },
-  {
-    id: "A-4",
-    day: 13,
-    title: "1:1 with M. Carter",
-    time: "18:00-19:00",
-    icon: <Users className="h-5 w-5 text-muted-foreground" />,
-    team: [{ id: "t5", name: "C", fallback: "C", img: "/avatars/05.png" }],
-  },
-  {
-    id: "A-5",
-    day: 14,
-    title: "Project Phoenix Sync",
-    time: "10:00-11:00",
-    icon: <Users className="h-5 w-5 text-muted-foreground" />,
-    team: [
-      { id: "t1", name: "A", fallback: "A", img: "/avatars/01.png" },
-      { id: "t2", name: "B", fallback: "B", img: "/avatars/02.png" },
-    ],
-  },
-];
-// --- End Mock Data ---
+// --- We'll derive data from stores (jobs & users) and add a small attendance mock ---
 
 export default function UserAnalyticsPage() {
   const [selectedDate, setSelectedDate] = useState(13);
 
-  const filteredAgenda = userAgenda.filter(
-    (item) => item.day === selectedDate
-  );
+  const params = useParams()
+  const userId = params?.userId as string | undefined
+
+  const users = useUserStore((s) => s.users)
+  const jobs = useJobStore((s) => s.jobs)
+
+  const user = users.find((u) => u.id === userId)
+
+  // Jobs related to this user
+  const userJobs = useMemo(() => {
+    if (!userId) return [] as typeof jobs
+    return jobs.filter((job) => {
+      const isAssigned = job.assignedEmployees?.some((a) => a.id === userId)
+      const isCreator = job.creator?.id === userId
+      const isLead = job.leadTechnician?.id === userId
+      return !!(isAssigned || isCreator || isLead)
+    })
+  }, [jobs, userId])
+
+  // Simple attendance mock: collect unique startDates from jobs + a few recent dates
+  const attendanceDates = useMemo(() => {
+    const dates = new Set<string>()
+    userJobs.forEach((j) => {
+      if (j.startDate) dates.add(j.startDate)
+      else dates.add(j.createdAt.slice(0, 10))
+    })
+    // add a couple of recent mock check-ins
+    const now = new Date()
+    for (let i = 1; i <= 5; i++) {
+      const d = new Date(now)
+      d.setDate(now.getDate() - i * 2)
+      dates.add(d.toISOString().slice(0, 10))
+    }
+    return Array.from(dates).sort().reverse()
+  }, [userJobs])
+
+  const activeDaysCount = attendanceDates.length
+
+  // Analytics
+  const completedCount = userJobs.filter((j) => j.status === "completed").length
+  const inProgressCount = userJobs.filter((j) => j.status === "in_progress").length
+
+  const analyticsStats = [
+    {
+      title: "งานที่ทำเสร็จแล้ว",
+      value: String(completedCount),
+      description: "งานทั้งหมดที่เสร็จสมบูรณ์",
+      icon: <CheckCheck className="h-5 w-5 text-green-500" />,
+    },
+    {
+      title: "จำนวนงานที่ทำอยู่",
+      value: String(inProgressCount),
+      description: "Tasks in progress",
+      icon: <CircleDotDashed className="h-5 w-5 text-blue-500" />,
+    },
+    {
+      title: "จำนวนการเข้างาน (30 วัน)",
+      value: String(activeDaysCount),
+      description: "Active days in last 30 days",
+      icon: <LogIn className="h-5 w-5 text-gray-500" />,
+    },
+  ]
+
+  // Job history derived from userJobs
+  const jobHistory = userJobs.map((j) => ({
+    id: j.id,
+    taskName: j.title,
+    project: j.department || "-",
+    status: j.status === "completed" ? "Completed" : j.status === "in_progress" ? "In Progress" : String(j.status),
+    date: (j.startDate || j.createdAt).slice(0, 10),
+  }))
+
+  // Agenda dates (next 7 days)
+  const today = new Date()
+  const agendaDates = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(today)
+    d.setDate(today.getDate() + i)
+    return { weekday: d.toLocaleDateString("en-US", { weekday: "short" }).slice(0,2), day: d.getDate() }
+  })
+
+  const userAgenda = useMemo(() => {
+    return userJobs.map((j, idx) => {
+      // derive day from startDate or createdAt
+      const dateStr = j.startDate || j.createdAt || undefined
+      const day = dateStr ? new Date(dateStr).getDate() : new Date().getDate()
+
+      const team = (j.assignedEmployees ?? []).map((emp: any) => {
+        const u = users.find((x) => x.id === emp.id)
+        return {
+          id: emp.id,
+          img: u?.imageUrl ?? "",
+          fallback: (u?.name ?? emp.id ?? "U").toString().charAt(0),
+        }
+      })
+
+      return {
+        id: `${j.id ?? idx}`,
+        day,
+        title: j.title,
+        time: dateStr
+          ? new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : "09:00-11:00",
+        icon: <Users className="h-5 w-5 text-muted-foreground" />,
+        team,
+      }
+    })
+  }, [userJobs, users])
+
+  const filteredAgenda = userAgenda.filter((item) => item.day === selectedDate)
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -264,26 +233,21 @@ export default function UserAnalyticsPage() {
           <Card className="mb-6">
             <CardContent className="pt-6 flex flex-col items-center space-y-2">
               <Avatar className="h-20 w-20 mb-2">
-                <AvatarImage
-                  src={userProfile.avatarUrl}
-                  alt={userProfile.name}
-                />
+                <AvatarImage src={user?.imageUrl ?? undefined} alt={user?.name ?? "User"} />
                 <AvatarFallback>
-                  {userProfile.name
+                  {(user?.name ?? "User")
                     .split(" ")
                     .map((n) => n[0])
                     .join("")}
                 </AvatarFallback>
               </Avatar>
-              <h3 className="text-xl font-semibold">{userProfile.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                {userProfile.role}
-              </p>
+              <h3 className="text-xl font-semibold">{user?.name ?? "Unknown"}</h3>
+              <p className="text-sm text-muted-foreground">{user?.role ?? "-"}</p>
               <Badge
                 variant="outline"
                 className="border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900 dark:text-green-100"
               >
-                {userProfile.availability}
+                {user ? "Available" : "Unknown"}
               </Badge>
             </CardContent>
           </Card>
@@ -329,13 +293,15 @@ export default function UserAnalyticsPage() {
                   filteredAgenda.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between rounded-lg border bg-background p-3.5"
+                      className="flex items-center justify-between rounded-lg border bg-background p-3.5 cursor-pointer"
+                      onClick={() => redirect(`/dashboard/admin/jobs/${item.id}`)}
                     >
                       {/* ส่วนซ้าย: ไอคอน + ชื่องาน + เวลา */}
                       <div className="flex items-center gap-3">
-                        {item.icon}
+                        {/* {item.icon} */}
                         <div>
                           <p className="text-sm font-semibold">
+                            {item.id}
                             {item.title}
                           </p>
                           <p className="text-xs text-muted-foreground">

@@ -37,91 +37,78 @@ export default function Sidebar() {
 
   // ✅ เมนูตาม role
   const roleMenus: Record<string, { name: string; href: string; icon: any }[]> =
-    {
-      admin: [
-        {
-          name: "Dashboard",
-          href: "/dashboard/admin/dashboard",
-          icon: LayoutDashboard,
-        },
-        { name: "Users", href: "/dashboard/admin/users", icon: Users },
-        { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
-        {
-          name: "Notifications",
-          href: "/dashboard/admin/notifications",
-          icon: Bell,
-        },
-        { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
-        { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
-        { name: "Map", href: "/dashboard/admin/map", icon: Map },
-        { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
-        {
-          name: "Inventorys",
-          href: "/dashboard/admin/inventorys",
-          icon: ToolCase,
-        },
-        { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
-      ],
-      manager: [
-        {
-          name: "Dashboard",
-          href: "/dashboard/admin/dashboard",
-          icon: LayoutDashboard,
-        },
-        { name: "Team Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
-        { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
-        { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
-      ],
-      lead_technician: [
-        {
-          name: "Dashboard",
-          href: "/dashboard/admin/dashboard",
-          icon: LayoutDashboard,
-        },
-        {
-          name: "Assigned Jobs",
-          href: "/dashboard/admin/jobs",
-          icon: Briefcase,
-        },
-        { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
-        {
-          name: "Inventory",
-          href: "/dashboard/employee/inventory",
-          icon: ToolCase,
-        },
-        { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
-      ],
-      employee: [
-        {
-          name: "Dashboard",
-          href: "/dashboard/employee/dashboard",
-          icon: LayoutDashboard,
-        },
-        { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
-        { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
-        {
-          name: "Notifications",
-          href: "/dashboard/employee/notifications",
-          icon: Bell,
-        },
-        {
-          name: "Calendar",
-          href: "/dashboard/employee/calendar",
-          icon: Calendar,
-        },
-        {
-          name: "Inventorys",
-          href: "/dashboard/employee/inventorys",
-          icon: ToolCase,
-        },
-        { name: "Profile", href: "/dashboard/employee/profile", icon: User },
-        {
-          name: "Settings",
-          href: "/dashboard/employee/settings",
-          icon: Settings,
-        },
-      ],
-    };
+  {
+    admin: [
+      {
+        name: "Dashboard",
+        href: "/dashboard/admin/dashboard",
+        icon: LayoutDashboard,
+      },
+      { name: "Users", href: "/dashboard/admin/users", icon: Users },
+      { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
+      {
+        name: "Notifications",
+        href: "/dashboard/admin/notifications",
+        icon: Bell,
+      },
+      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
+      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "Map", href: "/dashboard/admin/map", icon: Map },
+      { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
+      {
+        name: "Inventorys",
+        href: "/dashboard/admin/inventorys",
+        icon: ToolCase,
+      },
+      { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
+    ],
+    manager: [
+      {
+        name: "Dashboard",
+        href: "/dashboard/admin/dashboard",
+        icon: LayoutDashboard,
+      },
+      { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
+    ],
+    lead_technician: [
+      {
+        name: "Dashboard",
+        href: "/dashboard/admin/dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        name: "Dashboard",
+        href: "/dashboard/admin/dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        name: "Assigned Jobs",
+        href: "/dashboard/admin/jobs",
+        icon: Briefcase,
+      },
+      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
+    ],
+    employee: [
+      {
+        name: "Dashboard",
+        href: "/dashboard/employee/dashboard",
+        icon: LayoutDashboard,
+      },
+      { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
+      { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
+      {
+        name: "Notifications",
+        href: "/dashboard/employee/notifications",
+        icon: Bell,
+      },
+      {
+        name: "Calendar",
+        href: "/dashboard/employee/calendar",
+        icon: Calendar,
+      },
+    ],
+  };
 
   const menus = roleMenus[currentUser?.role || "employee"] || [];
 

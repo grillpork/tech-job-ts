@@ -7,7 +7,16 @@ import "leaflet/dist/leaflet.css";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
-import { CircleCheck, CircleDotDashed, Clock2, SearchIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building,
+  CircleCheck,
+  CircleDotDashed,
+  Clock2,
+  Home,
+  SearchIcon,
+} from "lucide-react";
 // import { Input } from "../ui/input";
 import {
   InputGroup,
@@ -15,7 +24,14 @@ import {
   InputGroupAddon,
   InputGroupButton,
 } from "../ui/input-group";
-import { Select, SelectGroup, SelectItem , SelectContent, SelectTrigger, SelectValue} from "../ui/select";
+import {
+  Select,
+  SelectGroup,
+  SelectItem,
+  SelectContent,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 // import { SelectContent, SelectTrigger, SelectValue } from "@radix-ui/react-select";
 
 // --- Icon Fix ---
@@ -40,6 +56,7 @@ interface LocationData {
   status: LocationStatus;
   radius: number;
   nature: string;
+  locImage: string
 }
 
 // --- Initial Data ---
@@ -52,6 +69,8 @@ const initialLocations: LocationData[] = [
     status: "pending",
     nature: "building",
     radius: 500,
+    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+
   },
   {
     id: 2,
@@ -61,6 +80,8 @@ const initialLocations: LocationData[] = [
     description: "ย่านช็อปปิ้ง",
     status: "progress",
     radius: 300,
+    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+
   },
   {
     id: 3,
@@ -70,6 +91,8 @@ const initialLocations: LocationData[] = [
     description: "ท่าอากาศยานดอนเมือง",
     status: "completed",
     radius: 700,
+    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+
   },
   {
     id: 4,
@@ -79,6 +102,8 @@ const initialLocations: LocationData[] = [
     description: "สวนสาธารณะใจกลางเมือง",
     status: "progress",
     radius: 400,
+    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+
   },
   {
     id: 5,
@@ -88,6 +113,8 @@ const initialLocations: LocationData[] = [
     description: "ย่านธุรกิจ",
     status: "pending",
     radius: 600,
+    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+
   },
   {
     id: 6,
@@ -97,6 +124,8 @@ const initialLocations: LocationData[] = [
     description: "ย่านธุรกิจ",
     status: "pending",
     radius: 600,
+    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+
   },
   {
     id: 7,
@@ -106,6 +135,8 @@ const initialLocations: LocationData[] = [
     description: "ย่านธุรกิจ",
     status: "pending",
     radius: 600,
+    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+
   },
 ];
 
@@ -177,6 +208,7 @@ function Markers({ locations }: MarkersProps) {
 
       const popupContent = document.createElement("div");
       popupContent.innerHTML = `
+        <image src=${loc.locImage} alt=""/>
         <h3>${loc.title}</h3>
         <p>${loc.description}</p>
         <p>สถานะ: ${loc.status}</p>
@@ -254,7 +286,7 @@ export default function LeafletMapPage() {
   };
 
   return (
-    <div className="w-full h-[89vh] rounded-xl overflow-clip relative">
+    <div className="w-full md:h-[90vh] lg:h-[91vh] rounded-xl overflow-clip relative">
       {/* Map */}
       <MapContainer
         center={[13.736717, 100.523186]}
@@ -262,7 +294,7 @@ export default function LeafletMapPage() {
         className="w-full h-full"
       >
         <TileLayer
-          url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
@@ -272,87 +304,75 @@ export default function LeafletMapPage() {
       </MapContainer>
 
       {/* Floating Sidebar */}
-      <aside className="absolute space-y-2 top-0 left-0 w-82 dark:bg-background/50 text-white backdrop-blur-sm rounded-lg shadow-lg overflow-y-auto p-4 max-h-[calc(100vh-2rem)] z-[1000]">
-        <InputGroup>
-          <InputGroupInput
-            type="text"
-            placeholder="ค้นหา landmark..."
-            value={landmarkSearch}
-            onChange={(e) => setLandmarkSearch(e.target.value)}
-          />
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-        </InputGroup>
+      <aside className="absolute bottom-0 sm:top-0 left-0 sm:right-0 max-w-full sm:max-h-full sm:max-w-sm overflow-y-scroll sm:overflow-x-auto max-h-[calc(100vh-2rem)] z-[1000]">
+        <div className="sticky left-0 top-0 flex flex-col gap-1.5 bg-background px-4 py-2">
+          <InputGroup>
+            <InputGroupInput
+              type="text"
+              placeholder="ค้นหา landmark..."
+              value={landmarkSearch}
+              onChange={(e) => setLandmarkSearch(e.target.value)}
+              className="w-full"
+            />
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+          </InputGroup>
 
-        <Select
-          value={natureFilter}
-          onValueChange={(value) => setNatureFilter(value)}
-        >
+          <Select
+            value={natureFilter}
+            onValueChange={(value) => setNatureFilter(value)}
+          >
             <SelectTrigger className="w-full">
-                <SelectValue placeholder="all" />
+              <SelectValue placeholder="all" />
             </SelectTrigger>
-          <SelectContent>
+            <SelectContent>
               <SelectGroup>
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
-                  <SelectItem value="home">🏠 บ้าน (Home)</SelectItem>
-                  <SelectItem value="building">🏢 อาคาร (Building)</SelectItem>
+                <SelectItem value="all">ทั้งหมด</SelectItem>
+                <SelectItem value="home"><Home/>บ้าน</SelectItem>
+                <SelectItem value="building"><Building/>อาคาร</SelectItem>
               </SelectGroup>
-          </SelectContent>
-        </Select>
+            </SelectContent>
+          </Select>
+        </div>
 
-        <div className="flex flex-col w-full gap-2">
+        <div className="flex flex-row h-full sm:flex-col w-full gap-2 p-2">
           {filteredLocations.map((loc) => (
             <Card
               key={loc.id}
               id={`landmark-${loc.id}`}
-              className="w-full text-left px-3 py-2 rounded-lg hover:scale-105 transition-all duration-300 cursor-pointer"
-              onClick={() => handleZoomToLocation(loc)}
+              className="w-full flex sm:flex-row text-left px-3 py-2 rounded-lg transition-all duration-300 cursor-pointer"
+              // onClick={() => handleZoomToLocation(loc)}
             >
-              <div>
+              <div className="hidden sm:flex ">
                 <img
                   src="https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
                   alt=""
+                  className="object-cover w-[200px] rounded-sm"
                 />
               </div>
 
-              <div className="flex flex-col w-full gap-2">
-                <span className="flex justify-between items-center">
-                  {loc.title}
-                  <Badge
-                    style={{
-                      background: statusColors[loc.status],
-                      fontSize: "8px",
-                    }}
-                    className="text-white"
-                  >
-                    {statusIcons[loc.status]}
+              <button onClick={() => handleZoomToLocation(loc)}>
+                <ArrowRight />
+              </button>
 
-                    {loc.status}
-                  </Badge>
-                </span>
+              <div className="flex flex-col w-full gap-2">
+                <Badge
+                  style={{
+                    color: statusColors[loc.status],
+                    fontSize: "8px",
+                  }}
+                  className="bg-transparent outline"
+                >
+                  {statusIcons[loc.status]}
+
+                  {loc.status}
+                </Badge>
+                {loc.title}
                 <p className="text-sm dark:text-white/50 text-black/50">
                   {loc.description}
                 </p>
-                <div className="flex items-center gap-2">
-                  <Progress
-                    value={
-                      loc.status === "pending"
-                        ? 30
-                        : loc.status === "progress"
-                        ? 70
-                        : 100
-                    }
-                  />
-                  <span className="text-xs">
-                    {loc.status === "pending"
-                      ? 30
-                      : loc.status === "progress"
-                      ? 70
-                      : 100}
-                    %
-                  </span>
-                </div>
+                
               </div>
             </Card>
           ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useUserStore } from "@/stores/faker/userStore";
+import { useUserStore } from "@/stores/features/userStore";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";

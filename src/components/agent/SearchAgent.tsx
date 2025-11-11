@@ -15,18 +15,31 @@ interface ChatMessage {
   text: string;
 }
 
+const FAQ_PRESETS = [
+  "มีงานอะไรบ้าง?",
+  "แสเงงานที่อยู่ในสถานะกำลังทำหรือ in progress",
+  "มีงานของแผนก${currentUser.department}ไหม?",
+  "งานไหนที่มี${currentUSer.name}อยู่ในงานนั้น?",
+];
+
 const SearchAI = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const API_URL = "https://muping.app.n8n.cloud/webhook/agent";
+  const GEMINI_URL = process.env.NEXT_PUBLIC_AI_KEY;
 
   const mutation = useMutation({
     mutationFn: async (question: string) => {
+      // Ensure the endpoint is available at runtime and narrow the type to string
+      const url = GEMINI_URL;
+      if (!url) {
+        throw new Error("Missing NEXT_PUBLIC_AI_KEY environment variable");
+      }
+
       const payload = { question };
-      const res = await fetch(API_URL, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -37,7 +50,6 @@ const SearchAI = () => {
     },
     onSuccess: (data) => {
       setIsTyping(false);
-
       const firstKey = Object.keys(data)[0];
       const fullText =
         data[firstKey]?.[0]?.output || "ไม่มีข้อความตอบกลับจาก AI";
@@ -49,7 +61,6 @@ const SearchAI = () => {
       };
       setMessages((prev) => [...prev, newAiMessage]);
 
-      // Typing effect
       let i = 0;
       const interval = setInterval(() => {
         i++;
@@ -78,24 +89,32 @@ const SearchAI = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent, question?: string) => {
     e.preventDefault();
-    if (!input.trim() || mutation.isPending) return;
+    const textToSend = question || input;
+    if (!textToSend.trim() || mutation.isPending) return;
 
     const newUserMessage: ChatMessage = {
       id: Date.now(),
       sender: "user",
-      text: input,
+      text: textToSend,
     };
     setMessages((prev) => [...prev, newUserMessage]);
 
     setIsTyping(true);
-    mutation.mutate(input);
+    mutation.mutate(textToSend);
     setInput("");
   };
 
+  // ✅ กดการ์ด preset แล้วส่งคำถามทันที
+  const handlePresetClick = (question: string) => {
+    const fakeEvent = { preventDefault: () => {} } as FormEvent;
+    handleSubmit(fakeEvent, question);
+  };
+
   return (
-    <div className="flex flex-col h-[86vh] mx-auto max-w-full p-4 bg-background border rounded-2xl shadow-lg antialiased">
+    <div className="flex flex-col h-[90vh] mx-auto max-w-full p-4 antialiased">
+      {/* ✅ กล่องข้อความแชท */}
       <div className="flex-grow overflow-y-auto space-y-3 mb-4">
         <AnimatePresence initial={false}>
           {messages.length === 0 ? (
@@ -143,11 +162,14 @@ const SearchAI = () => {
             </Card>
           </motion.div>
         )}
-
         <div ref={chatEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      {/* ✅ ช่องพิมพ์ข้อความ */}
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2 border-t pt-2"
+      >
         <Input
           type="text"
           value={input}
@@ -164,13 +186,32 @@ const SearchAI = () => {
           <SendHorizonal size={20} />
         </Button>
       </form>
+
+      {messages.length === 0 && (
+        <div className="mt-4 border-t pt-3">
+          <h3 className="text-sm font-semibold mb-2 text-muted-foreground">
+            คำถามที่มีคนถามบ่อย
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {FAQ_PRESETS.map((q, idx) => (
+              <Card
+                key={idx}
+                onClick={() => handlePresetClick(q)}
+                className="cursor-pointer hover:bg-muted transition-all p-2"
+              >
+                <CardContent className="p-2 text-sm text-center">
+                  {q}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 };
 
 export default SearchAI;
-
-// ---------------------------------------------------------------
 
 interface AITextLoadingProps {
   texts?: string[];
@@ -179,7 +220,13 @@ interface AITextLoadingProps {
 }
 
 function AITextLoading({
-  texts = ["Thinking...", "Processing...", "Analyzing...", "Computing...", "Almost..."],
+  texts = [
+    "Thinking...",
+    "Processing...",
+    "Analyzing...",
+    "Computing...",
+    "Almost...",
+  ],
   className,
   interval = 1500,
 }: AITextLoadingProps) {
@@ -229,5 +276,5 @@ function AITextLoading({
         </AnimatePresence>
       </motion.div>
     </div>
-  )
+  );
 }

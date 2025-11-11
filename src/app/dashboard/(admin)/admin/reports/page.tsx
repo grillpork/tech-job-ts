@@ -317,8 +317,8 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* Reports List */}
-        <div className="space-y-3 sm:space-y-4">
+        {/* Reports List / Reports box */}
+        <div className="grid sm:grid-cols-3 gap-4">
           {filteredReports.map((report) => {
             const deptColors = departmentColors[report.reporter.department]
             const PriorityIcon = priorityConfig[report.priority].icon
@@ -326,7 +326,7 @@ export default function ReportPage() {
             return (
               <Card 
                 key={report.id} 
-                className={`border-l-4 ${deptColors.border} hover:shadow-lg transition-shadow cursor-pointer`}
+                className="hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => {
                   setSelectedReport(report)
                   setIsDialogOpen(true)

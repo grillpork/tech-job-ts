@@ -15,11 +15,18 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { AlertCircle, Send } from "lucide-react"
+import { useReportStore } from "@/stores/features/reportStore"
+import { useUserStore } from "@/stores/features/userStore"
+import { toast } from "sonner"
+import { notificationHelpers } from "@/stores/notificationStore"
 
 type Department = "engineering" | "design" | "product" | "qa" | "customer"
 type Priority = "high" | "medium" | "low"
 
 export default function CreateReportPage() {
+  const { addReport } = useReportStore()
+  const { currentUser } = useUserStore()
+  
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [department, setDepartment] = useState<Department | "">("")
@@ -30,7 +37,12 @@ export default function CreateReportPage() {
     e.preventDefault()
     
     if (!title || !description || !department || !priority) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน")
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน")
+      return
+    }
+
+    if (!currentUser) {
+      toast.error("ไม่พบข้อมูลผู้ใช้ กรุณาล็อกอินใหม่")
       return
     }
 
@@ -39,15 +51,49 @@ export default function CreateReportPage() {
     // จำลองการส่งข้อมูล
     await new Promise(resolve => setTimeout(resolve, 1500))
     
-    console.log({
+    // Map priority from form to store format
+    const priorityMap: Record<Priority, "low" | "medium" | "high" | "urgent"> = {
+      low: "low",
+      medium: "medium",
+      high: "urgent", // Map high to urgent for better priority handling
+    }
+
+    // Map department to report type (default to incident)
+    const typeMap: Record<Department, "bug" | "request" | "incident" | "improvement"> = {
+      engineering: "bug",
+      design: "improvement",
+      product: "request",
+      qa: "bug",
+      customer: "incident",
+    }
+
+    const newReport = {
+      id: crypto.randomUUID(),
       title,
       description,
-      department,
-      priority,
-      createdAt: new Date().toISOString()
-    })
+      type: typeMap[department as Department] || "incident",
+      status: "open" as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: null,
+      reporter: {
+        id: currentUser.id,
+        name: currentUser.name,
+      },
+      assignee: null,
+      priority: priorityMap[priority as Priority] || "medium",
+      tags: [department],
+    }
+
+    addReport(newReport)
     
-    alert("ส่งรายงานสำเร็จ!")
+    // ✅ สร้าง notification เมื่อส่ง report สำเร็จ
+    notificationHelpers.reportSubmitted(
+      newReport.title,
+      newReport.reporter.name,
+      newReport.id
+    )
+    
+    toast.success("ส่งรายงานสำเร็จ!")
     setIsSubmitting(false)
     
     // รีเซ็ตฟอร์ม

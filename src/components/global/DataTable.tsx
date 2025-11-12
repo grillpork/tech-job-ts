@@ -35,6 +35,7 @@ interface DataTableProps<T> {
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
   onRowReorder?: (newData: T[]) => void;
+  showCheckbox?: boolean;
 }
 
 export function DataTable<T extends { id: string | number }>({
@@ -48,6 +49,7 @@ export function DataTable<T extends { id: string | number }>({
   onPageChange,
   onRowsPerPageChange,
   onRowReorder,
+  showCheckbox = true,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<(string | number)[]>([]);
@@ -189,14 +191,16 @@ export function DataTable<T extends { id: string | number }>({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={selected.length === filteredData.length && filteredData.length > 0}
-                  onCheckedChange={(checked) =>
-                    setSelected(checked ? filteredData.map((r) => r.id) : [])
-                  }
-                />
-              </TableHead>
+              {showCheckbox && (
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={selected.length === filteredData.length && filteredData.length > 0}
+                    onCheckedChange={(checked) =>
+                      setSelected(checked ? filteredData.map((r) => r.id) : [])
+                    }
+                  />
+                </TableHead>
+              )}
               {columns.map((col) => (
                 <TableHead
                   key={String(col.key)}
@@ -222,16 +226,18 @@ export function DataTable<T extends { id: string | number }>({
                   onDrop={(e) => onRowReorder && handleDrop(e, row.id)}
                   className={onRowReorder ? "cursor-grab" : undefined}
                 >
-                  <TableCell>
-                    <Checkbox
-                      checked={selected.includes(row.id)}
-                      onCheckedChange={(checked) =>
-                        setSelected((prev) =>
-                          checked ? [...prev, row.id] : prev.filter((id) => id !== row.id)
-                        )
-                      }
-                    />
-                  </TableCell>
+                    {showCheckbox && (
+                      <TableCell>
+                        <Checkbox
+                          checked={selected.includes(row.id)}
+                          onCheckedChange={(checked) =>
+                            setSelected((prev) =>
+                              checked ? [...prev, row.id] : prev.filter((id) => id !== row.id)
+                            )
+                          }
+                        />
+                      </TableCell>
+                    )}
                   {columns.map((col) => (
                     <TableCell key={String(col.key)}>
                       {col.render ? col.render(row) : String(row[col.key])}
@@ -241,7 +247,7 @@ export function DataTable<T extends { id: string | number }>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length + 1} className="text-center py-4 text-gray-500">
+                <TableCell colSpan={columns.length + (showCheckbox ? 1 : 0)} className="text-center py-4 text-gray-500">
                   No data found.
                 </TableCell>
               </TableRow>

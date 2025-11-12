@@ -77,11 +77,6 @@ export default function Sidebar() {
         icon: LayoutDashboard,
       },
       {
-        name: "Dashboard",
-        href: "/dashboard/admin/dashboard",
-        icon: LayoutDashboard,
-      },
-      {
         name: "Assigned Jobs",
         href: "/dashboard/admin/jobs",
         icon: Briefcase,

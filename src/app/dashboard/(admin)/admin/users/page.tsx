@@ -39,6 +39,7 @@ export default function UsersPage() {
   // Dialog state
   const [viewUser, setViewUser] = useState<any | null>(null);
   const [editUser, setEditUser] = useState<any | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const columns: any = [
     {
@@ -122,6 +123,18 @@ export default function UsersPage() {
 
   return (
     <div className="h-full p-4">
+      {/* Header with Add User Button */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">จัดการผู้ใช้</h1>
+          <p className="text-sm text-muted-foreground">จัดการบัญชีผู้ใช้ทั้งหมดในระบบ</p>
+        </div>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <User className="h-4 w-4 mr-2" />
+          เพิ่มผู้ใช้ใหม่
+        </Button>
+      </div>
+
       <DataTable
         columns={columns}
         data={users}
@@ -201,6 +214,19 @@ export default function UsersPage() {
               Cancel
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>สร้างบัญชีผู้ใช้ใหม่</DialogTitle>
+            <DialogDescription>
+              กรอกข้อมูลเพื่อสร้างบัญชีผู้ใช้ใหม่ในระบบ
+            </DialogDescription>
+          </DialogHeader>
+          <UserForm onClose={() => setIsCreateDialogOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useUserStore } from "@/stores/features/userStore";
+import { useNotificationStore } from "@/stores/notificationStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -10,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { redirect, useRouter } from "next/navigation";
 import { Bell, ChevronsUpDown, History, LogOut, User } from "lucide-react";
 import { Separator } from "./ui/separator";
@@ -18,6 +20,7 @@ import { getHistoryPathByRole, getNotificationPathByRole, getProfilePathByRole }
 
 export function UserBox() {
   const { currentUser, logout } = useUserStore();
+  const { unreadCount } = useNotificationStore();
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -75,9 +78,17 @@ export function UserBox() {
             <History/>
             History
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleNotification}>
+          <DropdownMenuItem onClick={handleNotification} className="relative">
             <Bell/>
             Notifications
+            {unreadCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="ml-auto h-5 min-w-5 flex items-center justify-center px-1.5 text-xs"
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Badge>
+            )}
           </DropdownMenuItem>
           <DropdownMenuItem>
             <DropdownMenu>

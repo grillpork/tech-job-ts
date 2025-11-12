@@ -1,17 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Bell, X, Clock, User, MessageSquare, UserPlus } from 'lucide-react';
-
-interface Notification {
-  id: number;
-  type: 'new_user' | 'message' | 'comment' | 'connect';
-  title: string;
-  description: string;
-  user: string;
-  timestamp: string;
-  read: boolean;
-}
+import { Bell, X, Clock, User, MessageSquare, UserPlus, Briefcase, FileText, Package, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useNotificationStore, type NotificationType } from '@/stores/notificationStore';
+import { useRouter } from 'next/navigation';
 
 interface TypeConfig {
   label: string;
@@ -21,108 +13,101 @@ interface TypeConfig {
 }
 
 const NotificationsPage: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      type: 'new_user',
-      title: 'New Registration: Finibus Benorum et Malorum',
-      description: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium',
-      user: 'Allen Bee',
-      timestamp: '24 Nov 2018 at 9:36 AM',
-      read: false
-    },
-    {
-      id: 2,
-      type: 'message',
-      title: 'Darren Smith sent new message',
-      description: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium',
-      user: 'Darren',
-      timestamp: '24 Nov 2018 at 9:36 AM',
-      read: false
-    },
-    {
-      id: 3,
-      type: 'comment',
-      title: 'Arin Ganslkram Commented on post',
-      description: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium',
-      user: 'Arin Ganslkram',
-      timestamp: '24 Nov 2018 at 9:36 AM',
-      read: false
-    },
-    {
-      id: 4,
-      type: 'connect',
-      title: 'Juliet Ben Connect Allen Depk',
-      description: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium',
-      user: 'Juliet Ben',
-      timestamp: '24 Nov 2018 at 9:36 AM',
-      read: false
-    },
-    {
-      id: 5,
-      type: 'connect',
-      title: 'Juliet Ben Connect Allen Depk',
-      description: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium',
-      user: 'Juliet Ben',
-      timestamp: '24 Nov 2018 at 9:36 AM',
-      read: false
-    },
-    {
-      id: 6,
-      type: 'message',
-      title: 'Darren Smith sent new message',
-      description: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium',
-      user: 'Juliet Ben',
-      timestamp: '24 Nov 2018 at 9:36 AM',
-      read: false
-    }
-  ]);
+  const router = useRouter();
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification 
+  } = useNotificationStore();
 
-  const getTypeConfig = (type: Notification['type']): TypeConfig => {
-    const configs: Record<Notification['type'], TypeConfig> = {
-      new_user: {
-        label: 'Joined Platform',
+  const getTypeConfig = (type: NotificationType): TypeConfig => {
+    const configs: Record<NotificationType, TypeConfig> = {
+      job_created: {
+        label: 'งานใหม่',
+        bgColor: 'bg-blue-500/10 dark:bg-blue-500/10',
+        textColor: 'text-blue-400 dark:text-blue-400',
+        icon: Briefcase
+      },
+      job_updated: {
+        label: 'อัปเดตงาน',
+        bgColor: 'bg-indigo-500/10 dark:bg-indigo-500/10',
+        textColor: 'text-indigo-400 dark:text-indigo-400',
+        icon: Briefcase
+      },
+      job_completed: {
+        label: 'งานเสร็จสิ้น',
+        bgColor: 'bg-green-500/10 dark:bg-green-500/10',
+        textColor: 'text-green-400 dark:text-green-400',
+        icon: CheckCircle2
+      },
+      report_submitted: {
+        label: 'รายงานใหม่',
+        bgColor: 'bg-amber-500/10 dark:bg-amber-500/10',
+        textColor: 'text-amber-400 dark:text-amber-400',
+        icon: FileText
+      },
+      report_assigned: {
+        label: 'มอบหมายรายงาน',
+        bgColor: 'bg-purple-500/10 dark:bg-purple-500/10',
+        textColor: 'text-purple-400 dark:text-purple-400',
+        icon: FileText
+      },
+      report_resolved: {
+        label: 'แก้ไขรายงาน',
+        bgColor: 'bg-green-500/10 dark:bg-green-500/10',
+        textColor: 'text-green-400 dark:text-green-400',
+        icon: CheckCircle2
+      },
+      user_created: {
+        label: 'ผู้ใช้ใหม่',
         bgColor: 'bg-teal-500/10 dark:bg-teal-500/10',
         textColor: 'text-teal-400 dark:text-teal-400',
         icon: UserPlus
       },
+      inventory_low: {
+        label: 'อุปกรณ์ใกล้หมด',
+        bgColor: 'bg-red-500/10 dark:bg-red-500/10',
+        textColor: 'text-red-400 dark:text-red-400',
+        icon: Package
+      },
+      task_assigned: {
+        label: 'มอบหมายงาน',
+        bgColor: 'bg-cyan-500/10 dark:bg-cyan-500/10',
+        textColor: 'text-cyan-400 dark:text-cyan-400',
+        icon: Briefcase
+      },
       message: {
-        label: 'Message',
+        label: 'ข้อความ',
         bgColor: 'bg-amber-500/10 dark:bg-amber-500/10',
         textColor: 'text-amber-400 dark:text-amber-400',
         icon: MessageSquare
       },
       comment: {
-        label: 'Comment',
+        label: 'ความคิดเห็น',
         bgColor: 'bg-purple-500/10 dark:bg-purple-500/10',
         textColor: 'text-purple-400 dark:text-purple-400',
         icon: MessageSquare
       },
-      connect: {
-        label: 'Connect',
-        bgColor: 'bg-cyan-500/10 dark:bg-cyan-500/10',
-        textColor: 'text-cyan-400 dark:text-cyan-400',
-        icon: User
+      system: {
+        label: 'ระบบ',
+        bgColor: 'bg-gray-500/10 dark:bg-gray-500/10',
+        textColor: 'text-gray-400 dark:text-gray-400',
+        icon: AlertCircle
       }
     };
-    return configs[type] || configs.message;
+    return configs[type] || configs.system;
   };
 
-  const markAsRead = (id: number): void => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
+  const handleNotificationClick = (notification: typeof notifications[0]) => {
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+    if (notification.link) {
+      router.push(notification.link);
+    }
   };
-
-  const markAllAsRead = (): void => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-  };
-
-  const deleteNotification = (id: number): void => {
-    setNotifications(notifications.filter(n => n.id !== id));
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="min-h-screen bg-transparent transition-colors duration-200">
@@ -165,7 +150,8 @@ const NotificationsPage: React.FC = () => {
             return (
               <div
                 key={notification.id}
-                className={`group relative bg-white dark:bg-[#1a1a1a] rounded-xl border transition-all duration-200 hover:shadow-lg dark:hover:bg-[#1f1f1f] ${
+                onClick={() => handleNotificationClick(notification)}
+                className={`group relative bg-white dark:bg-[#1a1a1a] rounded-xl border transition-all duration-200 hover:shadow-lg dark:hover:bg-[#1f1f1f] cursor-pointer ${
                   notification.read 
                     ? 'border-gray-200 dark:border-gray-800' 
                     : 'border-blue-200 dark:border-blue-900/30 shadow-sm'
@@ -177,7 +163,10 @@ const NotificationsPage: React.FC = () => {
                     <div className="flex-shrink-0 mt-1">
                       {!notification.read ? (
                         <button
-                          onClick={() => markAsRead(notification.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(notification.id);
+                          }}
                           className="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-500 hover:scale-125 transition-transform"
                           title="Mark as read"
                         />
@@ -196,7 +185,10 @@ const NotificationsPage: React.FC = () => {
                           </span>
                         </div>
                         <button
-                          onClick={() => deleteNotification(notification.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNotification(notification.id);
+                          }}
                           className="flex-shrink-0 w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                           title="Delete notification"
                         >
@@ -213,9 +205,11 @@ const NotificationsPage: React.FC = () => {
                       </p>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer transition-colors">
-                          {notification.user}
-                        </span>
+                        {notification.user && (
+                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                            {notification.user}
+                          </span>
+                        )}
                         <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-500">
                           <Clock className="w-3.5 h-3.5" />
                           <span>{notification.timestamp}</span>

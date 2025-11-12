@@ -21,6 +21,7 @@ interface InventoryStore {
   updateInventory: (item: Inventory) => void;
   deleteInventory: (id: string) => void;
   clearAll: () => void;
+  reorderInventory: (orderedIds: string[]) => void;
 }
 
 export const useInventoryStore = create<InventoryStore>()(
@@ -45,6 +46,25 @@ export const useInventoryStore = create<InventoryStore>()(
         })),
 
       clearAll: () => set({ inventories: [] }),
+
+      // Reorder inventories according to an array of ids (new order)
+      reorderInventory: (orderedIds) =>
+        set((state) => {
+          const idToItem = new Map(state.inventories.map((it) => [it.id, it]));
+          const next: Inventory[] = [];
+          // keep only ids that exist and preserve new order
+          for (const id of orderedIds) {
+            const item = idToItem.get(id);
+            if (item) next.push(item);
+          }
+          // append any items that were not included to avoid accidental loss
+          for (const item of state.inventories) {
+            if (!orderedIds.includes(item.id)) {
+              next.push(item);
+            }
+          }
+          return { inventories: next };
+        }),
     }),
     {
       name: "inventory-storage",

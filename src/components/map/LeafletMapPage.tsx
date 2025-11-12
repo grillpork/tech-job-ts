@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L, { LatLngTuple, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useJobStore, type Job } from "@/stores/features/jobStore";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
@@ -49,96 +50,54 @@ L.Icon.Default.mergeOptions({
 type LocationStatus = "pending" | "progress" | "completed";
 
 interface LocationData {
-  id: number;
+  id: string; // เปลี่ยนจาก number เป็น string เพื่อใช้ job.id
   position: LatLngTuple;
   title: string;
   description: string;
   status: LocationStatus;
   radius: number;
   nature: string;
-  locImage: string
+  locationImage: string;
+  jobId?: string; // เพิ่ม jobId เพื่ออ้างอิงกลับไปยัง job
 }
 
-// --- Initial Data ---
-const initialLocations: LocationData[] = [
-  {
-    id: 1,
-    position: [13.736717, 100.523186],
-    title: "Bangkok",
-    description: "ศูนย์กลางกรุงเทพฯ",
-    status: "pending",
-    nature: "building",
-    radius: 500,
-    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+// --- Helper: Map Job to LocationData ---
+const mapJobToLocationData = (job: Job, index: number): LocationData => {
+  // Map job status to location status
+  const statusMap: Record<Job["status"], LocationStatus> = {
+    pending: "pending",
+    in_progress: "progress",
+    pending_approval: "pending",
+    completed: "completed",
+    cancelled: "pending",
+    rejected: "pending",
+  };
 
-  },
-  {
-    id: 2,
-    nature: "home",
-    position: [13.7563, 100.5018],
-    title: "Siam",
-    description: "ย่านช็อปปิ้ง",
-    status: "progress",
-    radius: 300,
-    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+  // Determine nature from department or default to "building"
+  const getNature = (department: string | null): string => {
+    if (!department) return "building";
+    const dept = department.toLowerCase();
+    if (dept.includes("บ้าน") || dept.includes("home") || dept.includes("residential")) {
+      return "home";
+    }
+    return "building";
+  };
 
-  },
-  {
-    id: 3,
-    nature: "building",
-    position: [13.73, 100.7756],
-    title: "Don Mueang",
-    description: "ท่าอากาศยานดอนเมือง",
-    status: "completed",
-    radius: 700,
-    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
+  // Default image
+  const defaultImage = "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
 
-  },
-  {
-    id: 4,
-    nature: "home",
-    position: [13.74, 100.52],
-    title: "Lumphini Park",
-    description: "สวนสาธารณะใจกลางเมือง",
-    status: "progress",
-    radius: 400,
-    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
-
-  },
-  {
-    id: 5,
-    nature: "building",
-    position: [13.738, 100.525],
-    title: "Silom",
-    description: "ย่านธุรกิจ",
-    status: "pending",
-    radius: 600,
-    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
-
-  },
-  {
-    id: 6,
-    nature: "home",
-    position: [13.708, 100.515],
-    title: "Silom",
-    description: "ย่านธุรกิจ",
-    status: "pending",
-    radius: 600,
-    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
-
-  },
-  {
-    id: 7,
-    nature: "building",
-    position: [13.732, 100.535],
-    title: "Silom",
-    description: "ย่านธุรกิจ",
-    status: "pending",
-    radius: 600,
-    locImage: "https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
-
-  },
-];
+  return {
+    id: job.id,
+    position: [job.location!.lat, job.location!.lng] as LatLngTuple,
+    title: job.title,
+    description: job.description || job.location?.name || "ไม่มีคำอธิบาย",
+    status: statusMap[job.status],
+    radius: 500, // Default radius
+    nature: getNature(job.department),
+    locationImage: job.locationImages && job.locationImages.length > 0 ? job.locationImages[0] : defaultImage,
+    jobId: job.id,
+  };
+};
 
 const statusColors: Record<LocationStatus, string> = {
   pending: "orange",
@@ -208,7 +167,7 @@ function Markers({ locations }: MarkersProps) {
 
       const popupContent = document.createElement("div");
       popupContent.innerHTML = `
-        <image src=${loc.locImage} alt=""/>
+        <image src="${loc.locationImage}" alt="${loc.title}"/>
         <h3>${loc.title}</h3>
         <p>${loc.description}</p>
         <p>สถานะ: ${loc.status}</p>
@@ -236,11 +195,18 @@ function Markers({ locations }: MarkersProps) {
 
 // --- Main Page Component ---
 export default function LeafletMapPage() {
-  const [locations] = useState<LocationData[]>(initialLocations);
+  const { jobs } = useJobStore();
   const [landmarkSearch, setLandmarkSearch] = useState<string>("");
-  const [natureFilter, setNatureFilter] = useState<string>("all"); // 👈 เพิ่ม state สำหรับ nature
+  const [natureFilter, setNatureFilter] = useState<string>("all");
 
   const mapRef = useRef<LeafletMap | null>(null);
+
+  // ✅ ดึง jobs ที่มี location และแปลงเป็น LocationData
+  const locations = useMemo(() => {
+    return jobs
+      .filter((job) => job.location && job.location.lat != null && job.location.lng != null)
+      .map((job, index) => mapJobToLocationData(job, index));
+  }, [jobs]);
 
   // ✅ filter ทั้งชื่อ + nature
   const filteredLocations = locations.filter(
@@ -286,7 +252,7 @@ export default function LeafletMapPage() {
   };
 
   return (
-    <div className="w-full md:h-[90vh] lg:h-[91vh] rounded-xl overflow-clip relative">
+    <div className="w-full h-screen relative">
       {/* Map */}
       <MapContainer
         center={[13.736717, 100.523186]}
@@ -336,25 +302,21 @@ export default function LeafletMapPage() {
           </Select>
         </div>
 
-        <div className="flex flex-row h-full sm:flex-col w-full gap-2 p-2">
+        <div className="flex flex-row h-full sm:flex-col w-full gap-2 p-2 bg-background">
           {filteredLocations.map((loc) => (
             <Card
               key={loc.id}
               id={`landmark-${loc.id}`}
               className="w-full flex sm:flex-row text-left px-3 py-2 rounded-lg transition-all duration-300 cursor-pointer"
-              // onClick={() => handleZoomToLocation(loc)}
+              onClick={() => handleZoomToLocation(loc)}
             >
               <div className="hidden sm:flex ">
                 <img
-                  src="https://cdn.forevervacation.com/uploads/blog/best-resorts-in-bangkok-3472.jpg"
-                  alt=""
+                  src={loc.locationImage}
+                  alt={loc.title}
                   className="object-cover w-[200px] rounded-sm"
                 />
               </div>
-
-              <button onClick={() => handleZoomToLocation(loc)}>
-                <ArrowRight />
-              </button>
 
               <div className="flex flex-col w-full gap-2">
                 <Badge

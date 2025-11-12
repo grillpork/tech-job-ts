@@ -59,6 +59,7 @@ const InventoryManagement = () => {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Inventory | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -71,7 +72,7 @@ const InventoryManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const { reorderInventory } = useInventoryStore();
 
   const filteredItems = inventories.filter((item: any) => {
     const matchesSearch =
@@ -83,11 +84,6 @@ const InventoryManagement = () => {
       statusFilter === "all" || item.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
 
   // DataTable columns (used for desktop view)
   const columns: any[] = [
@@ -275,7 +271,7 @@ const InventoryManagement = () => {
           data={inventories}
           totalRows={inventories.length}
           currentPage={currentPage}
-          rowsPerPage={itemsPerPage}
+          rowsPerPage={rowsPerPage}
           searchKey={"name"}
           filters={[
             {
@@ -289,17 +285,23 @@ const InventoryManagement = () => {
               ],
             },
           ]}
-          onPageChange={(p) => setCurrentPage(p)}
+          onPageChange={setCurrentPage}
           onRowsPerPageChange={(n) => {
-            /* no-op (itemsPerPage kept fixed in this view) */
+            setRowsPerPage(n);
+            setCurrentPage(1);
           }}
+          onRowReorder={(newData: any[]) => {
+            const ids = newData.map((d) => d.id as string);
+            reorderInventory(ids);
+          }}
+          showCheckbox={false}
         />
       </div>
 
       {/* MOBILE CARD VIEW */}
       <div className="md:hidden space-y-3">
-        {currentItems.length > 0 ? (
-          currentItems.map((item) => (
+        {filteredItems.length > 0 ? (
+          filteredItems.map((item: Inventory) => (
             <div
               key={item.id}
               className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4"

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { useReportStore, type Report as StoreReport } from "@/stores/features/reportStore"
 
 // Types
 type Department = "engineering" | "design" | "product" | "qa" | "customer"
@@ -54,6 +55,52 @@ interface Report {
   status: Status
   createdAt: string
   tags: string[]
+}
+
+// Helper function to map store report to page report
+const mapStoreReportToPageReport = (storeReport: StoreReport): Report => {
+  // Map priority: "urgent" -> "high", "high" -> "high", "medium" -> "medium", "low" -> "low"
+  const priorityMap: Record<"urgent" | "high" | "medium" | "low", Priority> = {
+    urgent: "high",
+    high: "high",
+    medium: "medium",
+    low: "low",
+  }
+
+  // Map status: "in_progress" -> "in-progress"
+  const statusMap: Record<StoreReport["status"], Status> = {
+    open: "open",
+    in_progress: "in-progress",
+    resolved: "resolved",
+    closed: "closed",
+  }
+
+  // Extract department from tags or default to engineering
+  const getDepartmentFromTags = (tags?: string[]): Department => {
+    if (!tags || tags.length === 0) return "engineering"
+    const tag = tags[0].toLowerCase()
+    if (["engineering", "design", "product", "qa", "customer"].includes(tag)) {
+      return tag as Department
+    }
+    return "engineering"
+  }
+
+  const department = getDepartmentFromTags(storeReport.tags)
+
+  return {
+    id: storeReport.id,
+    title: storeReport.title,
+    description: storeReport.description || "",
+    reporter: {
+      name: storeReport.reporter.name,
+      department,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(storeReport.reporter.name)}`,
+    },
+    priority: priorityMap[storeReport.priority || "medium"],
+    status: statusMap[storeReport.status],
+    createdAt: storeReport.createdAt,
+    tags: storeReport.tags || [],
+  }
 }
 
 // กำหนดสีสำหรับแต่ละฝ่าย
@@ -95,79 +142,6 @@ const departmentColors: Record<Department, {
   }
 }
 
-// ตัวอย่างข้อมูล
-const mockReports: Report[] = [
-  {
-    id: "RPT-001",
-    title: "Login page crashes on Safari browser",
-    description: "When users try to login using Safari on iOS, the page becomes unresponsive after entering credentials.",
-    reporter: {
-      name: "Somchai Janprasert",
-      department: "qa",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Somchai"
-    },
-    priority: "high",
-    status: "open",
-    createdAt: "2025-11-03T10:30:00",
-    tags: ["frontend", "mobile", "safari"]
-  },
-  {
-    id: "RPT-002",
-    title: "API response time is too slow",
-    description: "The /api/users endpoint takes more than 5 seconds to respond during peak hours.",
-    reporter: {
-      name: "Jane Smith",
-      department: "engineering",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane"
-    },
-    priority: "medium",
-    status: "in-progress",
-    createdAt: "2025-11-02T14:20:00",
-    tags: ["backend", "performance", "api"]
-  },
-  {
-    id: "RPT-003",
-    title: "Button color doesn't match design system",
-    description: "Primary buttons on the dashboard are using #0066FF instead of #0052CC as specified in Figma.",
-    reporter: {
-      name: "Sarah Williams",
-      department: "design",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah"
-    },
-    priority: "low",
-    status: "open",
-    createdAt: "2025-11-01T09:15:00",
-    tags: ["ui", "design-system"]
-  },
-  {
-    id: "RPT-004",
-    title: "Users unable to upload files larger than 5MB",
-    description: "Customer reported that they cannot upload profile pictures larger than 5MB, receiving a generic error message.",
-    reporter: {
-      name: "Customer Support",
-      department: "customer",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Support"
-    },
-    priority: "high",
-    status: "open",
-    createdAt: "2025-11-03T16:45:00",
-    tags: ["file-upload", "customer-issue"]
-  },
-  {
-    id: "RPT-005",
-    title: "Missing validation on email field",
-    description: "Email input field accepts invalid email formats without showing error messages.",
-    reporter: {
-      name: "Mike Chen",
-      department: "product",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike"
-    },
-    priority: "medium",
-    status: "resolved",
-    createdAt: "2025-10-30T11:00:00",
-    tags: ["validation", "forms"]
-  }
-]
 
 const priorityConfig: Record<Priority, { 
   icon: React.ComponentType<{ className?: string }>, 
@@ -187,6 +161,7 @@ const statusConfig: Record<Status, { label: string, color: string }> = {
 }
 
 export default function ReportPage() {
+  const { reports: storeReports } = useReportStore()
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [filterDepartment, setFilterDepartment] = useState<Department | "all">("all")
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all")
@@ -194,13 +169,30 @@ export default function ReportPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [comment, setComment] = useState("")
 
-  const filteredReports = mockReports.filter(report => {
-    const matchSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       report.description.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchDepartment = filterDepartment === "all" || report.reporter.department === filterDepartment
-    const matchStatus = filterStatus === "all" || report.status === filterStatus
-    return matchSearch && matchDepartment && matchStatus
-  })
+  // Map store reports to page reports
+  const reports = useMemo(() => {
+    return storeReports.map(mapStoreReportToPageReport)
+  }, [storeReports])
+
+  const filteredReports = useMemo(() => {
+    return reports.filter(report => {
+      const matchSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         report.description.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchDepartment = filterDepartment === "all" || report.reporter.department === filterDepartment
+      const matchStatus = filterStatus === "all" || report.status === filterStatus
+      return matchSearch && matchDepartment && matchStatus
+    })
+  }, [reports, searchQuery, filterDepartment, filterStatus])
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    return {
+      total: reports.length,
+      open: reports.filter(r => r.status === "open").length,
+      inProgress: reports.filter(r => r.status === "in-progress").length,
+      resolved: reports.filter(r => r.status === "resolved").length,
+    }
+  }, [reports])
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -223,7 +215,7 @@ export default function ReportPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">ทั้งหมด</p>
-                  <p className="text-xl font-bold">{mockReports.length}</p>
+                  <p className="text-xl font-bold">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
@@ -236,9 +228,7 @@ export default function ReportPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">รอดำเนินการ</p>
-                  <p className="text-xl font-bold">
-                    {mockReports.filter(r => r.status === "open").length}
-                  </p>
+                  <p className="text-xl font-bold">{stats.open}</p>
                 </div>
               </div>
             </CardContent>
@@ -251,9 +241,7 @@ export default function ReportPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">ดำเนินการ</p>
-                  <p className="text-xl font-bold">
-                    {mockReports.filter(r => r.status === "in-progress").length}
-                  </p>
+                  <p className="text-xl font-bold">{stats.inProgress}</p>
                 </div>
               </div>
             </CardContent>
@@ -266,9 +254,7 @@ export default function ReportPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">แก้ไขแล้ว</p>
-                  <p className="text-xl font-bold">
-                    {mockReports.filter(r => r.status === "resolved").length}
-                  </p>
+                  <p className="text-xl font-bold">{stats.resolved}</p>
                 </div>
               </div>
             </CardContent>

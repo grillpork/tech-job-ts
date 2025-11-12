@@ -20,6 +20,7 @@ import { useInventoryStore } from "@/stores/features/inventoryStore";
 export default function GlobalSearch() {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
+
   const router = useRouter();
   const { currentUser } = useUserStore();
 
@@ -40,10 +41,11 @@ export default function GlobalSearch() {
     role ? rolePermissions[role]?.includes(type) : false;
 
   const safeQuery = (query ?? "").toLowerCase();
+  const hasQuery = safeQuery.trim().length > 0;
 
   const filteredJobs = React.useMemo(
     () =>
-      canSearch("jobs")
+      hasQuery && canSearch("jobs")
         ? (jobs ?? []).filter((j) =>
             (j?.title ?? "").toLowerCase().includes(safeQuery)
           )
@@ -53,7 +55,7 @@ export default function GlobalSearch() {
 
   const filteredUsers = React.useMemo(
     () =>
-      canSearch("users")
+      hasQuery && canSearch("users")
         ? (users ?? []).filter((u) =>
             (u?.name ?? "").toLowerCase().includes(safeQuery)
           )
@@ -63,7 +65,7 @@ export default function GlobalSearch() {
 
   const filteredInventories = React.useMemo(
     () =>
-      canSearch("inventory")
+      hasQuery && canSearch("inventory")
         ? (inventories ?? []).filter((i) =>
             (i?.name ?? "").toLowerCase().includes(safeQuery)
           )
@@ -106,61 +108,73 @@ export default function GlobalSearch() {
         </kbd>
       </Button>
 
-      <CommandDialog className="top-60 lg:top-1/2" open={open} onOpenChange={setOpen}>
+      <CommandDialog
+        className="top-60 lg:top-1/2"
+        open={open}
+        onOpenChange={setOpen}
+      >
         <CommandInput
           placeholder="Search job, user, or inventory..."
           value={query}
           onValueChange={setQuery}
         />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          {!hasQuery ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              เริ่มพิมพ์เพื่อค้นหา...
+            </div>
+          ) : (
+            <>
+              <CommandEmpty>No results found.</CommandEmpty>
 
-          {/* Jobs */}
-          {filteredJobs.length > 0 && (
-            <CommandGroup heading="Jobs">
-              {filteredJobs.map((job) => (
-                <CommandItem
-                  key={job.id}
-                  onSelect={() => handleSelect("jobs", job.id)}
-                  className="cursor-pointer"
-                >
-                  <Briefcase className="w-4 h-4 mr-2 text-blue-500" />
-                  <span>{job.title}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
+              {/* Jobs */}
+              {filteredJobs.length > 0 && (
+                <CommandGroup heading="Jobs">
+                  {filteredJobs.map((job) => (
+                    <CommandItem
+                      key={job.id}
+                      onSelect={() => handleSelect("jobs", job.id)}
+                      className="cursor-pointer"
+                    >
+                      <Briefcase className="w-4 h-4 mr-2 text-blue-500" />
+                      <span>{job.title}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
 
-          {/* Users */}
-          {filteredUsers.length > 0 && (
-            <CommandGroup heading="Users">
-              {filteredUsers.map((user) => (
-                <CommandItem
-                  key={user.id}
-                  onSelect={() => handleSelect("users", user.id)}
-                  className="cursor-pointer"
-                >
-                  <User className="w-4 h-4 mr-2 text-green-500" />
-                  <span>{user.name}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
+              {/* Users */}
+              {filteredUsers.length > 0 && (
+                <CommandGroup heading="Users">
+                  {filteredUsers.map((user) => (
+                    <CommandItem
+                      key={user.id}
+                      onSelect={() => handleSelect("users", user.id)}
+                      className="cursor-pointer"
+                    >
+                      <User className="w-4 h-4 mr-2 text-green-500" />
+                      <span>{user.name}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
 
-          {/* Inventories */}
-          {filteredInventories.length > 0 && (
-            <CommandGroup heading="Inventory">
-              {filteredInventories.map((item) => (
-                <CommandItem
-                  key={item.id}
-                  onSelect={() => handleSelect("inventory", item.id)}
-                  className="cursor-pointer"
-                >
-                  <Boxes className="w-4 h-4 mr-2 text-orange-500" />
-                  <span>{item.name}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+              {/* Inventories */}
+              {filteredInventories.length > 0 && (
+                <CommandGroup heading="Inventory">
+                  {filteredInventories.map((item) => (
+                    <CommandItem
+                      key={item.id}
+                      onSelect={() => handleSelect("inventory", item.id)}
+                      className="cursor-pointer"
+                    >
+                      <Boxes className="w-4 h-4 mr-2 text-orange-500" />
+                      <span>{item.name}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </>
           )}
         </CommandList>
       </CommandDialog>

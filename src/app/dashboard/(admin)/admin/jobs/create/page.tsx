@@ -16,11 +16,12 @@ import {
   ArrowUp,
   ArrowDown,
   ToolCase,
+  Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ✅ 2. Import Store, Types, and Mocks
-import { useJobStore } from "@/stores/features/jobStore"; // (แก้ path ถ้าจำเป็น)
+import { useJobStore, type Attachment } from "@/stores/features/jobStore"; // (แก้ path ถ้าจำเป็น)
 import { useInventoryStore } from "@/stores/features/inventoryStore";
 import { MOCK_USERS } from "@/lib/mocks/user";
 import { Task as JobTask } from "@/lib/types/job";
@@ -253,6 +254,10 @@ export default function CreateJobPage() {
   const [selectedInventory, setSelectedInventory] = useState<InventoryOption[]>([]);
   // Location selected from MapPicker
   const [location, setLocation] = useState<{ lat: number; lng: number; name?: string | null } | null>(null);
+  // Location images
+  const [locationImages, setLocationImages] = useState<File[]>([]);
+  const [isDraggingImages, setIsDraggingImages] = useState(false);
+  const locationImageInputRef = useRef<HTMLInputElement>(null);
 
   
   // ✅ 6. เพิ่ม State สำหรับ Department, Lead Tech, และ Alert
@@ -308,6 +313,42 @@ export default function CreateJobPage() {
   const openFileDialog = useCallback(() => {
     fileInputRef.current?.click();
   }, [fileInputRef]);
+
+  // Location Images handlers
+  const handleLocationImageSelect = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+      setLocationImages((prevFiles) => [...prevFiles, ...imageFiles]);
+    },
+    []
+  );
+
+  const handleLocationImageDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingImages(true);
+  }, []);
+
+  const handleLocationImageDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingImages(false);
+  }, []);
+
+  const handleLocationImageDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingImages(false);
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    setLocationImages((prevFiles) => [...prevFiles, ...imageFiles]);
+  }, []);
+
+  const deleteLocationImage = useCallback((fileName: string) => {
+    setLocationImages((prev) => prev.filter((file) => file.name !== fileName));
+  }, []);
+
+  const openLocationImageDialog = useCallback(() => {
+    locationImageInputRef.current?.click();
+  }, []);
   const deleteTask = useCallback((id: number) => {
     setTasks((prev) => prev.filter((task) => task.id !== id));
     setSelectedTasks((prev) => prev.filter((selectedId) => selectedId !== id));
@@ -398,8 +439,18 @@ export default function CreateJobPage() {
   const isIndeterminate =
     selectedTasks.length > 0 && selectedTasks.length < tasks.length;
 
+  // Helper function: แปลง File เป็น base64 string
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   // ✅ --- 8. สร้างฟังก์ชัน handleSubmit --- ✅
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     const formElements = e.currentTarget.elements as typeof e.currentTarget.elements & {
@@ -416,23 +467,55 @@ export default function CreateJobPage() {
     }
 
     setIsSubmitting(true);
-    const jobData = {
-      title: title,
-      description: formElements.jobDescription.value,
-      leadTechnicianId: leadTechnician,
-      department: department,
-      assignedEmployeeIds: selectedEmployees.map(emp => emp.value),
-  usedInventory: selectedInventory.map(inv => ({ id: inv.value, qty: inv.qty ?? 1 })),
-  status: "pending" as const,
-  startDate: startDate ? startDate.toISOString() : null,
-  endDate: endDate ? endDate.toISOString() : null,
-  tasks: tasks.map(t => ({ description: t.header })), // ส่ง Tasks ที่แปลงแล้ว
-      creatorId: leadTechnician, // ใช้ Lead Tech เป็น Creator
-      location: location ?? null,
-    };
+    
+    try {
+      // ✅ แปลง File[] เป็น Attachment[] (ใช้ base64 สำหรับ url)
+      const attachmentsData: Attachment[] = await Promise.all(
+        attachments.map(async (file) => ({
+          id: crypto.randomUUID(),
+          fileName: file.name,
+          fileType: file.type || "application/octet-stream",
+          size: file.size,
+          url: await fileToBase64(file), // แปลงเป็น base64 string
+          uploadedAt: new Date().toISOString(),
+        }))
+      );
 
-    createJob(jobData);
-    router.push("/dashboard/admin/jobs");
+      // ✅ แปลง locationImages File[] เป็น base64 string[]
+      const locationImagesUrls: string[] = await Promise.all(
+        locationImages.map((file) => fileToBase64(file))
+      );
+
+      const jobData = {
+        title: title,
+        description: formElements.jobDescription.value,
+        leadTechnicianId: leadTechnician,
+        department: department,
+        assignedEmployeeIds: selectedEmployees.map(emp => emp.value),
+        usedInventory: selectedInventory.map(inv => ({ id: inv.value, qty: inv.qty ?? 1 })),
+        status: "pending" as const,
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
+        tasks: tasks.map(t => ({ description: t.header })), // ส่ง Tasks ที่แปลงแล้ว
+        creatorId: leadTechnician, // ใช้ Lead Tech เป็น Creator
+        location: location ?? null,
+        locationImages: locationImagesUrls.length > 0 ? locationImagesUrls : undefined,
+      };
+
+      // ✅ ส่ง attachments ไปกับ jobData
+      const jobDataWithAttachments = {
+        ...jobData,
+        attachments: attachmentsData,
+      };
+      
+      createJob(jobDataWithAttachments);
+      router.push("/dashboard/admin/jobs");
+    } catch (error) {
+      console.error("Error converting files to base64:", error);
+      setErrorMessage("เกิดข้อผิดพลาดในการแปลงไฟล์ กรุณาลองใหม่อีกครั้ง");
+      setIsErrorAlertOpen(true);
+      setIsSubmitting(false);
+    }
   };
 
 
@@ -851,6 +934,100 @@ export default function CreateJobPage() {
             <Label htmlFor="location">Map Picker</Label>
             <div className="mt-2">
               <MapPicker initialPosition={location} onPositionChange={setLocation} />
+            </div>
+          </div>
+
+          {/* Location Images */}
+          <div className="space-y-2">
+            <Label>รูปภาพสถานที่</Label>
+            <div
+              className={cn(
+                "mt-2 rounded-lg border border-dashed border-input transition-colors",
+                "flex flex-col",
+                "min-h-[120px]",
+                isDraggingImages && "border-primary bg-muted/50"
+              )}
+              onDragOver={handleLocationImageDragOver}
+              onDragLeave={handleLocationImageDragLeave}
+              onDrop={handleLocationImageDrop}
+            >
+              <input
+                ref={locationImageInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleLocationImageSelect}
+              />
+
+              {locationImages.length === 0 ? (
+                <div
+                  className="flex-1 flex flex-col items-center justify-center text-center p-6 cursor-pointer"
+                  onClick={openLocationImageDialog}
+                >
+                  <ImageIcon className="mx-auto h-10 w-10 text-gray-400" />
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="p-0 h-auto font-semibold text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openLocationImageDialog();
+                      }}
+                    >
+                      click to browse
+                    </Button>
+                    .
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">รองรับไฟล์รูปภาพเท่านั้น</p>
+                </div>
+              ) : (
+                <>
+                  <div className="p-4 border-b border-dashed">
+                    <p className="text-sm text-muted-foreground text-center">
+                      <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto font-semibold text-primary"
+                        onClick={openLocationImageDialog}
+                      >
+                        click to browse
+                      </Button>
+                      .
+                    </p>
+                  </div>
+                  <ScrollArea className="flex-1 min-h-0">
+                    <div className="grid grid-cols-2 gap-3 p-4">
+                      {locationImages.map((file, index) => (
+                        <div key={index} className="relative group">
+                          <div className="aspect-video rounded-md border overflow-hidden bg-muted">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={file.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => deleteLocationImage(file.name)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
+                            {file.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
             </div>
           </div>
 

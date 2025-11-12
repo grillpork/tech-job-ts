@@ -229,8 +229,11 @@ export default function UserAnalyticsPage() {
 
         {/* === Right Sidebar Area === */}
         <aside className="w-full md:w-1/3 lg:w-1/4 xl:max-w-sm md:sticky md:top-8">
-          {/* 3. User Profile Card */}
-          <Card className="mb-6">
+          
+          {/* === ⭐️ จุดที่แก้ไข ⭐️ === */}
+          {/* 3. & 4. รวม User Profile และ Agenda ไว้ใน Card เดียวกัน */}
+          <Card>
+            {/* 3. User Profile Card (Part) */}
             <CardContent className="pt-6 flex flex-col items-center space-y-2">
               <Avatar className="h-20 w-20 mb-2">
                 <AvatarImage src={user?.imageUrl ?? undefined} alt={user?.name ?? "User"} />
@@ -250,10 +253,8 @@ export default function UserAnalyticsPage() {
                 {user ? "Available" : "Unknown"}
               </Badge>
             </CardContent>
-          </Card>
 
-          {/* 4. Agenda / ปฏิทินงาน */}
-          <Card>
+            {/* 4. Agenda / ปฏิทินงาน (Part) */}
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">My Agenda</CardTitle>
               <Button variant="link" size="sm" className="p-0 h-auto">

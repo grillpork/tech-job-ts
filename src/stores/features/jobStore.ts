@@ -4,6 +4,7 @@ import { MOCK_USERS } from "@/lib/mocks/user";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { notificationHelpers } from "@/stores/notificationStore";
 
 export interface JobUser {
   id: string;
@@ -31,6 +32,15 @@ export interface Attachment {
   uploadedAt: string;
 }
 
+export interface WorkLog {
+  id: string;
+  date: string;
+  updatedBy: { id: string; name: string };
+  status: Job["status"];
+  note: string;
+  createdAt: string;
+}
+
 export interface Job {
   id: string;
   title: string;
@@ -52,7 +62,9 @@ export interface Job {
   startDate?: string | null;
   endDate?: string | null;
   location?: { lat: number; lng: number; name?: string | null } | null;
+  locationImages?: string[]; // รูปภาพสถานที่ (หลายรูป)
   attachments: Attachment[];
+  workLogs?: WorkLog[];
 }
 
 // --- 2. Store State & Actions Interface ---
@@ -78,8 +90,9 @@ interface JobStoreState {
       assignedEmployeeIds?: string[];
       leadTechnicianId?: string | null;
       tasks?: { description: string }[];
+      attachments?: Attachment[];
     }
-  ) => void;
+  ) => string;
 
   updateJob: (
     jobId: string,
@@ -98,6 +111,7 @@ interface JobStoreState {
   deleteJob: (jobId: string) => void;
   getJobById: (jobId: string) => Job | undefined;
   getJobUserById: (userId: string) => JobUser | undefined;
+  addWorkLog: (jobId: string, workLog: Omit<WorkLog, "id" | "createdAt">) => void;
 }
 
 
@@ -113,50 +127,74 @@ export const useJobStore = create<JobStoreState>()(
 
       // --- Job Actions Implementations ---
       createJob: (newJobData) => {
-        set((state) => {
-          const creatorUser = state.jobUsers.find(
-            (u) => u.id === newJobData.creatorId
-          );
-          if (!creatorUser) {
-            console.error("JobStore: Creator user not found for new job.");
-            return;
-          }
+        const creatorUser = get().jobUsers.find(
+          (u) => u.id === newJobData.creatorId
+        );
+        if (!creatorUser) {
+          console.error("JobStore: Creator user not found for new job.");
+          return crypto.randomUUID(); // Return a fallback ID
+        }
 
-          const newJob: Job = {
-            id: crypto.randomUUID(), // ✅ ใช้ API มาตรฐานของเบราว์เซอร์
-            title: newJobData.title,
-            description: newJobData.description || null,
-            status: "pending",
-            department: newJobData.department || null,
-            creator: {
-              id: creatorUser.id,
-              name: creatorUser.name,
-              role: creatorUser.role,
-            },
-            assignedEmployees: state.jobUsers.filter((u) =>
-              newJobData.assignedEmployeeIds?.includes(u.id)
-            ),
-            leadTechnician:
-              state.jobUsers.find(
-                (u) => u.id === newJobData.leadTechnicianId
-              ) || null,
-            tasks:
-              newJobData.tasks?.map((t, i) => ({
-                id: crypto.randomUUID(), // ✅ ใช้ API มาตรฐานของเบราว์เซอร์
-                description: t.description,
-                isCompleted: false,
-                details: null,
-                order: i,
-              })) || [],
-            usedInventory: newJobData.usedInventory || [],
-            createdAt: new Date().toISOString(),
-            startDate: newJobData.startDate || null,
-            endDate: newJobData.endDate || null,
+        const newJobId = crypto.randomUUID();
+        const newJob: Job = {
+          id: newJobId,
+          title: newJobData.title,
+          description: newJobData.description || null,
+          status: "pending",
+          department: newJobData.department || null,
+          creator: {
+            id: creatorUser.id,
+            name: creatorUser.name,
+            role: creatorUser.role,
+          },
+          assignedEmployees: get().jobUsers.filter((u) =>
+            newJobData.assignedEmployeeIds?.includes(u.id)
+          ),
+          leadTechnician:
+            get().jobUsers.find(
+              (u) => u.id === newJobData.leadTechnicianId
+            ) || null,
+          tasks:
+            newJobData.tasks?.map((t, i) => ({
+              id: crypto.randomUUID(),
+              description: t.description,
+              isCompleted: false,
+              details: null,
+              order: i,
+            })) || [],
+          usedInventory: newJobData.usedInventory || [],
+          createdAt: new Date().toISOString(),
+          startDate: newJobData.startDate || null,
+          endDate: newJobData.endDate || null,
             location: newJobData.location || null,
-            attachments: [],
+            attachments: newJobData.attachments || [],
+            workLogs: [
+              {
+                id: crypto.randomUUID(),
+                date: new Date().toISOString(),
+                updatedBy: {
+                  id: creatorUser.id,
+                  name: creatorUser.name,
+                },
+                status: "pending",
+                note: "งานถูกสร้างขึ้น",
+                createdAt: new Date().toISOString(),
+              },
+            ],
           };
+
+        set((state) => {
           state.jobs.unshift(newJob);
         });
+        
+        // ✅ สร้าง notification เมื่อสร้าง job สำเร็จ
+        notificationHelpers.jobCreated(
+          newJob.title,
+          newJob.creator.name,
+          newJob.id
+        );
+        
+        return newJob.id; // ✅ Return job ID
       },
 
       updateJob: (jobId, updatedData) => {
@@ -213,6 +251,10 @@ export const useJobStore = create<JobStoreState>()(
             currentJob.attachments = updatedData.attachments;
           }
 
+          if (updatedData.locationImages !== undefined) {
+            currentJob.locationImages = updatedData.locationImages;
+          }
+
           if (updatedData.location !== undefined) {
             currentJob.location = updatedData.location;
           }
@@ -243,6 +285,25 @@ export const useJobStore = create<JobStoreState>()(
 
       getJobUserById: (userId: string) => {
         return get().jobUsers.find((user) => user.id === userId);
+      },
+
+      addWorkLog: (jobId, workLogData) => {
+        set((state) => {
+          const job = state.jobs.find((j) => j.id === jobId);
+          if (!job) {
+            console.warn(`JobStore: Job with ID ${jobId} not found for adding work log.`);
+            return;
+          }
+          if (!job.workLogs) {
+            job.workLogs = [];
+          }
+          const newWorkLog: WorkLog = {
+            id: crypto.randomUUID(),
+            ...workLogData,
+            createdAt: new Date().toISOString(),
+          };
+          job.workLogs.unshift(newWorkLog);
+        });
       },
     })),
     {

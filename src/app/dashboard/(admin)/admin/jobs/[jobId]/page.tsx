@@ -9,6 +9,8 @@ import 'dayjs/locale/th'; // สำหรับภาษาไทย (ถ้า�
 
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
+import { useInventoryStore } from "@/stores/features/inventoryStore";
+import { useUserStore } from "@/stores/features/userStore";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -41,9 +43,10 @@ import {
 import { Loader2 } from "lucide-react";
 
 import dynamic from 'next/dynamic';
+import { useParams } from "next/navigation";
 
 const StaticMapView = dynamic(
-  () => import('@/components/map/MapMockup'),
+  () => import('@/components/map/MapContainer'),
   {
     loading: () => (
       <div className="h-[300px] w-full flex items-center justify-center bg-secondary rounded-md">
@@ -56,24 +59,28 @@ const StaticMapView = dynamic(
 
 const getStatusVariant = (status: string) => {
   switch (status) {
-    case 'completed': return 'success';
-    case 'pending_approval': return 'secondary';
-    case 'in_progress': return 'info';
+    case 'completed':
+      return 'default';
+    case 'pending_approval':
+      return 'secondary';
+    case 'in_progress':
+      return 'outline';
     case 'cancelled':
-    case 'rejected': return 'destructive';
-    default: return 'default';
+    case 'rejected':
+      return 'destructive';
+    default:
+      return 'default';
   }
 };
 
-interface JobViewPageProps {
-  params: { jobId: string };
-}
-
-export default function JobViewPage({ params }: JobViewPageProps) {
+export default function JobViewPage() {
   // ✅ Tweak 1: แก้ไข Error โดยใช้ React.use() เพื่อ "แกะ" Promise params
-  const { jobId } = React.use(params);
+  const params = useParams();
+  const jobId = params.jobId as string;
 
   const getJobById = useJobStore((state) => state.getJobById);
+  const { inventories } = useInventoryStore();
+  const { currentUser } = useUserStore();
   const job = getJobById(jobId);
 
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
@@ -220,7 +227,7 @@ export default function JobViewPage({ params }: JobViewPageProps) {
             {/* --- Section: Attachments --- */}
             <div>
               <p className="text-sm text-muted-foreground mb-2">Attachments</p>
-              {job.attachments.length > 0 ? (
+              {job.attachments && job.attachments.length > 0 ? (
                 <div className="space-y-2">
                   {job.attachments.map((attachment) => (
                     <a
@@ -228,20 +235,29 @@ export default function JobViewPage({ params }: JobViewPageProps) {
                       href={attachment.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 border rounded-md hover:bg-secondary"
+                      className="flex items-center gap-2 p-3 border rounded-md hover:bg-secondary transition-colors"
                     >
-                      <Paperclip className="h-4 w-4" />
-                      <span className="text-sm font-medium text-blue-400 hover:underline">
-                        {attachment.fileName}
+                      <Paperclip className="h-4 w-4 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-blue-400 hover:underline block truncate">
+                          {attachment.fileName}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {dayjs(attachment.uploadedAt).format('DD/MM/YY HH:mm')}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-auto flex-shrink-0">
+                        {(attachment.size / 1024 / 1024).toFixed(2)} MB
                       </span>
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     </a>
                   ))}
                 </div>
               ) : (
-                <span className="text-sm text-white">No attachments for this job.</span>
+                <div className="p-4 border rounded-md text-center">
+                  <Paperclip className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                  <span className="text-sm text-muted-foreground">ไม่มีไฟล์แนบสำหรับงานนี้</span>
+                </div>
               )}
             </div>
 
@@ -256,12 +272,34 @@ export default function JobViewPage({ params }: JobViewPageProps) {
                   <p className="text-sm text-muted-foreground">
                     Latitude: {job.location.lat.toFixed(6)}, Longitude: {job.location.lng.toFixed(6)}
                   </p>
-                  <StaticMapView location={job.location} />
+                  <StaticMapView
+                    location={job.location}
+                    className="h-[280px] sm:h-[320px] md:h-[380px] w-full rounded-md overflow-hidden relative z-0"
+                  />
                 </div>
               ) : (
                 <span className="text-sm text-white">No specific location assigned.</span>
               )}
             </div>
+
+            {/* --- Section: Location Images --- */}
+            {job.locationImages && job.locationImages.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">รูปภาพสถานที่</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {job.locationImages.map((imageUrl, index) => (
+                    <div key={index} className="relative group aspect-video rounded-md border overflow-hidden bg-muted">
+                      <img
+                        src={imageUrl}
+                        alt={`Location image ${index + 1}`}
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(imageUrl, '_blank')}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </div>
 
@@ -313,9 +351,16 @@ export default function JobViewPage({ params }: JobViewPageProps) {
               )}
             </div>
 
-            {/* --- Section: Work Log & History (Placeholder) --- */}
+            {/* --- Section: Work Log & History --- */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Work Log & History</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Work Log & History</h3>
+                {job.workLogs && job.workLogs.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {job.workLogs.length} รายการ
+                  </Badge>
+                )}
+              </div>
               <div className="border rounded-md">
                 <Table>
                   <TableHeader>
@@ -327,20 +372,57 @@ export default function JobViewPage({ params }: JobViewPageProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* ✅ Tweak 2: ลบข้อมูลเก่าออก และใส่ "Empty State" */}
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        No work log history available.
-                      </TableCell>
-                    </TableRow>
+                    {job.workLogs && job.workLogs.length > 0 ? (
+                      job.workLogs.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="text-sm">
+                            {dayjs(log.date).format('DD/MM/YY HH:mm')}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-5 w-5">
+                                <AvatarFallback className="text-xs">
+                                  {log.updatedBy.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{log.updatedBy.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getStatusVariant(log.status)} className="text-xs capitalize">
+                              {log.status.replace(/_/g, ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                            {log.note}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                          <div className="flex flex-col items-center gap-2">
+                            <ClipboardList className="h-8 w-8 opacity-50" />
+                            <span>ไม่มีประวัติการทำงาน</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
             </div>
 
-            {/* --- Section: Required Inventory (Placeholder) --- */}
+            {/* --- Section: Required Inventory --- */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Required Inventory</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Required Inventory</h3>
+                {job.usedInventory && job.usedInventory.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {job.usedInventory.length} รายการ
+                  </Badge>
+                )}
+              </div>
               <div className="border rounded-md">
                 <Table>
                   <TableHeader>
@@ -348,15 +430,65 @@ export default function JobViewPage({ params }: JobViewPageProps) {
                       <TableHead>Item Name</TableHead>
                       <TableHead>Item Type</TableHead>
                       <TableHead>Quantity</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* ✅ Tweak 2: ลบข้อมูลเก่าออก และใส่ "Empty State" */}
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center text-muted-foreground">
-                        No required inventory.
-                      </TableCell>
-                    </TableRow>
+                    {job.usedInventory && job.usedInventory.length > 0 ? (
+                      job.usedInventory.map((usedInv) => {
+                        const inventoryItem = inventories.find((inv) => inv.id === usedInv.id);
+                        if (!inventoryItem) {
+                          return (
+                            <TableRow key={usedInv.id}>
+                              <TableCell colSpan={4} className="text-sm text-muted-foreground">
+                                ไม่พบข้อมูลอุปกรณ์ (ID: {usedInv.id})
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+                        return (
+                          <TableRow key={usedInv.id}>
+                            <TableCell className="font-medium">
+                              {inventoryItem.name}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {inventoryItem.type}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-semibold">{usedInv.qty}</span>
+                              <span className="text-xs text-muted-foreground ml-1">
+                                / {inventoryItem.quantity} available
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  inventoryItem.status === "Available"
+                                    ? "default"
+                                    : inventoryItem.status === "In Use"
+                                    ? "secondary"
+                                    : "destructive"
+                                }
+                                className="text-xs"
+                              >
+                                {inventoryItem.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                          <div className="flex flex-col items-center gap-2">
+                            <Building className="h-8 w-8 opacity-50" />
+                            <span>ไม่มีอุปกรณ์ที่ต้องการ</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>

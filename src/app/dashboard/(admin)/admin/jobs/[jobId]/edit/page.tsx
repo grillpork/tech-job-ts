@@ -37,7 +37,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogPortal, DialogOverlay,DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogPortal, DialogOverlay, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -66,8 +66,8 @@ interface Employee {
 
 // สร้าง ALL_EMPLOYEES จาก MOCK_USERS ของเรา
 const ALL_EMPLOYEES: Employee[] = MOCK_USERS
-    .filter(u => u.role === 'employee')
-    .map(u => ({ value: u.id, label: u.name }));
+  .filter(u => u.role === 'employee')
+  .map(u => ({ value: u.id, label: u.name }));
 
 // (TaskItem Component เหมือนเดิม)
 interface TaskItemProps {
@@ -161,7 +161,7 @@ export default function EditJobPage() {
   const locationImageInputRef = React.useRef<HTMLInputElement>(null);
 
   const availableInventories = React.useMemo(() => inventories.map(i => ({ value: i.id, label: i.name, qty: i.quantity })), [inventories]);
-  
+
   // ✅ State สำหรับ Alert
   const [isErrorAlertOpen, setIsErrorAlertOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -172,7 +172,7 @@ export default function EditJobPage() {
       .filter(u => u.role === 'employee' && u.department === department)
       .map(u => ({ value: u.id, label: u.name }));
   }, [department]);
-  
+
   // ✅ 4. Effect สำหรับดึงข้อมูล Job มาเติมใน State
   useEffect(() => {
     const jobId = params.jobId as string;
@@ -183,12 +183,12 @@ export default function EditJobPage() {
       // เติมข้อมูลลงใน State ทั้งหมด
       setStartDate(job.startDate ? parseISO(job.startDate) : undefined);
       setEndDate(job.endDate ? parseISO(job.endDate) : undefined);
-      
+
       // ดึง Tasks เก่ามาแสดง
-      setTasks(job.tasks.map((t, i) => ({ 
+      setTasks(job.tasks.map((t, i) => ({
         id: i, // ใช index เป็น id ชั่วคราว (หรือ t.id ถ้ามี)
         header: t.description, // Store ของคุณเก็บ header ไว้ใน description
-        description: t.details || '' 
+        description: t.details || ''
       })));
 
       setSelectedEmployees(job.assignedEmployees.map(u => ({ value: u.id, label: u.name })));
@@ -208,7 +208,7 @@ export default function EditJobPage() {
       router.push("/dashboard/admin/jobs"); // ถ้าไม่เจอ Job ให้เด้งกลับ
     }
   }, [params.jobId, getJobById, router, inventories]);
-  
+
   // --- (ฟังก์ชันเดิมทั้งหมด) ---
   const deleteTask = (id: number) => { setTasks((prev) => prev.filter((task) => task.id !== id)); setSelectedTasks((prev) => prev.filter((selectedId) => selectedId !== id)); };
   const deleteAttachment = (fileName: string) => setAttachments(attachments.filter((file) => file.name !== fileName));
@@ -299,13 +299,13 @@ export default function EditJobPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!jobToEdit) return;
-    
+
     const formElements = e.currentTarget.elements as typeof e.currentTarget.elements & {
-        jobTitle: { value: string };
-        jobDescription: { value: string };
+      jobTitle: { value: string };
+      jobDescription: { value: string };
     };
     const title = formElements.jobTitle.value;
-    
+
     if (!title || title.trim() === "") {
       setErrorMessage("กรุณากรอก Job Title ให้ครบถ้วน");
       setIsErrorAlertOpen(true);
@@ -313,7 +313,7 @@ export default function EditJobPage() {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // ✅ แปลง File[] เป็น Attachment[] และรวมกับ existing attachments (ใช้ base64)
       const newAttachments: Attachment[] = await Promise.all(
@@ -326,7 +326,7 @@ export default function EditJobPage() {
           uploadedAt: new Date().toISOString(),
         }))
       );
-      
+
       // รวม attachments เก่าและใหม่
       const allAttachments = [...existingAttachments, ...newAttachments];
 
@@ -335,7 +335,7 @@ export default function EditJobPage() {
         locationImages.map((file: File) => fileToBase64(file))
       );
       const allLocationImages = [...existingLocationImages, ...newLocationImagesUrls];
-      
+
       const updatedData = {
         title: title,
         description: formElements.jobDescription.value,
@@ -368,11 +368,11 @@ export default function EditJobPage() {
   return (
     <div className="p-4 md:p-8 space-y-8">
       <div className="items-center">
-        <Badge variant="secondary">{jobToEdit.status}</Badge> 
+        <Badge variant="secondary">{jobToEdit.status}</Badge>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
         <form id="edit-job-form" className="md:col-span-3 space-y-6" onSubmit={handleSubmit}>
-          
+
           {/* ✅ 6. เติมข้อมูลเดิมลงในฟอร์ม (defaultValue) */}
           <div>
             <Label htmlFor="jobTitle">Job Title</Label>
@@ -386,8 +386,9 @@ export default function EditJobPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="leadTechnician">Lead technician</Label>
+              {/* ✅ 11. เชื่อมต่อ State กับ Select */}
               <Select name="leadTechnician" value={leadTechnician} onValueChange={setLeadTechnician}>
-                <SelectTrigger id="leadTechnician" className="mt-2">
+                <SelectTrigger id="leadTechnician" className="w-full mt-2">
                   <SelectValue placeholder="Select leader" />
                 </SelectTrigger>
                 <SelectContent>
@@ -398,11 +399,12 @@ export default function EditJobPage() {
             </div>
             <div>
               <Label htmlFor="department">Select Department</Label>
+              {/* ✅ 11. เชื่อมต่อ State กับ Select */}
               <Select name="department" value={department} onValueChange={(value) => {
-                  setDepartment(value);
-                  setSelectedEmployees([]); // ✅ ล้างค่าพนักงานที่เลือกไว้เมื่อเปลี่ยนแผนก
+                setDepartment(value);
+                setSelectedEmployees([]); // ล้างค่าพนักงานเมื่อเปลี่ยนแผนก
               }}>
-                <SelectTrigger id="department" className="mt-2">
+                <SelectTrigger id="department" className="w-full mt-2">
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
@@ -430,7 +432,7 @@ export default function EditJobPage() {
                             tabIndex={0}
                             aria-label={`Remove ${emp.label}`}
                             onClick={(e) => {
-                              e.stopPropagation(); 
+                              e.stopPropagation();
                               handleRemoveEmployee(emp.value);
                             }}
                             onKeyDown={(e) => {
@@ -572,7 +574,7 @@ export default function EditJobPage() {
 
           <div>
             <Label>Attachments</Label>
-            
+
             {/* Existing Attachments */}
             {existingAttachments.length > 0 && (
               <div className="space-y-2 mt-2 mb-4">
@@ -595,11 +597,11 @@ export default function EditJobPage() {
                         </span>
                       </div>
                     </div>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 flex-shrink-0 text-destructive hover:text-destructive" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 flex-shrink-0 text-destructive hover:text-destructive"
                       onClick={() => deleteExistingAttachment(attachment.id)}
                     >
                       <X className="h-4 w-4" />
@@ -608,40 +610,117 @@ export default function EditJobPage() {
                 ))}
               </div>
             )}
-            
+
             {/* File Upload Area */}
-            <div className={cn("mt-2 flex justify-center rounded-lg border border-dashed border-input px-6 py-10 transition-colors", isDragging && "border-primary bg-muted/50")} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
-              <div className="text-center">
-                <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-4 text-sm text-muted-foreground">
-                  <span className="font-semibold text-primary">Drag 'n' drop</span> files here, or{" "}
-                  <Button type="button" variant="link" className="p-0 h-auto font-semibold text-primary" onClick={openFileDialog}>click to browse</Button>.
-                </p>
-                <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
-              </div>
-              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
-            </div>
-            
-            {/* New Attachments Preview */}
-            {attachments.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <p className="text-xs text-muted-foreground">ไฟล์ใหม่ที่จะเพิ่ม:</p>
-                {attachments.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-2.5 rounded-md border bg-muted/50">
-                    <div className="flex items-center gap-2 overflow-hidden flex-1">
-                      <FileIcon className="h-4 w-4 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm truncate block" title={file.name}>{file.name}</span>
-                        <span className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</span>
-                      </div>
-                    </div>
-                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => deleteAttachment(file.name)}>
-                      <X className="h-4 w-4" />
+            <div
+              className={cn(
+                "mt-2 rounded-lg border border-dashed border-input transition-colors",
+                "flex flex-col",
+                "h-45.5",
+                isDragging && "border-primary bg-muted/50"
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {/* Hidden File Input */}
+              {/* ✅ 14. แก้ไข Typo 'handlerFileSelect' -> 'handleFileSelect' */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+
+              {/* Conditional Content */}
+              {attachments.length === 0 ? (
+                // STATE 1: Empty. Show big prompt.
+                <div
+                  className="flex-1 flex flex-col items-center justify-center text-center p-6 cursor-pointer"
+                  onClick={openFileDialog} // Click anywhere in the empty box
+                >
+                  <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    <span className="font-semibold text-primary">
+                      Drag 'n' drop
+                    </span>{" "}
+                    files here, or{" "}
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="p-0 h-auto font-semibold text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Don't trigger parent onClick
+                        openFileDialog();
+                      }}
+                    >
+                      click to browse
                     </Button>
+                    .
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Max file size: 5MB
+                  </p>
+                </div>
+              ) : (
+                // STATE 2: Files exist. Show list + small prompt.
+                <>
+                  {/* Small prompt at the top */}
+                  <div className="p-4 border-b border-dashed">
+                    <p className="text-sm text-muted-foreground text-center">
+                      <span className="font-semibold text-primary">
+                        Drag 'n' drop
+                      </span>{" "}
+                      more files, or{" "}
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto font-semibold text-primary"
+                        onClick={openFileDialog}
+                      >
+                        click to browse
+                      </Button>
+                      .
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {/* Scrollable File List */}
+                  <ScrollArea className="flex-1 min-h-0">
+                    <div className="space-y-2 p-4">
+                      {attachments.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2.5 rounded-md border bg-muted/50"
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <FileIcon className="h-4 w-4 flex-shrink-0" />
+                            <span
+                              className="text-sm truncate"
+                              title={file.name}
+                            >
+                              {file.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              ({(file.size / 1024).toFixed(1)} KB)
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 flex-shrink-0"
+                            onClick={() => deleteAttachment(file.name)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
+            </div>
           </div>
         </form>
 
@@ -656,7 +735,7 @@ export default function EditJobPage() {
           {/* Location Images */}
           <div className="space-y-2">
             <Label>รูปภาพสถานที่</Label>
-            
+
             {/* Existing Location Images */}
             {existingLocationImages.length > 0 && (
               <div className="space-y-2 mt-2 mb-4">

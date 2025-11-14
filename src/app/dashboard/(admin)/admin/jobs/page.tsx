@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation"; // 1. Import useRouter สำหรับการนำทาง
-import { Plus, Pencil, Search, MoreVertical } from "lucide-react"; // 2. นำ Trash2 ออก
+import { useRouter } from "next/navigation";
+import { Plus, Pencil, Search, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,14 +10,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTable } from "@/components/global/DataTable"; // 3. ใช้ DataTable ที่มีอยู่
+import { DataTable } from "@/components/global/DataTable";
 import type { Column } from "@/components/global/DataTable";
-
-// 4. เปลี่ยนเป็น Job types และ store
-import { Job } from "@/lib/types/job"; // สมมติว่า path นี้
-import { useJobStore } from "@/stores/features/jobStore"; // สมมติว่า path นี้
+import { Job } from "@/lib/types/job";
+import { useJobStore } from "@/stores/features/jobStore";
+import { useUserStore } from '@/stores/features/userStore';
 import { MOCK_USERS } from '@/lib/mocks/user';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 
 // ===========================
 // MAIN COMPONENT
@@ -25,6 +30,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 const JobsList = () => {
   const router = useRouter(); // 5. khởi tạo router
   const { jobs } = useJobStore(); // 6. ดึงข้อมูล jobs จาก store
+  const users = useUserStore((s) => s.users);
 
   // 7. ลบ state ทั้งหมดที่เกี่ยวกับ Dialog (isFormOpen, editingItem, formData, etc.)
   // ยังคง state สำหรับ mobile view (ถ้าต้องการ)
@@ -98,46 +104,64 @@ const JobsList = () => {
     },
     {
       key: "createdBy",
-      label: "Created By",
+      label: "Leader Technical",
       render: (row: Job) => {
-        const creatorId = row.creator?.id;
-        const user = MOCK_USERS.find((u) => u.id === creatorId);
-        const initials = (user?.name || row.creator?.name || "").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
-        return (
-          <div className="flex items-center gap-2">
-            <Avatar className="h-7 w-7">
-              {user?.imageUrl ? (
-                <AvatarImage src={user.imageUrl} alt={user?.name || "creator"} />
-              ) : (
-                <AvatarFallback>{initials}</AvatarFallback>
-              )}
-            </Avatar>
-          </div>
-        );
+          const creatorId = row.creator?.id;
+          // Prefer live user data from user store so profile updates (imageUrl) reflect here
+    const user = users.find((u: any) => u.id === creatorId) || MOCK_USERS.find((u: any) => u.id === creatorId);
+    const initials = (user?.name || row.creator?.name || "").split(" ").map((n: string) => n[0]).join("").slice(0,2).toUpperCase();
+          return (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Avatar className="h-7 w-7 border border-white/40 dark:border-white/20">
+                    {user?.imageUrl && user.imageUrl.trim() ? (
+                      <AvatarImage src={user.imageUrl.trim()} alt={user?.name || "creator"} />
+                    ) : (
+                      <AvatarFallback>{initials}</AvatarFallback>
+                    )}
+                  </Avatar>
+                </TooltipTrigger>
+                <TooltipContent>{user?.name ?? row.creator?.name ?? '-'}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
       },
     },
     {
       key: "assignedTo",
       label: "Assigned To",
-      render: (row: Job) => (
-        <div className="flex -space-x-2">
-          {row.assignedEmployees && row.assignedEmployees.length > 0 ? (
-            row.assignedEmployees.map((u) => (
-              <div key={u.id} title={u.name} className="border-2 border-white rounded-full dark:border-gray-800">
-                <Avatar className="h-7 w-7">
-                  {u.imageUrl ? (
-                    <AvatarImage src={u.imageUrl} alt={u.name} />
-                  ) : (
-                    <AvatarFallback>{(u.name || "").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}</AvatarFallback>
-                  )}
-                </Avatar>
-              </div>
-            ))
-          ) : (
-            <span>-</span>
-          )}
-        </div>
-      ),
+      render: (row: Job) => {
+        const users = row.assignedEmployees || [];
+        const visible = users.slice(0, 3);
+        const extra = users.length - visible.length;
+        return (
+          <div className="flex items-center">
+            <div className="flex -space-x-2">
+              {visible.map((u) => {
+                // lookup live user by id to reflect profile changes
+                const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
+                const displayName = live?.name ?? u.name;
+                const img = live?.imageUrl ?? u.imageUrl;
+                return (
+                  <div key={u.id} className="border-2 border-white rounded-full dark:border-gray-800" title={displayName}>
+                    <Avatar className="h-7 w-7">
+                      {img && img.trim() ? (
+                        <AvatarImage src={img.trim()} alt={displayName} />
+                      ) : (
+                        <AvatarFallback>{(displayName || "").split(" ").map((n: string) => n[0]).join("").slice(0,2).toUpperCase()}</AvatarFallback>
+                      )}
+                    </Avatar>
+                  </div>
+                );
+              })}
+              {extra > 0 && (
+                <div className="h-7 w-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-200 border-2 border-white">+{extra}</div>
+              )}
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: "startDate",
@@ -234,7 +258,7 @@ const JobsList = () => {
             setItemsPerPage(n);
           }}
           showCheckbox={false}
-          // Note: DataTable doesn't support onRowClick prop; row click handled in mobile card or extend DataTable if needed
+          onRowClick={(row: Job) => handleViewJob(row.id)}
         />
       </div>
 
@@ -296,14 +320,16 @@ const JobsList = () => {
                   <div className="flex items-center gap-2">
                     {item.assignedEmployees && item.assignedEmployees.length > 0 ? (
                       item.assignedEmployees.map((u) => (
-                        <div key={u.id} title={u.name} className="border-2 border-white rounded-full dark:border-gray-800">
-                          <Avatar className="h-8 w-8">
-                            {u.imageUrl ? (
-                              <AvatarImage src={u.imageUrl} alt={u.name} />
-                            ) : (
-                              <AvatarFallback>{(u.name || "").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}</AvatarFallback>
-                            )}
-                          </Avatar>
+                        <div key={u.id} className="border-2 border-white rounded-full dark:border-gray-800">
+                          <div title={u.name}>
+                            <Avatar className="h-7 w-7">
+                              {u.imageUrl ? (
+                                <AvatarImage src={u.imageUrl} alt={u.name} />
+                              ) : (
+                                <AvatarFallback>{(u.name || "").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}</AvatarFallback>
+                              )}
+                            </Avatar>
+                          </div>
                         </div>
                       ))
                     ) : (

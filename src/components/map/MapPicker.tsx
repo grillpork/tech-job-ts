@@ -129,9 +129,7 @@ export function MapPicker({ initialPosition, onPositionChange }: MapPickerProps)
         <Button type="button" variant="outline" className="w-full" onClick={handleLocateMe}>
           <Crosshair className="h-4 w-4 mr-2" /> Locate Me
         </Button>
-        <Button type="button" variant="ghost" className="w-full" onClick={handleClearLocation} disabled={!position}>
-          Clear Location
-        </Button>
+        
       </div>
 
       <div className="h-[300px] w-full rounded-md overflow-hidden relative z-0">

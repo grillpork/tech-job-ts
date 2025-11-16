@@ -318,7 +318,7 @@ export default function ReportPage() {
                   setIsDialogOpen(true)
                 }}
               >
-                <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+                <CardHeader>
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <Badge variant="outline" className="font-mono text-[10px] sm:text-xs px-1.5 sm:px-2">
@@ -344,8 +344,8 @@ export default function ReportPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-                  <Separator className="mb-3 sm:mb-4" />
+                <CardContent>
+                  <Separator className="mb-3 sm:mb-6" />
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className={`p-1.5 sm:p-2 rounded-lg ${deptColors.bg}`}>

@@ -53,7 +53,7 @@ export default function JobManagementPage() {
   const router = useRouter();
 
   const allJobs = useJobStore((state) => state.jobs);
-  const completeJob = useJobStore((state) => state.completeJob);
+  const updateJob = useJobStore((state) => state.updateJob);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -66,10 +66,15 @@ export default function JobManagementPage() {
 
   const confirmComplete = () => {
     if (jobToDelete) {
-      completeJob(jobToDelete.id);
+      updateJob(jobToDelete.id, { status: "completed" });
       toast.success("Job completed successfully!");
       setIsDeleteDialogOpen(false);
     }
+  };
+
+  const handleEditJob = (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation(); // 10. หยุด event click ไม่ให้ลามไปถึง row
+    router.push(`/dashboard/employee/jobs/${jobId}/edit`);
   };
 
   const filteredJobs = allJobs.filter((job) =>
@@ -156,7 +161,12 @@ interface JobCardProps {
 }
 
 function JobCard({ job, onView, onEdit, onDelete }: JobCardProps) {
+  const router = useRouter();
   const employees = job.assignedEmployees;
+  const handleEditJob = (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation(); // 10. หยุด event click ไม่ให้ลามไปถึง row
+    router.push(`/dashboard/employee/jobs/${jobId}/edit`);
+  };
 
   return (
     <Card className="flex flex-col justify-between shadow-sm hover:scale-105 hover:shadow-lg transition-all">
@@ -183,13 +193,11 @@ function JobCard({ job, onView, onEdit, onDelete }: JobCardProps) {
               <DropdownMenuItem onClick={() => onView(job.id)}>
                 View
               </DropdownMenuItem>
-              {/* <DropdownMenuItem onClick={() => onEdit(job.id)}>
-                Edit
-              </DropdownMenuItem> */}
-              <DropdownMenuItem
-                onClick={() => onDelete(job)}
-              >
-               Comleted
+              <DropdownMenuItem onClick={(e) => handleEditJob(e, job.id)}>
+                Edit Job
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDelete(job)}>
+                Complete Job
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

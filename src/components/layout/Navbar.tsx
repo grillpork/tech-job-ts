@@ -17,6 +17,7 @@ import { Menu } from "lucide-react";
 import { useUserStore } from "@/stores/features/userStore";
 import { ModeToggle } from "../ModeToggle";
 import GlobalSearch from "../global/GlobalSearch";
+import Link from "next/link";
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -68,7 +69,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               </Button>
             </div>
   
-            <div className="space-y-1 max-h-64 overflow-hidden">
+            <div className="space-y-1 max-h-64 overflow-y-auto">
               <AnimatePresence>
                 {notifications.length > 0 ? (
                   notifications.map((n, i) => (
@@ -78,12 +79,17 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                       animate={{ opacity: 1, x: 0  }}
                       exit={{ opacity: 0, x: -10 }}
                       transition={{ delay: 0.1 * i }}
-                      className={`p-2 rounded hover:bg-muted cursor-pointer ${
+                      className={`p-2 rounded hover:bg-muted cursor-pointer  ${
                         n.read ? "bg-muted/30" : "bg-muted/60"
                       }`}
                       onClick={() => markAsRead(n.id)}
                     >
-                      {n.message}
+                      {n.description || "No description available"}
+                      {n.createdAt && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {new Date(n.createdAt).toLocaleString()}
+                        </p>
+                      )}
                     </motion.div>
                   ))
                 ) : (
@@ -95,12 +101,12 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
             </div>
   
             <DropdownMenuItem asChild className="mt-2">
-              {/* <Link
+              <Link
                 href={`/dashboard/${currentUser?.role}/notification`}
                 className="w-full text-center text-sm text-primary font-medium"
               >
                 View All Notifications
-              </Link> */}
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

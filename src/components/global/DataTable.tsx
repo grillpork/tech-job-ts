@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,9 @@ interface DataTableProps<T> {
   showCheckbox?: boolean;
 }
 
+// Animated TableRow component
+const AnimatedTableRow = motion(TableRow);
+
 export function DataTable<T extends { id: string | number }>({
   columns,
   data,
@@ -71,14 +75,12 @@ export function DataTable<T extends { id: string | number }>({
   const filteredData = useMemo(() => {
     let filtered = data;
 
-    // Global search
     if (searchKey && search) {
       filtered = filtered.filter((item) =>
         String(item[searchKey]).toLowerCase().includes(search.toLowerCase())
       );
     }
 
-    // Dropdown filters
     if (filters && Object.keys(filterValues).length > 0) {
       for (const key of Object.keys(filterValues)) {
         const val = filterValues[key];
@@ -88,7 +90,6 @@ export function DataTable<T extends { id: string | number }>({
       }
     }
 
-    // Multi sort
     if (sortConfigs.length > 0) {
       filtered = [...filtered].sort((a, b) => {
         for (const config of sortConfigs) {
@@ -104,7 +105,6 @@ export function DataTable<T extends { id: string | number }>({
     return filtered;
   }, [data, search, searchKey, filterValues, filters, sortConfigs]);
 
-  // Pagination: slice the filtered data according to current page and rowsPerPage
   const totalFiltered = filteredData.length;
   const safeRowsPerPage = rowsPerPage > 0 ? rowsPerPage : totalFiltered || 1;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / safeRowsPerPage));
@@ -112,14 +112,13 @@ export function DataTable<T extends { id: string | number }>({
   const startIndex = (current - 1) * safeRowsPerPage;
   const paginatedData = filteredData.slice(startIndex, startIndex + safeRowsPerPage);
 
-  // Drag & Drop handlers for row reordering (persistent when onRowReorder provided)
   const handleDragStart = (e: React.DragEvent, id: string | number) => {
     setDraggingId(id);
     try {
       e.dataTransfer.setData("text/plain", String(id));
       e.dataTransfer.effectAllowed = "move";
     } catch (err) {
-      // ignore in environments that block dataTransfer
+      // ignore
     }
   };
 
@@ -134,26 +133,65 @@ export function DataTable<T extends { id: string | number }>({
     if (!draggedId) return;
     if (String(draggedId) === String(targetId)) return;
 
-    // reorder in the original data array by moving dragged before target
     const srcIndex = data.findIndex((d) => String(d.id) === String(draggedId));
     const dstIndex = data.findIndex((d) => String(d.id) === String(targetId));
     if (srcIndex === -1 || dstIndex === -1) return;
 
     const newData = [...data];
     const [moved] = newData.splice(srcIndex, 1);
-    // if removing an earlier index, adjust dstIndex
     const insertIndex = srcIndex < dstIndex ? dstIndex : dstIndex;
     newData.splice(insertIndex, 0, moved);
 
     if (onRowReorder) onRowReorder(newData);
-
     setDraggingId(null);
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const rowVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 10,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+    },
+    exit: { 
+      opacity: 0, 
+      transition: {
+        duration: 0.2 
+      }
+    },
+    hover: {
+      scale: 0.99,
+      backgroundColor: "rgba(0, 0, 0, 0.02)",
+      transition: {
+        duration: 0.2
+      }
+    }
+  };
+
   return (
-    <div className="h-full space-y-3">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="h-full space-y-3 overflow-hidden">
+      {/* Toolbar with fade-in animation */}
+      <motion.div 
+        className="flex flex-wrap items-center justify-between gap-3"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <Input
           placeholder="Search..."
           value={search}
@@ -162,32 +200,43 @@ export function DataTable<T extends { id: string | number }>({
         />
 
         <div className="flex gap-2 flex-wrap">
-          {filters?.map((f) => (
-            <Select
+          {filters?.map((f, idx) => (
+            <motion.div
               key={String(f.key)}
-              value={filterValues[String(f.key)] || "all"}
-              onValueChange={(val) =>
-                setFilterValues((prev) => ({ ...prev, [String(f.key)]: val }))
-              }
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: idx * 0.8 }}
             >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder={f.placeholder || "Filter"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {f.options.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select
+                value={filterValues[String(f.key)] || "all"}
+                onValueChange={(val) =>
+                  setFilterValues((prev) => ({ ...prev, [String(f.key)]: val }))
+                }
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder={f.placeholder || "Filter"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {f.options.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      {/* Table */}
-      <div className="border rounded-md overflow-hidden">
+      {/* Table with animated rows */}
+      <motion.div 
+        className="border rounded-md overflow-hidden"
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3}}
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -207,25 +256,47 @@ export function DataTable<T extends { id: string | number }>({
                   onClick={() => col.sortable && handleSort(col.key)}
                   className={col.sortable ? "cursor-pointer select-none" : ""}
                 >
-                  <div className="flex items-center gap-1">
+                  <motion.div 
+                    className="flex items-center gap-1 overflow-hidden"
+                    whileHover={col.sortable ? { scale: 1.05 } : {}}
+                  >
                     {col.label}
-                    {col.sortable && <ArrowUpDown className="w-3 h-3 opacity-70" />}
-                  </div>
+                    {col.sortable && (
+                      <motion.div
+                        animate={{ 
+                          rotate: sortConfigs.find(s => s.key === col.key)?.direction === "desc" ? 180 : 0 
+                        }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ArrowUpDown className="w-3 h-3 opacity-70" />
+                      </motion.div>
+                    )}
+                  </motion.div>
                 </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedData.length > 0 ? (
-              paginatedData.map((row) => (
-                <TableRow
-                  key={String(row.id)}
-                  draggable={!!onRowReorder}
-                  onDragStart={(e) => onRowReorder && handleDragStart(e, row.id)}
-                  onDragOver={(e) => onRowReorder && handleDragOver(e)}
-                  onDrop={(e) => onRowReorder && handleDrop(e, row.id)}
-                  className={onRowReorder ? "cursor-grab" : undefined}
-                >
+            <AnimatePresence mode="popLayout">
+              {paginatedData.length > 0 ? (
+                paginatedData.map((row, index) => (
+                  <AnimatedTableRow
+                    key={String(row.id)}
+                    variants={rowVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    whileHover="hover"
+                    layout
+                    draggable={!!onRowReorder}
+                    onDragStart={(e: any) => onRowReorder && handleDragStart(e, row.id)}
+                    onDragOver={(e: any) => onRowReorder && handleDragOver(e)}
+                    onDrop={(e: any) => onRowReorder && handleDrop(e, row.id)}
+                    className={onRowReorder ? "cursor-grab" : undefined}
+                    style={{
+                      opacity: draggingId === row.id ? 0.5 : 1
+                    }}
+                  >
                     {showCheckbox && (
                       <TableCell>
                         <Checkbox
@@ -238,41 +309,52 @@ export function DataTable<T extends { id: string | number }>({
                         />
                       </TableCell>
                     )}
-                  {columns.map((col) => (
-                    <TableCell key={String(col.key)}>
-                      {col.render ? col.render(row) : String(row[col.key])}
-                    </TableCell>
-                  ))}
+                    {columns.map((col) => (
+                      <TableCell key={String(col.key)}>
+                        {col.render ? col.render(row) : String(row[col.key])}
+                      </TableCell>
+                    ))}
+                  </AnimatedTableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length + (showCheckbox ? 1 : 0)} className="text-center py-4 text-gray-500">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      No data found.
+                    </motion.div>
+                  </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length + (showCheckbox ? 1 : 0)} className="text-center py-4 text-gray-500">
-                  No data found.
-                </TableCell>
-              </TableRow>
-            )}
+              )}
+            </AnimatePresence>
           </TableBody>
         </Table>
-      </div>
+      </motion.div>
 
       {/* Pagination */}
-      <Pagination
-        currentPage={current}
-        totalRows={totalFiltered}
-        rowsPerPage={safeRowsPerPage}
-        onPageChange={(p) => {
-          // clamp page between 1..totalPages and forward to parent
-          const next = Math.min(Math.max(1, p), totalPages);
-          onPageChange(next);
-        }}
-        onRowsPerPageChange={(n) => {
-          onRowsPerPageChange(n);
-          // when rows per page changes, if current page would be out of range, reset to 1
-          const newTotalPages = Math.max(1, Math.ceil(totalFiltered / (n > 0 ? n : totalFiltered || 1)));
-          if (current > newTotalPages) onPageChange(1);
-        }}
-      />
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
+        <Pagination
+          currentPage={current}
+          totalRows={totalFiltered}
+          rowsPerPage={safeRowsPerPage}
+          onPageChange={(p) => {
+            const next = Math.min(Math.max(1, p), totalPages);
+            onPageChange(next);
+          }}
+          onRowsPerPageChange={(n) => {
+            onRowsPerPageChange(n);
+            const newTotalPages = Math.max(1, Math.ceil(totalFiltered / (n > 0 ? n : totalFiltered || 1)));
+            if (current > newTotalPages) onPageChange(1);
+          }}
+        />
+      </motion.div>
     </div>
   );
 }

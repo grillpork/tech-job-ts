@@ -136,24 +136,31 @@ export const useJobStore = create<JobStoreState>()(
         }
 
         const newJobId = crypto.randomUUID();
+        const assignedEmployees = get().jobUsers.filter((u) =>
+          newJobData.assignedEmployeeIds?.includes(u.id)
+        );
+        const leadTechnician = get().jobUsers.find(
+          (u) => u.id === newJobData.leadTechnicianId
+        ) || null;
+        
+        // ✅ ตรวจสอบว่ามี leadTechnician และ assignedEmployees ครบหรือไม่
+        const hasLeadTechnician = leadTechnician !== null;
+        const hasAssignedEmployees = assignedEmployees.length > 0;
+        const initialStatus = (hasLeadTechnician && hasAssignedEmployees) ? "in_progress" : "pending";
+
         const newJob: Job = {
           id: newJobId,
           title: newJobData.title,
           description: newJobData.description || null,
-          status: "pending",
+          status: initialStatus,
           department: newJobData.department || null,
           creator: {
             id: creatorUser.id,
             name: creatorUser.name,
             role: creatorUser.role,
           },
-          assignedEmployees: get().jobUsers.filter((u) =>
-            newJobData.assignedEmployeeIds?.includes(u.id)
-          ),
-          leadTechnician:
-            get().jobUsers.find(
-              (u) => u.id === newJobData.leadTechnicianId
-            ) || null,
+          assignedEmployees: assignedEmployees,
+          leadTechnician: leadTechnician,
           tasks:
             newJobData.tasks?.map((t, i) => ({
               id: crypto.randomUUID(),
@@ -167,6 +174,7 @@ export const useJobStore = create<JobStoreState>()(
           startDate: newJobData.startDate || null,
           endDate: newJobData.endDate || null,
             location: newJobData.location || null,
+            locationImages: newJobData.locationImages || [],
             attachments: newJobData.attachments || [],
             workLogs: [
               {
@@ -176,8 +184,10 @@ export const useJobStore = create<JobStoreState>()(
                   id: creatorUser.id,
                   name: creatorUser.name,
                 },
-                status: "pending",
-                note: "งานถูกสร้างขึ้น",
+                status: initialStatus,
+                note: initialStatus === "in_progress" 
+                  ? "งานถูกสร้างขึ้นและสถานะเป็น 'กำลังดำเนินการ' อัตโนมัติ เนื่องจากมีการมอบหมาย Lead Technician และ Employees ครบถ้วนแล้ว"
+                  : "งานถูกสร้างขึ้น",
                 createdAt: new Date().toISOString(),
               },
             ],
@@ -204,10 +214,11 @@ export const useJobStore = create<JobStoreState>()(
             console.warn(`JobStore: Job with ID ${jobId} not found for update.`);
             return;
           }
-
+      
           const currentJob = state.jobs[jobIndex];
           const availableJobUsers = get().jobUsers;
-
+      
+          // --- อัปเดตข้อมูลทั่วไป ---
           if (updatedData.creatorId !== undefined) {
             const newCreator = availableJobUsers.find(
               (u) => u.id === updatedData.creatorId
@@ -220,45 +231,46 @@ export const useJobStore = create<JobStoreState>()(
                 }
               : currentJob.creator;
           }
+      
           if (updatedData.assignedEmployeeIds !== undefined) {
             currentJob.assignedEmployees = availableJobUsers.filter((u) =>
               updatedData.assignedEmployeeIds?.includes(u.id)
             );
           }
+      
           if (updatedData.leadTechnicianId !== undefined) {
             currentJob.leadTechnician =
               availableJobUsers.find(
                 (u) => u.id === updatedData.leadTechnicianId
               ) || null;
           }
-
+      
           if (updatedData.tasks !== undefined) {
             currentJob.tasks = updatedData.tasks.map((t, i) => ({
-              id: t.id || crypto.randomUUID(), // ✅ ใช้ API มาตรฐานของเบราว์เซอร์
+              id: t.id || crypto.randomUUID(),
               description: t.description,
               details: t.details !== undefined ? t.details : null,
-              isCompleted:
-                t.isCompleted !== undefined ? t.isCompleted : false,
+              isCompleted: t.isCompleted !== undefined ? t.isCompleted : false,
               order: t.order !== undefined ? t.order : i,
             }));
           }
-
+      
           if (updatedData.usedInventory !== undefined) {
             currentJob.usedInventory = updatedData.usedInventory;
           }
-
+      
           if (updatedData.attachments !== undefined) {
             currentJob.attachments = updatedData.attachments;
           }
-
+      
           if (updatedData.locationImages !== undefined) {
             currentJob.locationImages = updatedData.locationImages;
           }
-
+      
           if (updatedData.location !== undefined) {
             currentJob.location = updatedData.location;
           }
-
+      
           const {
             creatorId,
             assignedEmployeeIds,
@@ -266,12 +278,52 @@ export const useJobStore = create<JobStoreState>()(
             tasks,
             attachments,
             location,
+            locationImages,
             ...restOfUpdatedData
           } = updatedData;
-
+      
           Object.assign(currentJob, restOfUpdatedData);
+      
+          // ✅ ตรวจสอบสถานะและเปลี่ยนแบบอัตโนมัติ
+          const hasLeadTechnician = currentJob.leadTechnician !== null;
+          const hasAssignedEmployees = currentJob.assignedEmployees.length > 0;
+      
+          // --- จาก pending → in_progress
+          if (hasLeadTechnician && hasAssignedEmployees && currentJob.status === "pending") {
+            currentJob.status = "in_progress";
+      
+            if (!currentJob.workLogs) currentJob.workLogs = [];
+            currentJob.workLogs.unshift({
+              id: crypto.randomUUID(),
+              date: new Date().toISOString(),
+              updatedBy: { id: "system", name: "ระบบ" },
+              status: "in_progress",
+              note: "สถานะเปลี่ยนเป็น 'กำลังดำเนินการ' เพราะมี Lead และ Employee ครบ",
+              createdAt: new Date().toISOString(),
+            });
+      
+            console.log(`JobStore: Job ${jobId} → in_progress`);
+          }
+      
+          // --- จาก in_progress → pending
+          else if ((!hasLeadTechnician || !hasAssignedEmployees) && currentJob.status === "in_progress") {
+            currentJob.status = "pending";
+      
+            if (!currentJob.workLogs) currentJob.workLogs = [];
+            currentJob.workLogs.unshift({
+              id: crypto.randomUUID(),
+              date: new Date().toISOString(),
+              updatedBy: { id: "system", name: "ระบบ" },
+              status: "pending",
+              note: "สถานะกลับเป็น 'รอดำเนินการ' เพราะ Lead หรือ Employee ถูกลบออก",
+              createdAt: new Date().toISOString(),
+            });
+      
+            console.log(`JobStore: Job ${jobId} → pending`);
+          }
         });
       },
+      
 
       deleteJob: (jobId) => {
         set((state) => {

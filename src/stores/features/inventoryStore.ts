@@ -11,6 +11,7 @@ export type Inventory = {
   location: string;
   status: "Available" | "In Use" | "Pending" | "Damaged";
   type: "Device" | "Accessory" | "Tool" | "Other";
+  price: number;
   requireFrom: string;
 };
 
@@ -30,13 +31,24 @@ export const useInventoryStore = create<InventoryStore>()(
       inventories: MOCK_INVENTORIES,
       isHydrated: false,
 
-      addInventory: (item) =>
-        set((state) => ({ inventories: [...state.inventories, item] })),
+      addInventory: (item) => {
+        // 💡 แก้ไข: กำหนด Default Value ให้ price ถ้า item.price เป็น undefined
+        const newItem = {
+          ...item,
+          price: item.price || 0, // หรือใส่ค่า default อื่นๆ ที่เหมาะสม
+        };
+        set((state) => ({ inventories: [...state.inventories, newItem] }));
+      },
 
       updateInventory: (item) =>
         set((state) => ({
           inventories: state.inventories.map((inv) =>
-            inv.id === item.id ? item : inv
+            inv.id === item.id
+              ? {
+                ...item,
+                price: item.price || inv.price || 0 // 💡 ใช้ price ที่ส่งมา หรือ price เดิม หรือ 0
+              }
+              : inv
           ),
         })),
 

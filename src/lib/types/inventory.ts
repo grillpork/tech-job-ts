@@ -6,5 +6,6 @@ export type Inventory = {
   location: string;
   status: "Available" | "In Use" | "Pending" | "Damaged";
   type: "Device" | "Accessory" | "Tool" | "Other";
+  price: number;
   requireFrom: string;
 };

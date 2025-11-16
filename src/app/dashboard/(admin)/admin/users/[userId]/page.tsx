@@ -257,7 +257,7 @@ export default function UserAnalyticsPage() {
             {/* 4. Agenda / ปฏิทินงาน (Part) */}
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">My Agenda</CardTitle>
-              <Button variant="link" size="sm" className="p-0 h-auto">
+              <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => redirect(`/dashboard/${user?.role}/calendar`)}>
                 View all
               </Button>
             </CardHeader>

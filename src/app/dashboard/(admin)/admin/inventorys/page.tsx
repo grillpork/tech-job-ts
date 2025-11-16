@@ -42,6 +42,7 @@ import type { Column } from "@/components/global/DataTable";
 // Mock data
 import { Inventory } from "@/lib/types/inventory";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
+import ExportInventoryData from "@/components/export/ExportInventoryData.tsx";
 
 // ===========================
 // MAIN COMPONENT
@@ -218,6 +219,7 @@ const InventoryManagement = () => {
         type: formData.type as Inventory["type"],
         quantity: parseInt(formData.quantity),
         location: "Main Warehouse",
+        price: 0,
         requireFrom: formData.requireFrom,
       };
       addInventory(newItem);
@@ -241,19 +243,15 @@ const InventoryManagement = () => {
   return (
     <div className="p-3 sm:p-6">
       {/* HEADER SECTION */}
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-          Inventory Management
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-          หน้าจัดการอุปกรณ์
-        </p>
-      </div>
+
 
       {/* ACTION BAR (kept simple - Add button) */}
       <div className="mb-4 sm:mb-4 flex items-center justify-between">
-        <div />
         <div>
+          <ExportInventoryData />
+        </div>
+        <div>
+
           <Button
             onClick={handleAdd}
             className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto"
@@ -263,6 +261,8 @@ const InventoryManagement = () => {
           </Button>
         </div>
       </div>
+
+
 
       {/* DESKTOP: DataTable (uses inventoryStore as source) */}
       <div className="hidden md:block">

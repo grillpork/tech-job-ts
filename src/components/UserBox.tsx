@@ -43,7 +43,6 @@ export function UserBox() {
     <div >
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-       
             <Avatar className="h-8 w-8">
               {currentUser.imageUrl ? (
                 <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />

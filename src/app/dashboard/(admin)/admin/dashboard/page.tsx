@@ -178,76 +178,75 @@ export default function Page() {
         <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-          {([
-            "complete",
-            "progressing",
-            "pending",
-          ] as (keyof typeof chartConfig)[]).map((chart) => {
-            const pct = percentChange(chart);
-            const isUp = pct >= 0;
-            return (
-              <Card
-                key={chart}
-                className="flex flex-row justify-between px-4 py-4 sm:px-6 sm:py-5 rounded-2xl shadow-sm bg-card"
-                onClick={() => setActiveChart(chart)}
-              >
-                <div>
-                  <span className="text-muted-foreground text-xs">
-                    {chartConfig[chart].label}
-                  </span>
-                  <span className="text-3xl font-bold flex items-end gap-2">
-                    <NumberFlow
-                      value={total[chart]}
-                      format={{ notation: "compact" }}
-                    />
-                  </span>
-                  <div className="flex items-center gap-1 text-sm mt-1 flex-wrap">
-                    {isUp ? (
-                      <ArrowUpRight size={16} className="text-green-500" />
-                    ) : (
-                      <ArrowDownRight size={16} className="text-red-500" />
-                    )}
-                    <span
-                      className={`${
-                        isUp ? "text-green-500" : "text-red-500"
-                      } font-medium`}
-                    >
-                      {pct.toFixed(1)}%
+            {([
+              "complete",
+              "progressing",
+              "pending",
+            ] as (keyof typeof chartConfig)[]).map((chart) => {
+              const pct = percentChange(chart);
+              const isUp = pct >= 0;
+              return (
+                <Card
+                  key={chart}
+                  className="flex flex-row justify-between px-4 py-4 sm:px-6 sm:py-5 rounded-2xl shadow-sm bg-card"
+                  onClick={() => setActiveChart(chart)}
+                >
+                  <div>
+                    <span className="text-muted-foreground text-xs">
+                      {chartConfig[chart].label}
                     </span>
-                    <span className="text-muted-foreground ml-1">
-                      {timeRange === "7d"
-                        ? "vs last week"
-                        : timeRange === "30d"
-                        ? "vs last month"
-                        : "vs last 3 months"}
-                    </span>
-                  </div>
-                </div>
-                <div className="w-24 h-16">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={miniData}>
-                      <Area
-                        type="monotone"
-                        fill="none"
-                        dataKey={chart}
-                        stroke={
-                          chart === "complete"
-                            ? "var(--chart-1)"
-                            : chart === "progressing"
-                            ? "var(--chart-2)"
-                            : "var(--chart-3)"
-                        }
+                    <span className="text-3xl font-bold flex items-end gap-2">
+                      <NumberFlow
+                        value={total[chart]}
+                        format={{ notation: "compact" }}
                       />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
-                );
-              })}
-            </div>
+                    </span>
+                    <div className="flex items-center gap-1 text-sm mt-1 flex-wrap">
+                      {isUp ? (
+                        <ArrowUpRight size={16} className="text-green-500" />
+                      ) : (
+                        <ArrowDownRight size={16} className="text-red-500" />
+                      )}
+                      <span
+                        className={`${isUp ? "text-green-500" : "text-red-500"
+                          } font-medium`}
+                      >
+                        {pct.toFixed(1)}%
+                      </span>
+                      <span className="text-muted-foreground ml-1">
+                        {timeRange === "7d"
+                          ? "vs last week"
+                          : timeRange === "30d"
+                            ? "vs last month"
+                            : "vs last 3 months"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-24 h-16">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={miniData}>
+                        <Area
+                          type="monotone"
+                          fill="none"
+                          dataKey={chart}
+                          stroke={
+                            chart === "complete"
+                              ? "var(--chart-1)"
+                              : chart === "progressing"
+                                ? "var(--chart-2)"
+                                : "var(--chart-3)"
+                          }
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
 
-              {/* Area Chart */}
-              <Card className="py-4 w-full gap-2 sm:py-0">
+          {/* Area Chart */}
+          <Card className="py-4 w-full gap-2 sm:py-0">
             <div className="flex flex-col sm:flex-row justify-between items-center p-4 gap-2">
               <div className="flex items-center gap-2">
                 <ChartArea />
@@ -329,9 +328,9 @@ export default function Page() {
                 </AreaChart>
               </ChartContainer>
             </CardContent>
-            
+
           </Card>
- <Card>
+          <Card>
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
@@ -370,100 +369,100 @@ export default function Page() {
         </div>
 
         <aside className="space-y-4">
-         
 
-         
 
-            <Card>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold">Top Departments</h3>
-                    <p className="text-xs text-muted-foreground">Departments with most jobs (top 5)</p>
-                  </div>
-                  <Badge>Live</Badge>
+
+
+          <Card>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold">Top Departments</h3>
+                  <p className="text-xs text-muted-foreground">Departments with most jobs (top 5)</p>
                 </div>
+                <Badge>Live</Badge>
+              </div>
 
-                <Separator className="my-3" />
+              <Separator className="my-3" />
 
-                <div className="space-y-2">
-                  {topDepartments.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">No departments or jobs yet</div>
-                  ) : (
-                    topDepartments.map((d, idx) => (
-                      <div key={d.name} className="flex items-center justify-between gap-3">
+              <div className="space-y-2">
+                {topDepartments.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">No departments or jobs yet</div>
+                ) : (
+                  topDepartments.map((d, idx) => (
+                    <div key={d.name} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 text-sm font-semibold">{idx + 1}.</div>
+                        <div>
+                          <div className="text-sm font-medium">{d.name}</div>
+                          <div className="text-xs text-muted-foreground">{d.count} jobs</div>
+                        </div>
+                      </div>
+                      <div className="w-24">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-2 bg-primary"
+                            style={{ width: `${Math.min(100, Math.round((d.count / Math.max(1, topDepartments[0].count)) * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold">Top Inventory</h3>
+                  <p className="text-xs text-muted-foreground">Most used (or highest quantity) items</p>
+                </div>
+                <Badge>Live</Badge>
+              </div>
+
+              <Separator className="my-3" />
+
+              <div className="space-y-2">
+                {topInventory.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">No inventory defined</div>
+                ) : (
+                  topInventory.map((it, idx) => (
+                    <div key={it.id} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 text-sm font-semibold">{idx + 1}.</div>
                         <div className="flex items-center gap-3">
-                          <div className="w-6 text-sm font-semibold">{idx + 1}.</div>
+                          <Avatar className="h-8 w-8">
+                            {inventories.find((inv) => inv.id === it.id)?.imageUrl ? (
+                              <AvatarImage src={inventories.find((inv) => inv.id === it.id)?.imageUrl || ""} alt={it.name} />
+                            ) : (
+                              <AvatarFallback>{(it.name || "").split(" ").map(s => s.charAt(0)).slice(0, 2).join("")}</AvatarFallback>
+                            )}
+                          </Avatar>
                           <div>
-                            <div className="text-sm font-medium">{d.name}</div>
-                            <div className="text-xs text-muted-foreground">{d.count} jobs</div>
-                          </div>
-                        </div>
-                        <div className="w-24">
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-2 bg-primary"
-                              style={{ width: `${Math.min(100, Math.round((d.count / Math.max(1, topDepartments[0].count)) * 100))}%` }}
-                            />
+                            <div className="text-sm font-medium">{it.name}</div>
+                            <div className="text-xs text-muted-foreground">{it.count} {inventoryHasUsage ? "uses" : "qty"}</div>
                           </div>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold">Top Inventory</h3>
-                    <p className="text-xs text-muted-foreground">Most used (or highest quantity) items</p>
-                  </div>
-                  <Badge>Live</Badge>
-                </div>
-
-                <Separator className="my-3" />
-
-                <div className="space-y-2">
-                  {topInventory.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">No inventory defined</div>
-                  ) : (
-                    topInventory.map((it, idx) => (
-                      <div key={it.id} className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 text-sm font-semibold">{idx + 1}.</div>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              {inventories.find((inv) => inv.id === it.id)?.imageUrl ? (
-                                <AvatarImage src={inventories.find((inv) => inv.id === it.id)?.imageUrl || ""} alt={it.name} />
-                              ) : (
-                                <AvatarFallback>{(it.name || "").split(" ").map(s => s.charAt(0)).slice(0,2).join("")}</AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div>
-                              <div className="text-sm font-medium">{it.name}</div>
-                              <div className="text-xs text-muted-foreground">{it.count} {inventoryHasUsage ? "uses" : "qty"}</div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="w-24">
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-2 bg-emerald-500"
-                              style={{ width: `${Math.min(100, Math.round((it.count / Math.max(1, topInventory[0].count)) * 100))}%` }}
-                            />
-                          </div>
+                      <div className="w-24">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-2 bg-emerald-500"
+                            style={{ width: `${Math.min(100, Math.round((it.count / Math.max(1, topInventory[0].count)) * 100))}%` }}
+                          />
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-             <Card>
+          <Card >
             <CardContent>
               <h3 className="text-sm font-semibold">Quick actions</h3>
               <div className="mt-3 flex flex-col gap-2">

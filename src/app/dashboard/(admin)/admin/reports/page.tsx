@@ -165,6 +165,7 @@ export default function ReportPage() {
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [filterDepartment, setFilterDepartment] = useState<Department | "all">("all")
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all")
+  const [filterPriority, setFilterPriority] = useState<Priority | "all">("all")
   const [selectedReport, setSelectedReport] = useState<Report | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [comment, setComment] = useState("")
@@ -180,9 +181,10 @@ export default function ReportPage() {
                          report.description.toLowerCase().includes(searchQuery.toLowerCase())
       const matchDepartment = filterDepartment === "all" || report.reporter.department === filterDepartment
       const matchStatus = filterStatus === "all" || report.status === filterStatus
-      return matchSearch && matchDepartment && matchStatus
+      const matchPriority = filterPriority === "all" || report.priority === filterPriority
+      return matchSearch && matchDepartment && matchStatus && matchPriority
     })
-  }, [reports, searchQuery, filterDepartment, filterStatus])
+  }, [reports, searchQuery, filterDepartment, filterStatus, filterPriority])
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -298,6 +300,17 @@ export default function ReportPage() {
                 <SelectItem value="open">รอดำเนินการ</SelectItem>
                 <SelectItem value="in-progress">ดำเนินการ</SelectItem>
                 <SelectItem value="resolved">แก้ไขแล้ว</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterPriority} onValueChange={(value) => setFilterPriority(value as Priority | "all")}>
+              <SelectTrigger className="w-full lg:w-[180px] h-10">
+                <SelectValue placeholder="ความสำคัญ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกระดับ</SelectItem>
+                <SelectItem value="high">สูง</SelectItem>
+                <SelectItem value="medium">ปานกลาง</SelectItem>
+                <SelectItem value="low">ต่ำ</SelectItem>
               </SelectContent>
             </Select>
           </div>

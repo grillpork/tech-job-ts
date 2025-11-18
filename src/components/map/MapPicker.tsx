@@ -9,6 +9,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Crosshair, MapPin } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -18,11 +19,12 @@ L.Icon.Default.mergeOptions({
 });
 
 interface MapPickerProps {
-  initialPosition?: { lat: number; lng: number; name?: string | null } | null; 
-  onPositionChange: (position: { lat: number; lng: number; name?: string | null } | null) => void; 
+  initialPosition?: { lat: number; lng: number; name?: string | null } | null;
+  onPositionChange: (position: { lat: number; lng: number; name?: string | null } | null) => void;
+  disabled?: boolean;
 }
 
-export function MapPicker({ initialPosition, onPositionChange }: MapPickerProps) {
+export function MapPicker({ initialPosition, onPositionChange, disabled = false }: MapPickerProps) {
   const [position, setPosition] = useState(initialPosition);
   const mapRef = useRef<L.Map | null>(null);
 
@@ -36,7 +38,13 @@ export function MapPicker({ initialPosition, onPositionChange }: MapPickerProps)
   const MapEvents = () => {
     useMapEvents({
       click: (e) => {
-        const newPos = { ...position, lat: e.latlng.lat, lng: e.latlng.lng };
+        if (disabled) return;
+        const newPos = { 
+          ...(position || {}), 
+          lat: e.latlng.lat, 
+          lng: e.latlng.lng,
+          name: position?.name || null
+        };
         setPosition(newPos);
         onPositionChange(newPos);
       },
@@ -55,20 +63,26 @@ export function MapPicker({ initialPosition, onPositionChange }: MapPickerProps)
 
   const handleManualLatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const lat = parseFloat(e.target.value);
-    setPosition(prev => ({ ...prev, lat: isNaN(lat) ? undefined : lat } as { lat: number; lng: number; name?:string|null }));
-    onPositionChange(prev => ({ ...prev, lat: isNaN(lat) ? undefined : lat } as { lat: number; lng: number; name?:string|null }));
+    if (!position || isNaN(lat)) return;
+    const newPos = { ...position, lat: lat };
+    setPosition(newPos);
+    onPositionChange(newPos);
   };
 
   const handleManualLngChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const lng = parseFloat(e.target.value);
-    setPosition(prev => ({ ...prev, lng: isNaN(lng) ? undefined : lng } as { lat: number; lng: number; name?:string|null }));
-    onPositionChange(prev => ({ ...prev, lng: isNaN(lng) ? undefined : lng } as { lat: number; lng: number; name?:string|null }));
+    if (!position || isNaN(lng)) return;
+    const newPos = { ...position, lng: lng };
+    setPosition(newPos);
+    onPositionChange(newPos);
   };
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => { // <--- เพิ่ม handleNameChange
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
-    setPosition(prev => ({ ...prev, name: name } as { lat: number; lng: number; name?:string|null }));
-    onPositionChange(prev => ({ ...prev, name: name } as { lat: number; lng: number; name?:string|null }));
+    if (!position) return;
+    const newPos = { ...position, name: name || null };
+    setPosition(newPos);
+    onPositionChange(newPos);
   };
 
   const handleLocateMe = () => {
@@ -89,11 +103,6 @@ export function MapPicker({ initialPosition, onPositionChange }: MapPickerProps)
     }
   };
 
-  const handleClearLocation = () => {
-    setPosition(null);
-    onPositionChange(null);
-  };
-
   return (
     <div>
       {/* <--- เพิ่ม Input สำหรับ Location Name --- */}
@@ -104,39 +113,14 @@ export function MapPicker({ initialPosition, onPositionChange }: MapPickerProps)
           value={position?.name || ''}
           onChange={handleNameChange}
           className="w-full"
+          disabled={disabled}
         />
       </div>
-
-      <div className="flex space-x-2 mb-2">
-        <Input
-          type="number"
-          step="0.000001"
-          placeholder="Latitude"
-          value={position?.lat || ''}
-          onChange={handleManualLatChange}
-          className="w-1/2"
-        />
-        <Input
-          type="number"
-          step="0.000001"
-          placeholder="Longitude"
-          value={position?.lng || ''}
-          onChange={handleManualLngChange}
-          className="w-1/2"
-        />
-      </div>
-      <div className="flex space-x-2 mb-2">
-        <Button type="button" variant="outline" className="w-full" onClick={handleLocateMe}>
-          <Crosshair className="h-4 w-4 mr-2" /> Locate Me
-        </Button>
-        
-      </div>
-
-      <div className="h-[300px] w-full rounded-md overflow-hidden relative z-0">
+      <div className={cn("h-[300px] w-full rounded-md overflow-hidden relative z-0", disabled && "opacity-50 pointer-events-none")}>
         <MapContainer
           center={position ? { lat: position.lat, lng: position.lng } : { lat: 13.736717, lng: 100.523186 }}
           zoom={position ? 13 : 6}
-          scrollWheelZoom={true}
+          scrollWheelZoom={!disabled}
           style={{ height: '100%', width: '100%' }}
           whenCreated={(map) => { mapRef.current = map; }}
         >

@@ -15,11 +15,8 @@ import { useUserStore } from "@/stores/features/userStore";
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -37,8 +34,6 @@ import {
   Paperclip,
   Building,
   ExternalLink,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
@@ -83,36 +78,6 @@ export default function JobViewPage() {
   const { currentUser } = useUserStore();
   const job = getJobById(jobId);
 
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  const [tasksCompletion, setTasksCompletion] = useState<{ [key: string]: boolean }>({});
-
-  useEffect(() => {
-    if (job?.tasks) {
-      const initialCompletion = job.tasks.reduce((acc, task) => {
-        acc[String(task.id)] = task.isCompleted;
-        return acc;
-      }, {} as { [key: string]: boolean });
-      setTasksCompletion(initialCompletion);
-    }
-  }, [job?.tasks]);
-
-  const handleTaskCompletionChange = (taskId: string, checked: boolean) => {
-    setTasksCompletion(prev => ({ ...prev, [taskId]: checked }));
-    toast.info(`Task "${job?.tasks?.find(t => t.id === taskId)?.description}" marked as ${checked ? 'completed' : 'pending'}. (No actual update to store)`);
-  };
-
-  const toggleTaskExpand = (taskId: string) => {
-    setExpandedTasks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(taskId)) {
-        newSet.delete(taskId);
-      } else {
-        newSet.add(taskId);
-      }
-      return newSet;
-    });
-  };
-
   if (!job) {
     return (
       <div className="p-8 text-center">
@@ -121,10 +86,6 @@ export default function JobViewPage() {
       </div>
     );
   }
-
-  const completedTasksCount = job.tasks.filter(task => tasksCompletion[String(task.id)]).length;
-  const totalTasksCount = job.tasks.length;
-  const progressPercentage = totalTasksCount === 0 ? 0 : Math.round((completedTasksCount / totalTasksCount) * 100);
 
   dayjs.locale('th');
 
@@ -175,6 +136,49 @@ export default function JobViewPage() {
               <p className="text-sm text-muted-foreground">Department</p>
               <p className="text-foreground/90">{job.department || 'N/A'}</p>
             </div>
+
+            {/* --- Section: Type --- */}
+            {job.type && (
+              <div>
+                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="text-foreground/90">{job.type}</p>
+              </div>
+            )}
+
+            {/* --- Section: Customer Information --- */}
+            {(job.customerName || job.customerPhone) && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">ข้อมูลลูกค้า</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {job.customerName && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">ชื่อลูกค้า</p>
+                      <p className="text-foreground/90">{job.customerName}</p>
+                    </div>
+                  )}
+                  {job.customerPhone && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">เบอร์โทรลูกค้า</p>
+                      <p className="text-foreground/90">{job.customerPhone}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* --- Section: Signature --- */}
+            {job.signature && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">ลายเซ็นลูกค้า</p>
+                <div className="border rounded-md p-4 bg-muted/20">
+                  <img
+                    src={job.signature}
+                    alt="ลายเซ็นลูกค้า"
+                    className="max-h-[150px] object-contain mx-auto"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* --- Section: Team --- */}
             <div className="grid grid-cols-2 gap-4">
@@ -301,55 +305,48 @@ export default function JobViewPage() {
               </div>
             )}
 
-          </div>
-
-          {/* --- คอลัมน์ขวา (Tasks, Logs, Inventory) --- */}
-          <div className="lg:col-span-2 space-y-8">
-
-            {/* --- Section: All Tasks --- */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">All Tasks</h3>
-                <span className="text-sm text-muted-foreground">{completedTasksCount}/{totalTasksCount}</span>
-              </div>
-              <Progress value={progressPercentage} className="h-2 w-full" />
-
-              {totalTasksCount > 0 ? (
-                <div className="space-y-2">
-                  {job.tasks.map((task) => (
-                    <div key={task.id} className="border border-secondary-foreground/20 rounded-md p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`task-${task.id}`}
-                            checked={!!tasksCompletion[String(task.id)]}
-                            onCheckedChange={(checked) => handleTaskCompletionChange(String(task.id), checked === true)}
-                          />
-                          <Label
-                            htmlFor={`task-${task.id}`}
-                            className={tasksCompletion[String(task.id)] ? "line-through text-muted-foreground" : ""}
-                          >
-                            {task.description}
-                          </Label>
-                        </div>
-                        {task.details && (
-                          <Button variant="ghost" size="icon" onClick={() => toggleTaskExpand(String(task.id))}>
-                            {expandedTasks.has(String(task.id)) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                          </Button>
-                        )}
-                      </div>
-                      {expandedTasks.has(String(task.id)) && task.details && (
-                        <p className="text-sm text-muted-foreground mt-2 pl-6 border-l-2 border-primary/50">
-                          {task.details}
-                        </p>
-                      )}
+            {/* --- Section: Before Images --- */}
+            {job.beforeImages && job.beforeImages.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">รูปภาพก่อนซ่อม (Before)</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {job.beforeImages.map((imageUrl, index) => (
+                    <div key={index} className="relative group aspect-square rounded-md border overflow-hidden bg-muted">
+                      <img
+                        src={imageUrl}
+                        alt={`Before image ${index + 1}`}
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(imageUrl, '_blank')}
+                      />
                     </div>
                   ))}
                 </div>
-              ) : (
-                <span className="text-sm text-muted-foreground">No tasks defined for this job.</span>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* --- Section: After Images --- */}
+            {job.afterImages && job.afterImages.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">รูปภาพหลังซ่อม (After)</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {job.afterImages.map((imageUrl, index) => (
+                    <div key={index} className="relative group aspect-square rounded-md border overflow-hidden bg-muted">
+                      <img
+                        src={imageUrl}
+                        alt={`After image ${index + 1}`}
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(imageUrl, '_blank')}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* --- คอลัมน์ขวา (Logs, Inventory) --- */}
+          <div className="lg:col-span-2 space-y-8">
 
             {/* --- Section: Work Log & History --- */}
             <div className="space-y-4">
@@ -465,10 +462,10 @@ export default function JobViewPage() {
                             <TableCell>
                               <Badge
                                 variant={
-                                  inventoryItem.status === "Available"
+                                  inventoryItem.status === "พร้อมใช้"
                                     ? "default"
-                                    : inventoryItem.status === "In Use"
-                                    ? "secondary"
+                                    : inventoryItem.status === "ใกล้หมด"
+                                    ? "outline"
                                     : "destructive"
                                 }
                                 className="text-xs"

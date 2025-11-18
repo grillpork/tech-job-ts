@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Search, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Search, MoreVertical, Calendar as CalendarIcon, Filter, X, Trash2 } from "lucide-react";
+import { format, isWithinInterval, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,6 +16,7 @@ import type { Column } from "@/components/global/DataTable";
 import { Job } from "@/lib/types/job";
 import { useJobStore } from "@/stores/features/jobStore";
 import { useUserStore } from '@/stores/features/userStore';
+import { useInventoryStore } from '@/stores/features/inventoryStore';
 import { MOCK_USERS } from '@/lib/mocks/user';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -23,19 +25,73 @@ import {
   TooltipContent,
   TooltipProvider,
 } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 // ===========================
 // MAIN COMPONENT
 // ===========================
 const JobsList = () => {
   const router = useRouter(); // 5. khởi tạo router
-  const { jobs } = useJobStore(); // 6. ดึงข้อมูล jobs จาก store
+  const { 
+    jobs, 
+    reorderJobs, 
+    deleteJob,
+    completionRequests,
+    approveCompletionRequest,
+    rejectCompletionRequest,
+    getCompletionRequestByJobId
+  } = useJobStore(); // 6. ดึงข้อมูล jobs, reorderJobs และ deleteJob จาก store
   const users = useUserStore((s) => s.users);
+  const { currentUser } = useUserStore();
+  const { inventories, updateInventory } = useInventoryStore();
 
   // 7. ลบ state ทั้งหมดที่เกี่ยวกับ Dialog (isFormOpen, editingItem, formData, etc.)
   // ยังคง state สำหรับ mobile view (ถ้าต้องการ)
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10); // default 5 rows per page
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  // Completion request states
+  const [activeTab, setActiveTab] = useState<"jobs" | "completion-requests">("jobs");
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  const [selectedPriority, setSelectedPriority] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   // 8. Helper function สำหรับสีสถานะ (ปรับตาม Job)
   const getStatusColor = (status: string) => {
@@ -62,10 +118,98 @@ const JobsList = () => {
     return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
+  const getPriorityColor = (priority: string | null | undefined) => {
+    if (!priority) return "bg-gray-500/20 text-gray-400 border-gray-500/30";
+    switch (priority.toLowerCase()) {
+      case "urgent":
+        return "bg-red-500/20 text-red-400 border-red-500/30";
+      case "high":
+        return "bg-orange-500/20 text-orange-400 border-orange-500/30";
+      case "medium":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+      case "low":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+      default:
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
+    }
+  };
+
+  const formatPriorityLabel = (priority: string | null | undefined) => {
+    if (!priority) return "-";
+    return priority.charAt(0).toUpperCase() + priority.slice(1);
+  };
+
+  // Filter jobs based on selected filters
+  const filteredJobs = useMemo(() => {
+    let filtered = jobs;
+
+    // Filter by search term
+    if (searchTerm && searchTerm.trim() !== "") {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((job) =>
+        job.title.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filter by status
+    if (selectedStatus !== "all") {
+      filtered = filtered.filter((job) => job.status === selectedStatus);
+    }
+
+    // Filter by date range
+    if (dateRange.from || dateRange.to) {
+      filtered = filtered.filter((job) => {
+        if (!job.startDate) return false;
+        const jobDate = parseISO(job.startDate);
+        
+        // ถ้ามีแค่ from date ให้กรองงานที่ startDate >= from
+        if (dateRange.from && !dateRange.to) {
+          return jobDate >= dateRange.from;
+        }
+        
+        // ถ้ามีแค่ to date ให้กรองงานที่ startDate <= to
+        if (!dateRange.from && dateRange.to) {
+          return jobDate <= dateRange.to;
+        }
+        
+        // ถ้ามีทั้ง from และ to ให้กรองงานที่ startDate อยู่ในช่วง
+        if (dateRange.from && dateRange.to) {
+          return isWithinInterval(jobDate, {
+            start: dateRange.from,
+            end: dateRange.to,
+          });
+        }
+        
+        return true;
+      });
+    }
+
+    // Filter by department
+    if (selectedDepartment !== "all") {
+      filtered = filtered.filter((job) => job.department === selectedDepartment);
+    }
+
+    // Filter by priority
+    if (selectedPriority !== "all") {
+      filtered = filtered.filter((job) => job.priority === selectedPriority);
+    }
+
+    return filtered;
+  }, [jobs, searchTerm, selectedStatus, dateRange, selectedDepartment, selectedPriority]);
+
+  // Get unique departments from jobs
+  const departments = useMemo(() => {
+    const depts = new Set<string>();
+    jobs.forEach((job) => {
+      if (job.department) depts.add(job.department);
+    });
+    return Array.from(depts).sort();
+  }, [jobs]);
+
   // ===========================
   // 9. Handlers สำหรับการนำทาง
   // ===========================
-  
+
   const handleCreateNewJob = () => {
     router.push("/dashboard/admin/jobs/create");
   };
@@ -78,6 +222,112 @@ const JobsList = () => {
   const handleViewJob = (jobId: string) => {
     router.push(`/dashboard/admin/jobs/${jobId}`);
   };
+
+  const handleDeleteJob = (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation();
+    setDeletingJobId(jobId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteJob = () => {
+    if (deletingJobId) {
+      deleteJob(deletingJobId);
+      setIsDeleteDialogOpen(false);
+      setDeletingJobId(null);
+    }
+  };
+
+  // Helper function to calculate inventory status
+  const calculateInventoryStatus = (quantity: number): "พร้อมใช้" | "ใกล้หมด" | "หมด" => {
+    if (quantity === 0) {
+      return "หมด";
+    } else if (quantity < 10) {
+      return "ใกล้หมด";
+    } else if (quantity > 50) {
+      return "พร้อมใช้";
+    } else {
+      return "พร้อมใช้";
+    }
+  };
+
+  // Completion request handlers
+  const handleApproveRequest = (requestId: string) => {
+    if (!currentUser) {
+      toast.error("ไม่พบข้อมูลผู้ใช้");
+      return;
+    }
+
+    // หา completion request
+    const request = completionRequests.find(req => req.id === requestId);
+    if (!request) {
+      toast.error("ไม่พบคำขอจบงาน");
+      return;
+    }
+
+    // หา job ที่เกี่ยวข้อง
+    const job = jobs.find(j => j.id === request.jobId);
+    if (!job) {
+      toast.error("ไม่พบใบงาน");
+      return;
+    }
+
+    // Approve completion request
+    approveCompletionRequest(requestId, { id: currentUser.id, name: currentUser.name });
+
+    // คืนวัสดุที่ type เป็น "ต้องคืน" กลับเข้าคลัง
+    if (job.usedInventory && job.usedInventory.length > 0) {
+      job.usedInventory.forEach(usedInv => {
+        const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
+        if (inventoryItem && inventoryItem.type === "ต้องคืน") {
+          // เพิ่ม quantity กลับเข้าไป
+          const newQuantity = inventoryItem.quantity + usedInv.qty;
+          const calculatedStatus = calculateInventoryStatus(newQuantity);
+          
+          updateInventory({
+            ...inventoryItem,
+            quantity: newQuantity,
+            status: calculatedStatus,
+          });
+        }
+      });
+    }
+
+    toast.success("อนุมัติคำขอจบงานแล้ว และคืนวัสดุที่ต้องคืนกลับเข้าคลังแล้ว");
+  };
+
+  const handleRejectRequest = (requestId: string) => {
+    setRejectingRequestId(requestId);
+    setRejectionReason("");
+    setIsRejectDialogOpen(true);
+  };
+
+  const confirmRejectRequest = () => {
+    if (!rejectingRequestId || !rejectionReason.trim()) {
+      toast.error("กรุณาใส่เหตุผลการปฏิเสธ");
+      return;
+    }
+    if (!currentUser) {
+      toast.error("ไม่พบข้อมูลผู้ใช้");
+      return;
+    }
+    rejectCompletionRequest(
+      rejectingRequestId,
+      { id: currentUser.id, name: currentUser.name },
+      rejectionReason.trim()
+    );
+    toast.success("ปฏิเสธคำขอจบงานแล้ว");
+    setIsRejectDialogOpen(false);
+    setRejectingRequestId(null);
+    setRejectionReason("");
+  };
+
+  // Filter completion requests for current lead technician
+  const pendingCompletionRequests = completionRequests.filter(req => {
+    if (req.status !== "pending") return false;
+    const job = jobs.find(j => j.id === req.jobId);
+    // Lead technician can only see requests for jobs where they are the lead technician
+    return job?.leadTechnician?.id === currentUser?.id;
+  });
 
   // ===========================
   // 11. นิยาม Columns สำหรับ Jobs List
@@ -99,6 +349,15 @@ const JobsList = () => {
       ),
     },
     {
+      key: "priority",
+      label: "Priority",
+      render: (row: Job) => (
+        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getPriorityColor(row.priority)}`}>
+          {formatPriorityLabel(row.priority)}
+        </span>
+      ),
+    },
+    {
       key: "department",
       label: "Department",
     },
@@ -106,35 +365,35 @@ const JobsList = () => {
       key: "createdBy",
       label: "Leader Technical",
       render: (row: Job) => {
-          const creatorId = row.creator?.id;
-          // Prefer live user data from user store so profile updates (imageUrl) reflect here
-    const user = users.find((u: any) => u.id === creatorId) || MOCK_USERS.find((u: any) => u.id === creatorId);
-    const initials = (user?.name || row.creator?.name || "").split(" ").map((n: string) => n[0]).join("").slice(0,2).toUpperCase();
-          return (
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Avatar className="h-7 w-7 border border-white/40 dark:border-white/20">
-                    {user?.imageUrl && user.imageUrl.trim() ? (
-                      <AvatarImage src={user.imageUrl.trim()} alt={user?.name || "creator"} />
-                    ) : (
-                      <AvatarFallback>{initials}</AvatarFallback>
-                    )}
-                  </Avatar>
-                </TooltipTrigger>
-                <TooltipContent>{user?.name ?? row.creator?.name ?? '-'}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          );
+        const creatorId = row.creator?.id;
+        // Prefer live user data from user store so profile updates (imageUrl) reflect here
+        const user = users.find((u: any) => u.id === creatorId) || MOCK_USERS.find((u: any) => u.id === creatorId);
+        const initials = (user?.name || row.creator?.name || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+        return (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Avatar className="h-7 w-7 border border-white/40 dark:border-white/20">
+                  {user?.imageUrl && user.imageUrl.trim() ? (
+                    <AvatarImage src={user.imageUrl.trim()} alt={user?.name || "creator"} />
+                  ) : (
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  )}
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent>{user?.name ?? row.creator?.name ?? '-'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
       },
     },
     {
       key: "assignedTo",
       label: "Assigned To",
       render: (row: Job) => {
-        const users = row.assignedEmployees || [];
-        const visible = users.slice(0, 3);
-        const extra = users.length - visible.length;
+        const assignedUsers = row.assignedEmployees || [];
+        const visible = assignedUsers.slice(0, 3);
+        const extra = assignedUsers.length - visible.length;
         return (
           <div className="flex items-center">
             <div className="flex -space-x-2">
@@ -143,20 +402,42 @@ const JobsList = () => {
                 const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
                 const displayName = live?.name ?? u.name;
                 const img = live?.imageUrl ?? u.imageUrl;
+                const initials = (displayName || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
                 return (
-                  <div key={u.id} className="border-2 border-white rounded-full dark:border-gray-800" title={displayName}>
-                    <Avatar className="h-7 w-7">
-                      {img && img.trim() ? (
-                        <AvatarImage src={img.trim()} alt={displayName} />
-                      ) : (
-                        <AvatarFallback>{(displayName || "").split(" ").map((n: string) => n[0]).join("").slice(0,2).toUpperCase()}</AvatarFallback>
-                      )}
-                    </Avatar>
-                  </div>
+                  <TooltipProvider key={u.id} delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="border-2 border-white rounded-full dark:border-gray-800">
+                          <Avatar className="h-7 w-7">
+                            {img && img.trim() ? (
+                              <AvatarImage src={img.trim()} alt={displayName} />
+                            ) : (
+                              <AvatarFallback>{initials}</AvatarFallback>
+                            )}
+                          </Avatar>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{displayName}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })}
               {extra > 0 && (
-                <div className="h-7 w-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-200 border-2 border-white">+{extra}</div>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="h-7 w-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-200 border-2 border-white">
+                        +{extra}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {assignedUsers.slice(3).map((u) => {
+                        const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
+                        return live?.name ?? u.name;
+                      }).join(", ")}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           </div>
@@ -191,74 +472,242 @@ const JobsList = () => {
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Job
               </DropdownMenuItem>
-              {/* 13. ลบเมนู Delete ออก */}
+              <DropdownMenuItem 
+                onClick={(e) => handleDeleteJob(e, row.id)} 
+                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Job
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       ),
     },
   ];
-  
+
   // 14. Logic สำหรับ Mobile View (คัดลอกจากโค้ดเดิมและปรับแก้)
   // (หาก DataTable ของคุณไม่ responsive อัตโนมัติ)
-  const currentItems = jobs.slice(
+  const currentItems = filteredJobs.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
+  const hasActiveFilters = searchTerm.trim() !== "" || selectedStatus !== "all" || dateRange.from || dateRange.to || selectedDepartment !== "all" || selectedPriority !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedStatus("all");
+    setDateRange({ from: undefined, to: undefined });
+    setSelectedDepartment("all");
+    setSelectedPriority("all");
+  };
+
+  // Handler สำหรับ reorder jobs
+  const handleRowReorder = useCallback((newOrder: Job[]) => {
+    // สร้าง map ของ filtered job IDs
+    const filteredJobIds = new Set(filteredJobs.map((job) => job.id));
+    
+    // แยก jobs ที่อยู่ใน filteredJobs และไม่ได้อยู่ใน filteredJobs
+    const filteredJobsInStore = jobs.filter((job) => filteredJobIds.has(job.id));
+    const nonFilteredJobs = jobs.filter((job) => !filteredJobIds.has(job.id));
+    
+    // สร้าง map ของ newOrder เพื่อใช้ในการเรียงลำดับ
+    const newOrderMap = new Map(newOrder.map((job, index) => [job.id, index]));
+    
+    // เรียงลำดับ filteredJobsInStore ตาม newOrder
+    const reorderedFilteredJobs = [...filteredJobsInStore].sort((a, b) => {
+      const indexA = newOrderMap.get(a.id) ?? Infinity;
+      const indexB = newOrderMap.get(b.id) ?? Infinity;
+      return indexA - indexB;
+    });
+    
+    // รวม jobs ใหม่: filtered jobs ที่ reorder แล้ว + non-filtered jobs
+    const finalOrder = [...reorderedFilteredJobs, ...nonFilteredJobs];
+    
+    // อัปเดต store
+    reorderJobs(finalOrder);
+  }, [filteredJobs, jobs, reorderJobs]);
+
   return (
     <div className="p-3 sm:p-6">
-      {/* HEADER SECTION */}
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-          Jobs List
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-          หน้าติดตามรายการงาน
-        </p>
-      </div>
-
-      {/* ACTION BAR */}
-      <div className="mb-4 sm:mb-4 flex items-center justify-between">
-        <div />
-        <div>
-          <Button
-            onClick={handleCreateNewJob} // 15. เปลี่ยน handler
-            className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Job {/* 16. เปลี่ยนข้อความปุ่ม */}
-          </Button>
+      <div className="flex flex-row items-center justify-between">
+        {/* HEADER SECTION */}
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
+            Jobs List
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            หน้าติดตามรายการงาน
+          </p>
+        </div>
+  
+  
+        {/* ACTION BAR */}
+        <div className="mb-4 sm:mb-4 flex items-center justify-between">
+          <div />
+          <div>
+            <Button
+              onClick={handleCreateNewJob} // 15. เปลี่ยน handler
+              className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Job {/* 16. เปลี่ยนข้อความปุ่ม */}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* TABS SECTION */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "jobs" | "completion-requests")} className="mb-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="jobs">รายการงาน</TabsTrigger>
+          <TabsTrigger value="completion-requests">
+            คำขอจบงาน
+            {pendingCompletionRequests.length > 0 && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500 text-white rounded-full">
+                {pendingCompletionRequests.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="jobs" className="mt-4">
+          {/* FILTERS SECTION */}
+      <Card className="mb-4 sm:mb-6 p-4 gap-0 rounded-lg border">
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
+          </div>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="h-7 text-xs"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Clear All
+            </Button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search Input */}
+          <div className="w-full sm:w-[240px]">
+            <Input
+              placeholder="Search by title..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="pending_approval">Pending Approval</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Date Range Filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full sm:w-[280px] justify-start text-left font-normal",
+                  !dateRange.from && !dateRange.to && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.from && dateRange.to ? (
+                  `${format(dateRange.from, "M / d / yyyy")} - ${format(dateRange.to, "M / d / yyyy")}`
+                ) : dateRange.from ? (
+                  `From ${format(dateRange.from, "M / d / yyyy")}`
+                ) : dateRange.to ? (
+                  `Until ${format(dateRange.to, "M / d / yyyy")}`
+                ) : (
+                  "Select Date Range"
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={(range) => {
+                  if (range) {
+                    setDateRange({
+                      from: range.from,
+                      to: range.to ?? undefined,
+                    });
+                  } else {
+                    setDateRange({ from: undefined, to: undefined });
+                  }
+                }}
+                numberOfMonths={2}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Department Filter */}
+          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="All Departments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.map((dept) => (
+                <SelectItem key={dept} value={dept}>
+                  {dept}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Priority Filter */}
+          <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="All Priorities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priorities</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
 
       {/* DESKTOP: DataTable */}
       <div className="hidden md:block">
         <DataTable
           columns={columns}
-          data={jobs} // 17. ใช้ข้อมูล jobs
-          totalRows={jobs.length}
+          data={filteredJobs} // 17. ใช้ข้อมูล filteredJobs
+          totalRows={filteredJobs.length}
           currentPage={currentPage}
           rowsPerPage={itemsPerPage}
-          searchKey={"title"} // 18. ค้นหาจาก title
-          filters={[
-            // 19. อัปเดต Filter ตามสถานะของ Job
-            {
-              key: "status",
-              placeholder: "Filter Status",
-              options: [
-                      { label: "Pending", value: "pending" },
-                      { label: "In Progress", value: "in_progress" },
-                      { label: "Completed", value: "completed" },
-              ],
-            },
-          ]}
           onPageChange={(p) => setCurrentPage(p)}
           onRowsPerPageChange={(n) => {
             setItemsPerPage(n);
           }}
           showCheckbox={false}
           onRowClick={(row: Job) => handleViewJob(row.id)}
+          onRowReorder={handleRowReorder}
         />
       </div>
 
@@ -305,6 +754,13 @@ const JobsList = () => {
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit Job
                     </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => handleDeleteJob(e, item.id)} 
+                      className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Job
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -312,32 +768,49 @@ const JobsList = () => {
               {/* 25. อัปเดต field ข้อมูล Job */}
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-1">Priority</p>
+                  <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(item.priority)}`}>
+                    {formatPriorityLabel(item.priority)}
+                  </span>
+                </div>
+                <div>
                   <p className="text-gray-600 dark:text-gray-400 mb-1">Department</p>
-                  <p className="text-gray-900 dark:text-white">{item.department}</p>
+                  <p className="text-gray-900 dark:text-white">{item.department || '-'}</p>
                 </div>
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 mb-1">Assigned To</p>
                   <div className="flex items-center gap-2">
                     {item.assignedEmployees && item.assignedEmployees.length > 0 ? (
-                      item.assignedEmployees.map((u) => (
-                        <div key={u.id} className="border-2 border-white rounded-full dark:border-gray-800">
-                          <div title={u.name}>
-                            <Avatar className="h-7 w-7">
-                              {u.imageUrl ? (
-                                <AvatarImage src={u.imageUrl} alt={u.name} />
-                              ) : (
-                                <AvatarFallback>{(u.name || "").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}</AvatarFallback>
-                              )}
-                            </Avatar>
-                          </div>
-                        </div>
-                      ))
+                      item.assignedEmployees.map((u) => {
+                        const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
+                        const displayName = live?.name ?? u.name;
+                        const img = live?.imageUrl ?? u.imageUrl;
+                        const initials = (displayName || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                        return (
+                          <TooltipProvider key={u.id} delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="border-2 border-white rounded-full dark:border-gray-800">
+                                  <Avatar className="h-7 w-7">
+                                    {img && img.trim() ? (
+                                      <AvatarImage src={img.trim()} alt={displayName} />
+                                    ) : (
+                                      <AvatarFallback>{initials}</AvatarFallback>
+                                    )}
+                                  </Avatar>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>{displayName}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })
                     ) : (
                       <span className="text-gray-900 dark:text-white">-</span>
                     )}
                   </div>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <p className="text-gray-600 dark:text-gray-400 mb-1">Start Date</p>
                   <p className="text-gray-900 dark:text-white">
                     {item.startDate ? new Date(item.startDate).toLocaleDateString() : '-'}
@@ -359,7 +832,134 @@ const JobsList = () => {
         )}
       </div>
 
-      {/* 26. ลบ <Dialog> และ <AlertDialog> ทั้งหมด */}
+        </TabsContent>
+
+        <TabsContent value="completion-requests" className="mt-4">
+          <Card className="p-4">
+            <h2 className="text-xl font-semibold mb-4">คำขอจบงานที่รอการอนุมัติ</h2>
+            {pendingCompletionRequests.length > 0 ? (
+              <div className="space-y-4">
+                {pendingCompletionRequests.map((request) => {
+                  const job = jobs.find(j => j.id === request.jobId);
+                  if (!job) return null;
+                  return (
+                    <Card key={request.id} className="p-4">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-2">{job.title}</h3>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>ผู้ส่งคำขอ: {request.requestedBy.name}</p>
+                            <p>วันที่ส่งคำขอ: {new Date(request.requestedAt).toLocaleString('th-TH')}</p>
+                            <p>แผนก: {job.department || '-'}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleApproveRequest(request.id)}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            อนุมัติ
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRejectRequest(request.id)}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            ปฏิเสธ
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/admin/jobs/${job.id}`)}
+                        >
+                          ดูรายละเอียดงาน
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>ไม่มีคำขอจบงานที่รอการอนุมัติ</p>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ยืนยันการลบใบงาน</AlertDialogTitle>
+            <AlertDialogDescription>
+              คุณแน่ใจหรือไม่ว่าต้องการลบใบงานนี้? การกระทำนี้ไม่สามารถยกเลิกได้
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingJobId(null)}>
+              ยกเลิก
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteJob}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              ลบ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject Completion Request Dialog */}
+      <AlertDialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ปฏิเสธคำขอจบงาน</AlertDialogTitle>
+            <AlertDialogDescription>
+              กรุณาใส่เหตุผลการปฏิเสธคำขอจบงานนี้
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="rejection-reason">เหตุผลการปฏิเสธ</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="กรุณาใส่เหตุผลการปฏิเสธ..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="mt-2"
+                rows={4}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setIsRejectDialogOpen(false);
+                setRejectingRequestId(null);
+                setRejectionReason("");
+              }}
+            >
+              ยกเลิก
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRejectRequest}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={!rejectionReason.trim()}
+            >
+              ปฏิเสธ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

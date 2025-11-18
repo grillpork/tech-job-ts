@@ -5,6 +5,8 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { notificationHelpers } from "@/stores/notificationStore";
+import { useAuditLogStore } from "./auditLogStore";
+import { useUserStore } from "./userStore";
 
 export interface JobUser {
   id: string;
@@ -52,7 +54,9 @@ export interface Job {
     | "completed"
     | "cancelled"
     | "rejected";
-  department: string | null;
+  departments: string[]; // เปลี่ยนเป็น array สำหรับหลาย departments
+  type?: "บ้าน" | "คอนโด" | null;
+  priority?: "low" | "medium" | "high" | "urgent" | null;
   creator: { id: string; name: string; role: JobUser["role"] };
   assignedEmployees: JobUser[];
   leadTechnician: JobUser | null;
@@ -64,7 +68,31 @@ export interface Job {
   location?: { lat: number; lng: number; name?: string | null } | null;
   locationImages?: string[]; // รูปภาพสถานที่ (หลายรูป)
   attachments: Attachment[];
+  beforeImages?: string[]; // รูปภาพก่อนซ่อม
+  afterImages?: string[]; // รูปภาพหลังซ่อม
   workLogs?: WorkLog[];
+  customerType?: "individual" | "organization" | null; // ประเภทลูกค้า: ปกติ หรือ องค์กร
+  customerName?: string | null; // ชื่อลูกค้าปกติ หรือ ชื่อผู้ติดต่อ (สำหรับองค์กร)
+  customerPhone?: string | null;
+  // ข้อมูลลูกค้าองค์กร
+  customerCompanyName?: string | null; // ชื่อบริษัท/องค์กร
+  customerTaxId?: string | null; // เลขประจำตัวผู้เสียภาษี
+  customerAddress?: string | null; // ที่อยู่บริษัท
+  signature?: string | null;
+  rejectionReason?: string | null; // เหตุผลการ reject จาก lead_technician
+}
+
+export interface CompletionRequest {
+  id: string;
+  jobId: string;
+  requestedBy: { id: string; name: string };
+  requestedAt: string;
+  status: "pending" | "approved" | "rejected";
+  approvedBy?: { id: string; name: string } | null;
+  approvedAt?: string | null;
+  rejectedBy?: { id: string; name: string } | null;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
 }
 
 // --- 2. Store State & Actions Interface ---
@@ -72,6 +100,7 @@ export interface Job {
 interface JobStoreState {
   jobs: Job[];
   jobUsers: JobUser[];
+  completionRequests: CompletionRequest[];
   isHydrated: boolean;
 
   createJob: (
@@ -112,6 +141,13 @@ interface JobStoreState {
   getJobById: (jobId: string) => Job | undefined;
   getJobUserById: (userId: string) => JobUser | undefined;
   addWorkLog: (jobId: string, workLog: Omit<WorkLog, "id" | "createdAt">) => void;
+  reorderJobs: (newOrder: Job[]) => void;
+  // Completion Request functions
+  requestJobCompletion: (jobId: string, requestedBy: { id: string; name: string }, signature: string) => string;
+  approveCompletionRequest: (requestId: string, approvedBy: { id: string; name: string }) => void;
+  rejectCompletionRequest: (requestId: string, rejectedBy: { id: string; name: string }, rejectionReason: string) => void;
+  getCompletionRequestByJobId: (jobId: string) => CompletionRequest | undefined;
+  getCompletionRequestStatus: (jobId: string) => "pending" | "approved" | "rejected" | null;
 }
 
 
@@ -123,6 +159,7 @@ export const useJobStore = create<JobStoreState>()(
       // --- Initial State ---
       jobs: [],
       jobUsers: [],
+      completionRequests: [],
       isHydrated: false,
 
       // --- Job Actions Implementations ---
@@ -153,7 +190,9 @@ export const useJobStore = create<JobStoreState>()(
           title: newJobData.title,
           description: newJobData.description || null,
           status: initialStatus,
-          department: newJobData.department || null,
+          departments: Array.isArray(newJobData.departments) ? newJobData.departments : (newJobData.departments ? [newJobData.departments] : []),
+          type: newJobData.type || null,
+          priority: newJobData.priority || null,
           creator: {
             id: creatorUser.id,
             name: creatorUser.name,
@@ -175,7 +214,16 @@ export const useJobStore = create<JobStoreState>()(
           endDate: newJobData.endDate || null,
             location: newJobData.location || null,
             locationImages: newJobData.locationImages || [],
+            beforeImages: newJobData.beforeImages || [],
+            afterImages: newJobData.afterImages || [],
             attachments: newJobData.attachments || [],
+            customerType: newJobData.customerType || null,
+            customerName: newJobData.customerName || null,
+            customerPhone: newJobData.customerPhone || null,
+            customerCompanyName: newJobData.customerCompanyName || null,
+            customerTaxId: newJobData.customerTaxId || null,
+            customerAddress: newJobData.customerAddress || null,
+            signature: newJobData.signature || null,
             workLogs: [
               {
                 id: crypto.randomUUID(),
@@ -203,6 +251,24 @@ export const useJobStore = create<JobStoreState>()(
           newJob.creator.name,
           newJob.id
         );
+
+        // ✅ บันทึก audit log
+        try {
+          useAuditLogStore.getState().addAuditLog({
+            action: "create",
+            entityType: "job",
+            entityId: newJob.id,
+            entityName: newJob.title,
+            performedBy: {
+              id: creatorUser.id,
+              name: creatorUser.name,
+              role: creatorUser.role,
+            },
+            details: `สร้างงานใหม่: ${newJob.title}`,
+          });
+        } catch (error) {
+          console.error("Failed to log audit:", error);
+        }
         
         return newJob.id; // ✅ Return job ID
       },
@@ -270,6 +336,13 @@ export const useJobStore = create<JobStoreState>()(
           if (updatedData.location !== undefined) {
             currentJob.location = updatedData.location;
           }
+
+          // จัดการ departments
+          if (updatedData.departments !== undefined) {
+            currentJob.departments = Array.isArray(updatedData.departments) 
+              ? updatedData.departments 
+              : (updatedData.departments ? [updatedData.departments] : []);
+          }
       
           const {
             creatorId,
@@ -279,10 +352,43 @@ export const useJobStore = create<JobStoreState>()(
             attachments,
             location,
             locationImages,
+            departments,
             ...restOfUpdatedData
           } = updatedData;
       
           Object.assign(currentJob, restOfUpdatedData);
+      
+          // ✅ บันทึก audit log
+          try {
+            const currentUser = useUserStore.getState().currentUser;
+            if (currentUser) {
+              const changes: { field: string; oldValue: any; newValue: any }[] = [];
+              
+              // เก็บการเปลี่ยนแปลงที่สำคัญ
+              if (updatedData.title !== undefined && updatedData.title !== currentJob.title) {
+                changes.push({ field: "title", oldValue: currentJob.title, newValue: updatedData.title });
+              }
+              if (updatedData.status !== undefined && updatedData.status !== currentJob.status) {
+                changes.push({ field: "status", oldValue: currentJob.status, newValue: updatedData.status });
+              }
+              
+              useAuditLogStore.getState().addAuditLog({
+                action: "update",
+                entityType: "job",
+                entityId: currentJob.id,
+                entityName: currentJob.title,
+                performedBy: {
+                  id: currentUser.id,
+                  name: currentUser.name,
+                  role: currentUser.role,
+                },
+                details: `แก้ไขงาน: ${currentJob.title}`,
+                changes: changes.length > 0 ? changes : undefined,
+              });
+            }
+          } catch (error) {
+            console.error("Failed to log audit:", error);
+          }
       
           // ✅ ตรวจสอบสถานะและเปลี่ยนแบบอัตโนมัติ
           const hasLeadTechnician = currentJob.leadTechnician !== null;
@@ -326,6 +432,27 @@ export const useJobStore = create<JobStoreState>()(
       
 
       deleteJob: (jobId) => {
+        const job = get().jobs.find((j) => j.id === jobId);
+        if (job) {
+          // ✅ บันทึก audit log ก่อนลบ
+          try {
+            useAuditLogStore.getState().addAuditLog({
+              action: "delete",
+              entityType: "job",
+              entityId: job.id,
+              entityName: job.title,
+              performedBy: {
+                id: job.creator.id,
+                name: job.creator.name,
+                role: job.creator.role,
+              },
+              details: `ลบงาน: ${job.title}`,
+            });
+          } catch (error) {
+            console.error("Failed to log audit:", error);
+          }
+        }
+        
         set((state) => {
           state.jobs = state.jobs.filter((job) => job.id !== jobId);
         });
@@ -357,6 +484,135 @@ export const useJobStore = create<JobStoreState>()(
           job.workLogs.unshift(newWorkLog);
         });
       },
+
+      reorderJobs: (newOrder) => {
+        set((state) => {
+          // สร้าง map ของ job IDs เพื่อตรวจสอบว่า job ทั้งหมดยังคงอยู่
+          const newOrderIds = new Set(newOrder.map((job) => job.id));
+          const existingIds = new Set(state.jobs.map((job) => job.id));
+
+          // ตรวจสอบว่า job IDs ตรงกันหรือไม่
+          if (newOrderIds.size !== existingIds.size) {
+            console.warn("JobStore: Cannot reorder - job count mismatch");
+            return;
+          }
+
+          // ตรวจสอบว่า job IDs ทั้งหมดตรงกัน
+          for (const id of newOrderIds) {
+            if (!existingIds.has(id)) {
+              console.warn(`JobStore: Cannot reorder - job ${id} not found`);
+              return;
+            }
+          }
+
+          // อัปเดตลำดับตาม newOrder
+          state.jobs = newOrder;
+        });
+      },
+
+      // Completion Request functions
+      requestJobCompletion: (jobId, requestedBy, signature) => {
+        const job = get().jobs.find(j => j.id === jobId);
+        if (!job) {
+          console.error("JobStore: Job not found for completion request");
+          return "";
+        }
+
+        // ตรวจสอบว่ามี request ที่ pending อยู่แล้วหรือไม่
+        const existingRequest = get().completionRequests.find(
+          req => req.jobId === jobId && req.status === "pending"
+        );
+        if (existingRequest) {
+          console.warn("JobStore: Completion request already exists for this job");
+          return existingRequest.id;
+        }
+
+        const requestId = crypto.randomUUID();
+        const newRequest: CompletionRequest = {
+          id: requestId,
+          jobId,
+          requestedBy,
+          requestedAt: new Date().toISOString(),
+          status: "pending",
+          approvedBy: null,
+          approvedAt: null,
+          rejectedBy: null,
+          rejectedAt: null,
+          rejectionReason: null,
+        };
+
+        set((state) => {
+          state.completionRequests.push(newRequest);
+          // เปลี่ยน job status เป็น pending_approval
+          const jobIndex = state.jobs.findIndex(j => j.id === jobId);
+          if (jobIndex !== -1) {
+            state.jobs[jobIndex].status = "pending_approval";
+            state.jobs[jobIndex].signature = signature;
+            // ล้าง rejection reason เมื่อส่งคำขอใหม่
+            state.jobs[jobIndex].rejectionReason = null;
+          }
+        });
+
+        return requestId;
+      },
+
+      approveCompletionRequest: (requestId, approvedBy) => {
+        set((state) => {
+          const requestIndex = state.completionRequests.findIndex(req => req.id === requestId);
+          if (requestIndex === -1) {
+            console.warn("JobStore: Completion request not found");
+            return;
+          }
+
+          const request = state.completionRequests[requestIndex];
+          request.status = "approved";
+          request.approvedBy = approvedBy;
+          request.approvedAt = new Date().toISOString();
+          request.rejectedBy = null;
+          request.rejectedAt = null;
+          request.rejectionReason = null;
+
+          // เปลี่ยน job status เป็น completed
+          const jobIndex = state.jobs.findIndex(j => j.id === request.jobId);
+          if (jobIndex !== -1) {
+            state.jobs[jobIndex].status = "completed";
+          }
+        });
+      },
+
+      rejectCompletionRequest: (requestId, rejectedBy, rejectionReason) => {
+        set((state) => {
+          const requestIndex = state.completionRequests.findIndex(req => req.id === requestId);
+          if (requestIndex === -1) {
+            console.warn("JobStore: Completion request not found");
+            return;
+          }
+
+          const request = state.completionRequests[requestIndex];
+          request.status = "rejected";
+          request.rejectedBy = rejectedBy;
+          request.rejectedAt = new Date().toISOString();
+          request.rejectionReason = rejectionReason;
+          request.approvedBy = null;
+          request.approvedAt = null;
+
+          // เปลี่ยน job status เป็น rejected และเก็บ rejection reason
+          const jobIndex = state.jobs.findIndex(j => j.id === request.jobId);
+          if (jobIndex !== -1) {
+            state.jobs[jobIndex].status = "rejected";
+            state.jobs[jobIndex].rejectionReason = rejectionReason;
+          }
+        });
+      },
+
+      getCompletionRequestByJobId: (jobId) => {
+        return get().completionRequests.find(req => req.jobId === jobId);
+      },
+
+      getCompletionRequestStatus: (jobId) => {
+        const request = get().completionRequests.find(req => req.jobId === jobId);
+        return request?.status || null;
+      },
     })),
     {
       name: "job-management-storage",
@@ -379,6 +635,21 @@ export const useJobStore = create<JobStoreState>()(
           console.log(
             "JobStore: Job users and jobs already exist in store or rehydrated."
           );
+        }
+
+        // ✅ Migration: แปลง department เดิมเป็น departments array (backward compatibility)
+        if (state && (state as JobStoreState).jobs) {
+          (state as JobStoreState).jobs.forEach((job: any) => {
+            // ถ้ายังไม่มี departments แต่มี department ให้แปลง
+            if (!job.departments && job.department) {
+              job.departments = [job.department];
+              delete job.department;
+            }
+            // ถ้าไม่มีทั้งสองอย่าง ให้ตั้งเป็น array ว่าง
+            if (!job.departments) {
+              job.departments = [];
+            }
+          });
         }
 
         if (state) {

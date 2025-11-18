@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, Pencil, Trash2, Search, MoreVertical } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Pencil, Trash2, Search, MoreVertical, CheckCircle2, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,23 +39,46 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/global/DataTable";
 import type { Column } from "@/components/global/DataTable";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data
 import { Inventory } from "@/lib/types/inventory";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
+import { useJobStore } from "@/stores/features/jobStore";
 import ExportInventoryData from "@/components/export/ExportInventoryData.tsx";
+import { useRouter } from "next/navigation";
 
 // ===========================
 // MAIN COMPONENT
 // ===========================
 const InventoryManagement = () => {
+  const router = useRouter();
   const {
     inventories,
     addInventory,
     updateInventory,
     deleteInventory,
     clearAll,
+    addInventoryRequest,
+    updateInventoryRequestStatus,
+    getInventoryRequestByJobId,
+    getInventoryRequestStatus,
   } = useInventoryStore();
+  const { jobs, updateJob } = useJobStore();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -64,10 +88,8 @@ const InventoryManagement = () => {
 
   const [formData, setFormData] = useState({
     name: "",
-    status: "",
     type: "",
     quantity: "",
-    requireFrom: "",
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,8 +100,7 @@ const InventoryManagement = () => {
   const filteredItems = inventories.filter((item: any) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.requireFrom.toLowerCase().includes(searchTerm.toLowerCase());
+      item.type.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" || item.status === statusFilter;
@@ -113,10 +134,6 @@ const InventoryManagement = () => {
       render: (row: Inventory) => <span className="font-semibold">{row.quantity}</span>,
     },
     {
-      key: "requireFrom",
-      label: "Requite From",
-    },
-    {
       key: "actions",
       label: "Actions",
       render: (row: Inventory) => (
@@ -147,15 +164,27 @@ const InventoryManagement = () => {
     },
   ];
 
+  // ฟังก์ชันคำนวณ status อัตโนมัติตาม quantity
+  const calculateInventoryStatus = (quantity: number): Inventory["status"] => {
+    if (quantity === 0) {
+      return "หมด";
+    } else if (quantity < 10) {
+      return "ใกล้หมด";
+    } else if (quantity > 50) {
+      return "พร้อมใช้";
+    } else {
+      // ถ้าอยู่ระหว่าง 10-50 ให้เป็น "พร้อมใช้" (หรือจะเปลี่ยนเป็น "ใกล้หมด" ก็ได้ตามต้องการ)
+      return "พร้อมใช้";
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Available":
+      case "พร้อมใช้":
         return "bg-green-500/20 text-green-400 border-green-500/30 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30";
-      case "In Use":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30";
-      case "Maintenance":
+      case "ใกล้หมด":
         return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30";
-      case "Out of Stock":
+      case "หมด":
         return "bg-red-500/20 text-red-400 border-red-500/30 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30";
       default:
         return "bg-gray-500/20 text-gray-400 border-gray-500/30 dark:bg-gray-500/20 dark:text-gray-400 dark:border-gray-500/30";
@@ -165,10 +194,8 @@ const InventoryManagement = () => {
   const resetForm = () => {
     setFormData({
       name: "",
-      status: "",
       type: "",
       quantity: "",
-      requireFrom: "",
     });
     setEditingItem(null);
   };
@@ -182,10 +209,8 @@ const InventoryManagement = () => {
     setEditingItem(item);
     setFormData({
       name: item.name,
-      status: item.status,
       type: item.type,
       quantity: item.quantity.toString(),
-      requireFrom: item.requireFrom,
     });
     setIsFormOpen(true);
   };
@@ -193,34 +218,34 @@ const InventoryManagement = () => {
   const handleSave = () => {
     if (
       !formData.name ||
-      !formData.status ||
       !formData.type ||
-      !formData.quantity ||
-      !formData.requireFrom
+      !formData.quantity
     ) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
+    const quantity = parseInt(formData.quantity);
+    const calculatedStatus = calculateInventoryStatus(quantity);
+
     if (editingItem) {
       updateInventory({
         ...editingItem,
         name: formData.name,
-        status: formData.status as Inventory["status"],
+        status: calculatedStatus,
         type: formData.type as Inventory["type"],
-        quantity: parseInt(formData.quantity),
-        requireFrom: formData.requireFrom,
+        quantity: quantity,
       });
     } else {
       const newItem: Inventory = {
         id: crypto.randomUUID(),
         name: formData.name,
-        status: formData.status as Inventory["status"],
+        status: calculatedStatus,
         type: formData.type as Inventory["type"],
-        quantity: parseInt(formData.quantity),
+        quantity: quantity,
         location: "Main Warehouse",
         price: 0,
-        requireFrom: formData.requireFrom,
+        requireFrom: "", // Keep for backward compatibility but set to empty
       };
       addInventory(newItem);
     }
@@ -240,153 +265,546 @@ const InventoryManagement = () => {
     setDeletingItemId(null);
   };
 
+  // Filter jobs ที่มี usedInventory
+  const jobsWithInventory = jobs.filter(
+    (job) => job.usedInventory && job.usedInventory.length > 0
+  );
+
+  // สร้าง inventory request อัตโนมัติเมื่อ job มี usedInventory แต่ยังไม่มี request
+  useEffect(() => {
+    const jobsWithInv = jobs.filter(
+      (job) => job.usedInventory && job.usedInventory.length > 0
+    );
+    
+    jobsWithInv.forEach((job) => {
+      const existingRequest = getInventoryRequestByJobId(job.id);
+      if (!existingRequest && job.usedInventory && job.usedInventory.length > 0) {
+        // สร้าง request ใหม่
+        addInventoryRequest({
+          jobId: job.id,
+          status: "pending",
+          requestedItems: job.usedInventory,
+          requestedBy: {
+            id: job.creator.id,
+            name: job.creator.name,
+          },
+          note: null,
+        });
+      }
+    });
+  }, [jobs, addInventoryRequest, getInventoryRequestByJobId]);
+
+  const getJobStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+      case "in_progress":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+      case "pending_approval":
+        return "bg-orange-500/20 text-orange-400 border-orange-500/30";
+      case "completed":
+        return "bg-green-500/20 text-green-400 border-green-500/30";
+      case "cancelled":
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
+      case "rejected":
+        return "bg-red-500/20 text-red-400 border-red-500/30";
+      default:
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
+    }
+  };
+
+  const getJobStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      pending: "รอดำเนินการ",
+      in_progress: "กำลังดำเนินการ",
+      pending_approval: "รออนุมัติ",
+      completed: "เสร็จสิ้น",
+      cancelled: "ยกเลิก",
+      rejected: "ปฏิเสธ",
+    };
+    return statusMap[status] || status;
+  };
+
+  // Get approval status for a job (ใช้จาก store)
+  const getInventoryRequestStatusForJob = (jobId: string): 'pending' | 'approved' | 'rejected' => {
+    return getInventoryRequestStatus(jobId);
+  };
+
+  // Handle approve inventory request
+  const handleApproveInventory = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job || !job.usedInventory) return;
+
+    const request = getInventoryRequestByJobId(jobId);
+    if (!request) {
+      toast.error("ไม่พบคำขอเบิกวัสดุ");
+      return;
+    }
+
+    // Update approval status in store
+    updateInventoryRequestStatus(
+      request.id,
+      "approved",
+      {
+        id: "admin", // TODO: ใช้ user ID จริงจาก auth
+        name: "ผู้ดูแลระบบ",
+      },
+      null
+    );
+
+    // Update inventory quantity and calculate status automatically for approved items
+    job.usedInventory.forEach(usedInv => {
+      const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
+      if (inventoryItem) {
+        const newQuantity = Math.max(0, inventoryItem.quantity - usedInv.qty);
+        const calculatedStatus = calculateInventoryStatus(newQuantity);
+        updateInventory({
+          ...inventoryItem,
+          quantity: newQuantity,
+          status: calculatedStatus,
+        });
+      }
+    });
+
+    toast.success("อนุมัติคำขอเบิกวัสดุสำเร็จ");
+  };
+
+  // Handle reject inventory request
+  const handleRejectInventory = (jobId: string) => {
+    const request = getInventoryRequestByJobId(jobId);
+    if (!request) {
+      toast.error("ไม่พบคำขอเบิกวัสดุ");
+      return;
+    }
+
+    // Update rejection status in store
+    updateInventoryRequestStatus(
+      request.id,
+      "rejected",
+      {
+        id: "admin", // TODO: ใช้ user ID จริงจาก auth
+        name: "ผู้ดูแลระบบ",
+      },
+      null
+    );
+
+    toast.error("ปฏิเสธคำขอเบิกวัสดุ");
+  };
+
+  // Get approval status badge color
+  const getApprovalStatusColor = (status: 'pending' | 'approved' | 'rejected') => {
+    switch (status) {
+      case 'approved':
+        return "bg-green-500/20 text-green-400 border-green-500/30";
+      case 'rejected':
+        return "bg-red-500/20 text-red-400 border-red-500/30";
+      default:
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+    }
+  };
+
+  const getApprovalStatusLabel = (status: 'pending' | 'approved' | 'rejected') => {
+    switch (status) {
+      case 'approved':
+        return "อนุมัติแล้ว";
+      case 'rejected':
+        return "ปฏิเสธ";
+      default:
+        return "รออนุมัติ";
+    }
+  };
+
   return (
     <div className="p-3 sm:p-6">
-      {/* HEADER SECTION */}
+      <Tabs defaultValue="inventory" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="inventory">การจัดการอุปกรณ์</TabsTrigger>
+          <TabsTrigger value="requests">คำขอเบิกวัสดุจากใบงาน</TabsTrigger>
+        </TabsList>
 
+        {/* TAB 1: Inventory Management */}
+        <TabsContent value="inventory" className="space-y-4">
+          {/* ACTION BAR (kept simple - Add button) */}
+          <div className="mb-4 sm:mb-4 flex items-center justify-between">
+            <div>
+              <ExportInventoryData />
+            </div>
+            <div>
+              <Button
+                onClick={handleAdd}
+                className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add equipment
+              </Button>
+            </div>
+          </div>
 
-      {/* ACTION BAR (kept simple - Add button) */}
-      <div className="mb-4 sm:mb-4 flex items-center justify-between">
-        <div>
-          <ExportInventoryData />
-        </div>
-        <div>
+          {/* DESKTOP: DataTable (uses inventoryStore as source) */}
+          <div className="hidden md:block">
+            <DataTable
+              columns={columns}
+              data={inventories}
+              totalRows={inventories.length}
+              currentPage={currentPage}
+              rowsPerPage={rowsPerPage}
+              searchKey={"name"}
+              filters={[
+                {
+                  key: "status",
+                  placeholder: "Filter Status",
+                  options: [
+                    { label: "พร้อมใช้", value: "พร้อมใช้" },
+                    { label: "ใกล้หมด", value: "ใกล้หมด" },
+                    { label: "หมด", value: "หมด" },
+                  ],
+                },
+              ]}
+              onPageChange={setCurrentPage}
+              onRowsPerPageChange={(n) => {
+                setRowsPerPage(n);
+                setCurrentPage(1);
+              }}
+              onRowReorder={(newData: any[]) => {
+                const ids = newData.map((d) => d.id as string);
+                reorderInventory(ids);
+              }}
+              showCheckbox={false}
+            />
+          </div>
 
-          <Button
-            onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add equipment
-          </Button>
-        </div>
-      </div>
+          {/* MOBILE CARD VIEW */}
+          <div className="md:hidden space-y-3">
+            {filteredItems.length > 0 ? (
+              filteredItems.map((item: Inventory) => (
+                <div
+                  key={item.id}
+                  className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-gray-900 dark:text-white font-medium mb-1">
+                        {item.name}
+                      </h3>
+                      <span
+                        className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                          item.status
+                        )}`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1d29]"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 w-40"
+                      >
+                        <DropdownMenuItem
+                          onClick={() => handleEdit(item)}
+                          className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0f1117] hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteClick(item.id)}
+                          className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0f1117] hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
 
-
-
-      {/* DESKTOP: DataTable (uses inventoryStore as source) */}
-      <div className="hidden md:block">
-        <DataTable
-          columns={columns}
-          data={inventories}
-          totalRows={inventories.length}
-          currentPage={currentPage}
-          rowsPerPage={rowsPerPage}
-          searchKey={"name"}
-          filters={[
-            {
-              key: "status",
-              placeholder: "Filter Status",
-              options: [
-                { label: "Available", value: "Available" },
-                { label: "In Use", value: "In Use" },
-                { label: "Maintenance", value: "Maintenance" },
-                { label: "Out of Stock", value: "Out of Stock" },
-              ],
-            },
-          ]}
-          onPageChange={setCurrentPage}
-          onRowsPerPageChange={(n) => {
-            setRowsPerPage(n);
-            setCurrentPage(1);
-          }}
-          onRowReorder={(newData: any[]) => {
-            const ids = newData.map((d) => d.id as string);
-            reorderInventory(ids);
-          }}
-          showCheckbox={false}
-        />
-      </div>
-
-      {/* MOBILE CARD VIEW */}
-      <div className="md:hidden space-y-3">
-        {filteredItems.length > 0 ? (
-          filteredItems.map((item: Inventory) => (
-            <div
-              key={item.id}
-              className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="text-gray-900 dark:text-white font-medium mb-1">
-                    {item.name}
-                  </h3>
-                  <span
-                    className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                      item.status
-                    )}`}
-                  >
-                    {item.status}
-                  </span>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-1">Type</p>
+                      <p className="text-gray-900 dark:text-white">{item.type}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-1">
+                        Quantity
+                      </p>
+                      <p className="text-gray-900 dark:text-white font-semibold">
+                        {item.quantity}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1d29]"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 w-40"
-                  >
-                    <DropdownMenuItem
-                      onClick={() => handleEdit(item)}
-                      className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0f1117] hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDeleteClick(item.id)}
-                      className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0f1117] hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              ))
+            ) : (
+              <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-gray-200 dark:border-gray-800 p-8 text-center">
+                <Search className="h-12 w-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  ไม่พบข้อมูลอุปกรณ์
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">
+                  ลองค้นหาด้วยคำอื่นหรือเพิ่มอุปกรณ์ใหม่
+                </p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* TAB 2: Material Requests from Jobs */}
+        <TabsContent value="requests" className="space-y-4">
+          {jobsWithInventory.length > 0 ? (
+            <div className="space-y-4">
+              {/* DESKTOP TABLE VIEW */}
+              <div className="hidden md:block">
+                <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-gray-700 dark:text-gray-300">ใบงาน</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">สถานะ</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">แผนก</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">จำนวนรายการ</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">สถานะการอนุมัติ</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">รายละเอียด</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">การดำเนินการ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jobsWithInventory.map((job) => {
+                        const approvalStatus = getInventoryRequestStatusForJob(job.id);
+                        return (
+                          <TableRow
+                            key={job.id}
+                            className="hover:bg-gray-50 dark:hover:bg-[#0f1117]"
+                          >
+                            <TableCell 
+                              className="font-medium text-gray-900 dark:text-white cursor-pointer"
+                              onClick={() => router.push(`/dashboard/admin/jobs/${job.id}`)}
+                            >
+                              {job.title}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getJobStatusColor(
+                                  job.status
+                                )}`}
+                              >
+                                {getJobStatusLabel(job.status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-gray-600 dark:text-gray-400">
+                              {job.department || "-"}
+                            </TableCell>
+                            <TableCell className="text-gray-900 dark:text-white font-semibold">
+                              {job.usedInventory?.length || 0} รายการ
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getApprovalStatusColor(
+                                  approvalStatus
+                                )}`}
+                              >
+                                {getApprovalStatusLabel(approvalStatus)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {job.usedInventory?.slice(0, 2).map((usedInv) => {
+                                  const inventoryItem = inventories.find(
+                                    (inv) => inv.id === usedInv.id
+                                  );
+                                  return (
+                                    <div
+                                      key={usedInv.id}
+                                      className="text-xs text-gray-600 dark:text-gray-400"
+                                    >
+                                      {inventoryItem?.name || usedInv.id}: {usedInv.qty}
+                                    </div>
+                                  );
+                                })}
+                                {job.usedInventory && job.usedInventory.length > 2 && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-500">
+                                    +{job.usedInventory.length - 2} รายการเพิ่มเติม
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {approvalStatus === 'pending' && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 h-8 px-3"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleApproveInventory(job.id);
+                                      }}
+                                    >
+                                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                                      อนุมัติ
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800 h-8 px-3"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRejectInventory(job.id);
+                                      }}
+                                    >
+                                      <XCircle className="h-4 w-4 mr-1" />
+                                      ปฏิเสธ
+                                    </Button>
+                                  </>
+                                )}
+                                {approvalStatus === 'approved' && (
+                                  <span className="text-xs text-green-600 dark:text-green-400">
+                                    อนุมัติแล้ว
+                                  </span>
+                                )}
+                                {approvalStatus === 'rejected' && (
+                                  <span className="text-xs text-red-600 dark:text-red-400">
+                                    ปฏิเสธแล้ว
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Type</p>
-                  <p className="text-gray-900 dark:text-white">{item.type}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">
-                    Quantity
-                  </p>
-                  <p className="text-gray-900 dark:text-white font-semibold">
-                    {item.quantity}
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">
-                    Requite From
-                  </p>
-                  <p className="text-gray-900 dark:text-white">
-                    {item.requireFrom}
-                  </p>
-                </div>
+              {/* MOBILE CARD VIEW */}
+              <div className="md:hidden space-y-3">
+                {jobsWithInventory.map((job) => {
+                  const approvalStatus = getInventoryRequestStatusForJob(job.id);
+                  return (
+                    <div
+                      key={job.id}
+                      className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 
+                            className="text-gray-900 dark:text-white font-medium mb-2 cursor-pointer"
+                            onClick={() => router.push(`/dashboard/(admin)/admin/jobs/${job.id}`)}
+                          >
+                            {job.title}
+                          </h3>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge
+                              className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getJobStatusColor(
+                                job.status
+                              )}`}
+                            >
+                              {getJobStatusLabel(job.status)}
+                            </Badge>
+                            <Badge
+                              className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getApprovalStatusColor(
+                                approvalStatus
+                              )}`}
+                            >
+                              {getApprovalStatusLabel(approvalStatus)}
+                            </Badge>
+                            {job.department && (
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                                {job.department}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          <span className="font-medium">จำนวนรายการ:</span>{" "}
+                          {job.usedInventory?.length || 0} รายการ
+                        </div>
+                        <div className="space-y-1">
+                          {job.usedInventory?.map((usedInv) => {
+                            const inventoryItem = inventories.find(
+                              (inv) => inv.id === usedInv.id
+                            );
+                            return (
+                              <div
+                                key={usedInv.id}
+                                className="text-sm text-gray-900 dark:text-white flex justify-between items-center"
+                              >
+                                <span>
+                                  {inventoryItem?.name || usedInv.id}
+                                </span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                  {usedInv.qty}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Action Buttons for Mobile */}
+                        {approvalStatus === 'pending' && (
+                          <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                              onClick={() => handleApproveInventory(job.id)}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              อนุมัติ
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+                              onClick={() => handleRejectInventory(job.id)}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              ปฏิเสธ
+                            </Button>
+                          </div>
+                        )}
+                        {(approvalStatus === 'approved' || approvalStatus === 'rejected') && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <p className={`text-sm text-center ${
+                              approvalStatus === 'approved' 
+                                ? 'text-green-600 dark:text-green-400' 
+                                : 'text-red-600 dark:text-red-400'
+                            }`}>
+                              {approvalStatus === 'approved' ? '✓ อนุมัติแล้ว' : '✗ ปฏิเสธแล้ว'}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          ))
-        ) : (
-          <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-gray-200 dark:border-gray-800 p-8 text-center">
-            <Search className="h-12 w-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-            <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-1">
-              ไม่พบข้อมูลอุปกรณ์
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              ลองค้นหาด้วยคำอื่นหรือเพิ่มอุปกรณ์ใหม่
-            </p>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-gray-200 dark:border-gray-800 p-8 text-center">
+              <Search className="h-12 w-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+              <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-1">
+                ไม่พบคำขอเบิกวัสดุ
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                ยังไม่มีใบงานที่ขอเบิกวัสดุ
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* ADD/EDIT DIALOG */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -420,50 +838,6 @@ const InventoryManagement = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2 w-full">
                 <Label
-                  htmlFor="status"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Status <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, status: value })
-                  }
-                >
-                  <SelectTrigger className="bg-gray-50 dark:bg-[#0f1117] border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-600 w-full">
-                    <SelectValue placeholder="เลือกสถานะ" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800">
-                    <SelectItem
-                      value="Available"
-                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
-                    >
-                      Available
-                    </SelectItem>
-                    <SelectItem
-                      value="In Use"
-                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
-                    >
-                      In Use
-                    </SelectItem>
-                    <SelectItem
-                      value="Maintenance"
-                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
-                    >
-                      Maintenance
-                    </SelectItem>
-                    <SelectItem
-                      value="Out of Stock"
-                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
-                    >
-                      Out of Stock
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2 w-full">
-                <Label
                   htmlFor="type"
                   className="text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
@@ -480,40 +854,16 @@ const InventoryManagement = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800">
                     <SelectItem
-                      value="Laptop"
+                      value="ต้องคืน"
                       className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
                     >
-                      Laptop
+                      ต้องคืน
                     </SelectItem>
                     <SelectItem
-                      value="Monitor"
+                      value="ไม่ต้องคืน"
                       className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
                     >
-                      Monitor
-                    </SelectItem>
-                    <SelectItem
-                      value="Peripheral"
-                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
-                    >
-                      Peripheral
-                    </SelectItem>
-                    <SelectItem
-                      value="Network"
-                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
-                    >
-                      Network
-                    </SelectItem>
-                    <SelectItem
-                      value="Server"
-                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
-                    >
-                      Server
-                    </SelectItem>
-                    <SelectItem
-                      value="Other"
-                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#0f1117]"
-                    >
-                      Other
+                      ไม่ต้องคืน
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -537,23 +887,20 @@ const InventoryManagement = () => {
                 min="0"
                 className="bg-gray-50 dark:bg-[#0f1117] border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-600"
               />
-            </div>
-            <div className="grid gap-2">
-              <Label
-                htmlFor="requiteFrom"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Requite From <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="requiteFrom"
-                value={formData.requireFrom}
-                onChange={(e) =>
-                  setFormData({ ...formData, requireFrom: e.target.value })
-                }
-                placeholder="แผนกที่ร้องขอ"
-                className="bg-gray-50 dark:bg-[#0f1117] border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-600"
-              />
+              {formData.quantity && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    สถานะที่คำนวณอัตโนมัติ:
+                  </p>
+                  <Badge
+                    className={`${getStatusColor(
+                      calculateInventoryStatus(parseInt(formData.quantity) || 0)
+                    )} px-3 py-1`}
+                  >
+                    {calculateInventoryStatus(parseInt(formData.quantity) || 0)}
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter className="gap-2 flex-col sm:flex-row">

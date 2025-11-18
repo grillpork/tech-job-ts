@@ -20,7 +20,6 @@ import { useUserStore } from "@/stores/features/userStore"
 import { toast } from "sonner"
 import { notificationHelpers } from "@/stores/notificationStore"
 
-type Department = "engineering" | "design" | "product" | "qa" | "customer"
 type Priority = "high" | "medium" | "low"
 
 export default function CreateReportPage() {
@@ -29,20 +28,27 @@ export default function CreateReportPage() {
   
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [department, setDepartment] = useState<Department | "">("")
   const [priority, setPriority] = useState<Priority | "">("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // ดึงแผนกจาก currentUser โดยอัตโนมัติ
+  const userDepartment = currentUser?.department || null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!title || !description || !department || !priority) {
+    if (!title || !description || !priority) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน")
       return
     }
 
     if (!currentUser) {
       toast.error("ไม่พบข้อมูลผู้ใช้ กรุณาล็อกอินใหม่")
+      return
+    }
+
+    if (!userDepartment) {
+      toast.error("ไม่พบข้อมูลแผนก กรุณาตรวจสอบข้อมูลผู้ใช้")
       return
     }
 
@@ -59,19 +65,19 @@ export default function CreateReportPage() {
     }
 
     // Map department to report type (default to incident)
-    const typeMap: Record<Department, "bug" | "request" | "incident" | "improvement"> = {
-      engineering: "bug",
-      design: "improvement",
-      product: "request",
-      qa: "bug",
-      customer: "incident",
+    // ใช้แผนกจริงจากระบบ: Electrical, Mechanical, Technical, Civil
+    const typeMap: Record<string, "bug" | "request" | "incident" | "improvement"> = {
+      Electrical: "bug",
+      Mechanical: "incident",
+      Technical: "request",
+      Civil: "improvement",
     }
 
     const newReport = {
       id: crypto.randomUUID(),
       title,
       description,
-      type: typeMap[department as Department] || "incident",
+      type: typeMap[userDepartment] || "incident",
       status: "open" as const,
       createdAt: new Date().toISOString(),
       updatedAt: null,
@@ -81,7 +87,7 @@ export default function CreateReportPage() {
       },
       assignee: null,
       priority: priorityMap[priority as Priority] || "medium",
-      tags: [department],
+      tags: [userDepartment],
     }
 
     addReport(newReport)
@@ -99,8 +105,18 @@ export default function CreateReportPage() {
     // รีเซ็ตฟอร์ม
     setTitle("")
     setDescription("")
-    setDepartment("")
     setPriority("")
+  }
+
+  // แสดงชื่อแผนก
+  const getDepartmentLabel = (dept: string | null): string => {
+    const deptMap: Record<string, string> = {
+      Electrical: "แผนกช่างไฟ (Electrical)",
+      Mechanical: "แผนกช่างกล (Mechanical)",
+      Technical: "แผนกช่างเทคนิค (Technical)",
+      Civil: "แผนกช่างโยธา (Civil)",
+    }
+    return dept ? (deptMap[dept] || dept) : "ไม่ระบุแผนก"
   }
 
   return (
@@ -163,25 +179,25 @@ export default function CreateReportPage() {
                     </p>
                   </div>
 
-                  {/* Role/Department และ Priority ในแถวเดียวกัน */}
+                  {/* แผนก (แสดงอัตโนมัติ) และ Priority */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Role/Department */}
+                    {/* แผนก - แสดงอัตโนมัติ */}
                     <div className="space-y-2">
                       <Label htmlFor="department" className="text-sm font-medium">
-                        ฝ่าย/แผนก <span className="text-red-500">*</span>
+                        ฝ่าย/แผนก
                       </Label>
-                      <Select value={department} onValueChange={(value) => setDepartment(value as Department)}>
-                        <SelectTrigger id="department" className="w-full">
-                          <SelectValue placeholder="เลือกฝ่ายของคุณ" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="engineering">Engineering</SelectItem>
-                          <SelectItem value="design">Design</SelectItem>
-                          <SelectItem value="product">Product</SelectItem>
-                          <SelectItem value="qa">QA</SelectItem>
-                          <SelectItem value="customer">Customer Support</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="w-full px-3 py-2 border rounded-md bg-muted/50 text-sm">
+                        {userDepartment ? (
+                          <span className="font-medium">{getDepartmentLabel(userDepartment)}</span>
+                        ) : (
+                          <span className="text-muted-foreground">ไม่ระบุแผนก</span>
+                        )}
+                      </div>
+                      {!userDepartment && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          ⚠️ กรุณาตรวจสอบข้อมูลแผนกในโปรไฟล์ของคุณ
+                        </p>
+                      )}
                     </div>
 
                     {/* Priority */}
@@ -226,7 +242,6 @@ export default function CreateReportPage() {
                       onClick={() => {
                         setTitle("")
                         setDescription("")
-                        setDepartment("")
                         setPriority("")
                       }}
                     >
@@ -235,7 +250,7 @@ export default function CreateReportPage() {
                     <Button 
                       type="submit" 
                       className="w-full sm:flex-1"
-                      disabled={isSubmitting || !title || !description || !department || !priority}
+                      disabled={isSubmitting || !title || !description || !priority || !userDepartment}
                     >
                       {isSubmitting ? (
                         <>
@@ -267,7 +282,7 @@ export default function CreateReportPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {(title || description || department || priority) ? (
+                  {(title || description || userDepartment || priority) ? (
                     <Card className="bg-muted/50 border-2">
                       <CardContent>
                         <div className="space-y-4">
@@ -281,9 +296,9 @@ export default function CreateReportPage() {
                                 {priority === "high" ? "สูง" : priority === "medium" ? "ปานกลาง" : "ต่ำ"}
                               </Badge>
                             )}
-                            {department && (
-                              <Badge variant="outline" className="capitalize">
-                                {department}
+                            {userDepartment && (
+                              <Badge variant="outline">
+                                {getDepartmentLabel(userDepartment)}
                               </Badge>
                             )}
                           </div>
@@ -332,7 +347,7 @@ export default function CreateReportPage() {
                       <span className="text-primary mt-0.5">•</span>
                       <div>
                         <strong className="text-foreground">ฝ่าย/แผนก:</strong>
-                        <p className="mt-1">เลือกฝ่ายของคุณเพื่อให้ทีมงานสามารถติดต่อกลับได้อย่างถูกต้อง</p>
+                        <p className="mt-1">แผนกจะถูกกำหนดอัตโนมัติตามข้อมูลบัญชีของคุณ</p>
                       </div>
                     </li>
                     <li className="flex gap-3">

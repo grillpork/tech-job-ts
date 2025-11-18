@@ -7,14 +7,10 @@ import { format, parseISO } from "date-fns"; // ✅ เพิ่ม parseISO
 import {
   Calendar as CalendarIcon,
   Plus,
-  Trash2,
   File as FileIcon,
   X,
   Check,
   UploadCloud,
-  MoreHorizontal,
-  ArrowUp,
-  ArrowDown,
   Image as ImageIcon,
 } from "lucide-react";
 import { ToolCase } from "lucide-react";
@@ -40,8 +36,6 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogPortal, DialogOverlay,DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,13 +45,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-// Interface สำหรับ Task
-interface Task {
-  id: number;
-  header: string;
-  description: string;
-}
 
 // Interface และข้อมูลตัวอย่างสำหรับพนักงาน
 interface Employee {
@@ -69,53 +56,6 @@ interface Employee {
 const ALL_EMPLOYEES: Employee[] = MOCK_USERS
     .filter(u => u.role === 'employee')
     .map(u => ({ value: u.id, label: u.name }));
-
-// (TaskItem Component เหมือนเดิม)
-interface TaskItemProps {
-  task: Task;
-  onDelete: (id: number) => void;
-  onSelect: (id: number) => void;
-  isChecked: boolean;
-  onEdit: (task: Task) => void;
-  onMoveUp: (id: number) => void;
-  onMoveDown: (id: number) => void;
-  index: number;
-  totalTasks: number;
-}
-
-function TaskItem({
-  task, onDelete, onSelect, isChecked, onEdit,
-  onMoveUp, onMoveDown, index, totalTasks,
-}: TaskItemProps) {
-  // (โค้ด TaskItem ทั้งหมดเหมือนเดิม)
-  return (
-    <div key={task.id} className={cn("rounded-lg border bg-card p-4 shadow-sm transition-all hover:bg-muted/60 hover:shadow-md")}>
-      <div className="flex items-start gap-3">
-        <Checkbox id={`task-${task.id}`} checked={isChecked} onCheckedChange={() => onSelect(task.id)} className="mt-1" />
-        <div className="flex-1 space-y-1">
-          <div className="flex justify-between items-start gap-4">
-            <Label htmlFor={`task-${task.id}`} className={cn("flex-1 text-base font-medium leading-tight cursor-pointer", isChecked && "line-through text-muted-foreground")}>
-              {task.header}
-            </Label>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onMoveUp(task.id)} disabled={index === 0}><ArrowUp className="mr-2 h-4 w-4" /> Move Up</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onMoveDown(task.id)} disabled={index === totalTasks - 1}><ArrowDown className="mr-2 h-4 w-4" /> Move Down</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(task.id)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">Delete</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          {task.description && (<p className={cn("text-sm text-muted-foreground pl-0", isChecked && "line-through")}>{task.description}</p>)}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 export default function EditJobPage() {
@@ -136,7 +76,6 @@ export default function EditJobPage() {
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [attachments, setAttachments] = useState<File[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]); // เริ่มต้นด้วย Array ว่าง
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
   const [department, setDepartment] = useState<string>("Electrical");
@@ -145,14 +84,6 @@ export default function EditJobPage() {
   // (State อื่นๆ ของ UI เหมือนเดิม)
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
-  const [newTaskHeader, setNewTaskHeader] = useState("");
-  const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [editHeader, setEditHeader] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
   // Inventory selection state
   const inventories = useInventoryStore((s) => s.inventories);
   const [selectedInventory, setSelectedInventory] = useState<{ value: string; label: string; qty?: number }[]>([]);
@@ -188,13 +119,6 @@ export default function EditJobPage() {
       // เติมข้อมูลลงใน State ทั้งหมด
       setStartDate(job.startDate ? parseISO(job.startDate) : undefined);
       setEndDate(job.endDate ? parseISO(job.endDate) : undefined);
-      
-      // ดึง Tasks เก่ามาแสดง
-      setTasks(job.tasks.map((t, i) => ({ 
-        id: i, // ใช index เป็น id ชั่วคราว (หรือ t.id ถ้ามี)
-        header: t.description, // Store ของคุณเก็บ header ไว้ใน description
-        description: t.details || '' 
-      })));
 
       setSelectedEmployees(job.assignedEmployees.map(u => ({ value: u.id, label: u.name })));
       setDepartment(job.department || 'Electrical'); // ใช้ค่าจาก job
@@ -215,7 +139,6 @@ export default function EditJobPage() {
   }, [params.jobId, getJobById, router, inventories]);
   
   // --- (ฟังก์ชันเดิมทั้งหมด) ---
-  const deleteTask = (id: number) => { setTasks((prev) => prev.filter((task) => task.id !== id)); setSelectedTasks((prev) => prev.filter((selectedId) => selectedId !== id)); };
   const deleteAttachment = (fileName: string) => setAttachments(attachments.filter((file) => file.name !== fileName));
   const deleteExistingAttachment = (attachmentId: string) => setExistingAttachments(existingAttachments.filter((att) => att.id !== attachmentId));
   const deleteLocationImage = (fileName: string) => setLocationImages(locationImages.filter((file) => file.name !== fileName));
@@ -249,46 +172,9 @@ export default function EditJobPage() {
     setAttachments((prevFiles) => [...prevFiles, ...files]);
   };
   const openFileDialog = () => fileInputRef.current?.click();
-  const handleTaskSelection = (taskId: number) => { setSelectedTasks((prev) => prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]); };
-  const deleteSelectedTasks = () => { setTasks((prev) => prev.filter((task) => !selectedTasks.includes(task.id))); setSelectedTasks([]); };
-  const deleteAllTasks = () => { setTasks([]); setSelectedTasks([]); };
-  const handleSelectAll = () => { if (selectedTasks.length === tasks.length) { setSelectedTasks([]); } else { setSelectedTasks(tasks.map((task) => task.id)); } };
-  const handleAddNewTask = () => {
-    if (newTaskHeader.trim() === "") return;
-    const newTask: Task = { id: Date.now(), header: newTaskHeader, description: newTaskDescription };
-    setTasks((prevTasks) => [...prevTasks, newTask]);
-    setNewTaskHeader(""); setNewTaskDescription(""); setIsAddTaskDialogOpen(false);
-  };
-  const handleOpenEditDialog = (task: Task) => { setTaskToEdit(task); setEditHeader(task.header); setEditDescription(task.description); setIsEditDialogOpen(true); };
-  const handleSaveEdit = () => {
-    if (!taskToEdit) return;
-    setTasks((prevTasks) => prevTasks.map((task) => task.id === taskToEdit.id ? { ...task, header: editHeader, description: editDescription } : task));
-    setIsEditDialogOpen(false); setTaskToEdit(null); setEditHeader(""); setEditDescription("");
-  };
-  const handleMoveTaskUp = (id: number) => {
-    setTasks((prevTasks) => {
-      const currentIndex = prevTasks.findIndex((t) => t.id === id);
-      if (currentIndex <= 0) return prevTasks;
-      const newTasks = [...prevTasks];
-      [newTasks[currentIndex - 1], newTasks[currentIndex]] = [newTasks[currentIndex], newTasks[currentIndex - 1]];
-      return newTasks;
-    });
-  };
-  const handleMoveTaskDown = (id: number) => {
-    setTasks((prevTasks) => {
-      const currentIndex = prevTasks.findIndex((t) => t.id === id);
-      if (currentIndex === -1 || currentIndex >= prevTasks.length - 1) return prevTasks;
-      const newTasks = [...prevTasks];
-      [newTasks[currentIndex + 1], newTasks[currentIndex]] = [newTasks[currentIndex], newTasks[currentIndex + 1]];
-      return newTasks;
-    });
-  };
 
   const handleRemoveInventory = (value: string) => setSelectedInventory((prev) => prev.filter((inv) => inv.value !== value));
   const handleChangeInventoryQty = (value: string, qty: number) => setSelectedInventory((prev) => prev.map((inv) => inv.value === value ? { ...inv, qty } : inv));
-
-  const isAllSelected = tasks.length > 0 && selectedTasks.length === tasks.length;
-  const isIndeterminate = selectedTasks.length > 0 && selectedTasks.length < tasks.length;
 
   // Helper function: แปลง File เป็น base64 string
   const fileToBase64 = (file: File): Promise<string> => {
@@ -362,7 +248,7 @@ export default function EditJobPage() {
         usedInventory: selectedInventory.map(inv => ({ id: inv.value, qty: inv.qty ?? 1 })),
         startDate: startDate ? startDate.toISOString() : null,
         endDate: endDate ? endDate.toISOString() : null,
-        tasks: tasks.map(t => ({ description: t.header })),
+        tasks: [], // ไม่มี tasks
         location: location ?? null,
         attachments: allAttachments,
         locationImages: allLocationImages.length > 0 ? allLocationImages : undefined,
@@ -825,119 +711,6 @@ export default function EditJobPage() {
               )}
             </div>
           </div>
-          )}
-
-          {/* Tasks Section - แสดงเฉพาะ admin/lead_technician */}
-          {canEditFull && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <Checkbox id="select-all-tasks" checked={isAllSelected} onCheckedChange={handleSelectAll} data-state={isIndeterminate ? "indeterminate" : isAllSelected ? "checked" : "unchecked"} disabled={tasks.length === 0} />
-                  <Label htmlFor="select-all-tasks" className="text-lg font-medium">Tasks</Label>
-                </div>
-              <div className="flex items-center gap-2">
-                {selectedTasks.length > 0 && (
-                  <Button type="button" variant="destructive" size="sm" onClick={deleteSelectedTasks}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete ({selectedTasks.length})
-                  </Button>
-                )}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" disabled={tasks.length === 0}>
-                      View All ({tasks.length})
-                    </Button>
-                  </DialogTrigger>
-                  <DialogPortal>
-                    <DialogOverlay className="bg-black/40" />
-                    <DialogContent className="sm:max-w-xl md:max-w-2xl h-[80vh] flex flex-col">
-                      <DialogHeader><DialogTitle>All Tasks ({tasks.length})</DialogTitle></DialogHeader>
-                      <div className="flex justify-between items-center p-1 border-b pb-4 mb-4">
-                        <div className="flex items-center gap-3">
-                          <Checkbox id="select-all-tasks-popup" checked={isAllSelected} onCheckedChange={handleSelectAll} data-state={isIndeterminate ? "indeterminate" : isAllSelected ? "checked" : "unchecked"} disabled={tasks.length === 0} />
-                          <Label htmlFor="select-all-tasks-popup" className="text-sm font-medium">Select All</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {selectedTasks.length > 0 && (
-                            <Button type="button" variant="destructive" size="sm" onClick={deleteSelectedTasks}><Trash2 className="mr-2 h-4 w-4" /> Delete ({selectedTasks.length})</Button>
-                          )}
-                          <Button type="button" variant="ghost" size="sm" onClick={deleteAllTasks} disabled={tasks.length === 0} className="text-destructive hover:text-destructive hover:bg-destructive/10">Delete All</Button>
-                        </div>
-                      </div>
-                      <ScrollArea className="flex-1 min-h-0">
-                        <div className="p-1 space-y-4 pr-4">
-                          {tasks.map((task, index) => (
-                            <TaskItem key={task.id} task={task} onDelete={deleteTask} onSelect={handleTaskSelection} isChecked={selectedTasks.includes(task.id)} onEdit={handleOpenEditDialog} index={index} totalTasks={tasks.length} onMoveUp={handleMoveTaskUp} onMoveDown={handleMoveTaskDown} />
-                          ))}
-                        </div>
-                      </ScrollArea>
-                      <DialogFooter>
-                        <DialogClose asChild><Button type="button" variant="secondary">Close</Button></DialogClose>
-                      </DialogFooter>
-                    </DialogContent>
-                  </DialogPortal>
-                </Dialog>
-              </div>
-            </div>
-            <ScrollArea className="h-48 w-full rounded-md border">
-              {tasks.length > 0 ? (
-                <div className="p-4 space-y-4">
-                  {tasks.map((task, index) => (
-                    <TaskItem key={task.id} task={task} onDelete={deleteTask} onSelect={handleTaskSelection} isChecked={selectedTasks.includes(task.id)} onEdit={handleOpenEditDialog} index={index} totalTasks={tasks.length} onMoveUp={handleMoveTaskUp} onMoveDown={handleMoveTaskDown} />
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4"><p className="text-sm text-muted-foreground text-center">No tasks added yet.</p></div>
-              )}
-            </ScrollArea>
-            <Dialog open={isAddTaskDialogOpen} onOpenChange={setIsAddTaskDialogOpen}>
-              <DialogTrigger asChild>
-                <Button type="button" variant="outline" className="w-full"><Plus className="mr-2 h-4 w-4" /> Add task</Button>
-              </DialogTrigger>
-              <DialogPortal>
-                <DialogOverlay className="bg-black/40" />
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader><DialogTitle>Add New Task</DialogTitle></DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="new-task-header">Task Header</Label>
-                      <Input id="new-task-header" placeholder="Enter task header" value={newTaskHeader} onChange={(e) => setNewTaskHeader(e.target.value)} className="mt-1" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="new-task-description">Description</Label>
-                      <Textarea id="new-task-description" placeholder="Enter task description" value={newTaskDescription} onChange={(e) => setNewTaskDescription(e.target.value)} rows={3} className="mt-1" />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
-                    <Button type="button" onClick={handleAddNewTask}>Save Task</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </DialogPortal>
-            </Dialog>
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-              <DialogPortal>
-                <DialogOverlay className="bg-black/40" />
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader><DialogTitle>Edit Task</DialogTitle></DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-task-header">Task Header</Label>
-                      <Input id="edit-task-header" value={editHeader} onChange={(e) => setEditHeader(e.target.value)} className="mt-1" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-task-description">Description</Label>
-                      <Textarea id="edit-task-description" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} className="mt-1" />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
-                    <Button type="button" onClick={handleSaveEdit}>Save Changes</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </DialogPortal>
-            </Dialog>
-            </div>
           )}
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Grid3x3, List, Search, Filter, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Grid3x3, List, Search, Filter, X, ExternalLink, User, Building } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -71,6 +72,7 @@ export function EventManager({
   className,
   availableTags = ["Important", "Urgent", "Work", "Personal", "Team", "Client"],
 }: EventManagerProps) {
+  const router = useRouter()
   const [events, setEvents] = useState<Event[]>(initialEvents)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"month" | "week" | "day" | "list">(defaultView)
@@ -726,198 +728,273 @@ export function EventManager({
         />
       )}
 
-      {/* Event Dialog */}
+      {/* Event Dialog - Show details only when not creating */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{isCreating ? "Create Event" : "Event Details"}</DialogTitle>
-            <DialogDescription>
-              {isCreating ? "Add a new event to your calendar" : "View and edit event details"}
-            </DialogDescription>
-          </DialogHeader>
+          {isCreating ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Create Event</DialogTitle>
+                <DialogDescription>Add a new event to your calendar</DialogDescription>
+              </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={isCreating ? newEvent.title : selectedEvent?.title}
-                onChange={(e) =>
-                  isCreating
-                    ? setNewEvent((prev) => ({ ...prev, title: e.target.value }))
-                    : setSelectedEvent((prev) => (prev ? { ...prev, title: e.target.value } : null))
-                }
-                placeholder="Event title"
-              />
-            </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={newEvent.title}
+                    onChange={(e) => setNewEvent((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Event title"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={isCreating ? newEvent.description : selectedEvent?.description}
-                onChange={(e) =>
-                  isCreating
-                    ? setNewEvent((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    : setSelectedEvent((prev) => (prev ? { ...prev, description: e.target.value } : null))
-                }
-                placeholder="Event description"
-                rows={3}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={newEvent.description}
+                    onChange={(e) => setNewEvent((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Event description"
+                    rows={3}
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <Input
-                  id="startTime"
-                  type="datetime-local"
-                  value={
-                    isCreating
-                      ? newEvent.startTime
-                        ? new Date(newEvent.startTime.getTime() - newEvent.startTime.getTimezoneOffset() * 60000)
-                            .toISOString()
-                            .slice(0, 16)
-                        : ""
-                      : selectedEvent
-                        ? new Date(
-                            selectedEvent.startTime.getTime() - selectedEvent.startTime.getTimezoneOffset() * 60000,
-                          )
-                            .toISOString()
-                            .slice(0, 16)
-                        : ""
-                  }
-                  onChange={(e) => {
-                    const date = new Date(e.target.value)
-                    isCreating
-                      ? setNewEvent((prev) => ({ ...prev, startTime: date }))
-                      : setSelectedEvent((prev) => (prev ? { ...prev, startTime: date } : null))
-                  }}
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Start Time</Label>
+                    <Input
+                      id="startTime"
+                      type="datetime-local"
+                      value={
+                        newEvent.startTime
+                          ? new Date(newEvent.startTime.getTime() - newEvent.startTime.getTimezoneOffset() * 60000)
+                              .toISOString()
+                              .slice(0, 16)
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const date = new Date(e.target.value)
+                        setNewEvent((prev) => ({ ...prev, startTime: date }))
+                      }}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <Input
-                  id="endTime"
-                  type="datetime-local"
-                  value={
-                    isCreating
-                      ? newEvent.endTime
-                        ? new Date(newEvent.endTime.getTime() - newEvent.endTime.getTimezoneOffset() * 60000)
-                            .toISOString()
-                            .slice(0, 16)
-                        : ""
-                      : selectedEvent
-                        ? new Date(selectedEvent.endTime.getTime() - selectedEvent.endTime.getTimezoneOffset() * 60000)
-                            .toISOString()
-                            .slice(0, 16)
-                        : ""
-                  }
-                  onChange={(e) => {
-                    const date = new Date(e.target.value)
-                    isCreating
-                      ? setNewEvent((prev) => ({ ...prev, endTime: date }))
-                      : setSelectedEvent((prev) => (prev ? { ...prev, endTime: date } : null))
-                  }}
-                />
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime">End Time</Label>
+                    <Input
+                      id="endTime"
+                      type="datetime-local"
+                      value={
+                        newEvent.endTime
+                          ? new Date(newEvent.endTime.getTime() - newEvent.endTime.getTimezoneOffset() * 60000)
+                              .toISOString()
+                              .slice(0, 16)
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const date = new Date(e.target.value)
+                        setNewEvent((prev) => ({ ...prev, endTime: date }))
+                      }}
+                    />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={isCreating ? newEvent.category : selectedEvent?.category}
-                  onValueChange={(value) =>
-                    isCreating
-                      ? setNewEvent((prev) => ({ ...prev, category: value }))
-                      : setSelectedEvent((prev) => (prev ? { ...prev, category: value } : null))
-                  }
-                >
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="color">Color</Label>
-                <Select
-                  value={isCreating ? newEvent.color : selectedEvent?.color}
-                  onValueChange={(value) =>
-                    isCreating
-                      ? setNewEvent((prev) => ({ ...prev, color: value }))
-                      : setSelectedEvent((prev) => (prev ? { ...prev, color: value } : null))
-                  }
-                >
-                  <SelectTrigger id="color">
-                    <SelectValue placeholder="Select color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {colors.map((color) => (
-                      <SelectItem key={color.value} value={color.value}>
-                        <div className="flex items-center gap-2">
-                          <div className={cn("h-4 w-4 rounded", color.bg)} />
-                          {color.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => {
-                  const isSelected = isCreating ? newEvent.tags?.includes(tag) : selectedEvent?.tags?.includes(tag)
-                  return (
-                    <Badge
-                      key={tag}
-                      variant={isSelected ? "default" : "outline"}
-                      className="cursor-pointer transition-all hover:scale-105"
-                      onClick={() => toggleTag(tag, isCreating)}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={newEvent.category}
+                      onValueChange={(value) => setNewEvent((prev) => ({ ...prev, category: value }))}
                     >
-                      {tag}
-                    </Badge>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-          <DialogFooter>
-            {!isCreating && (
-              <Button variant="destructive" onClick={() => selectedEvent && handleDeleteEvent(selectedEvent.id)}>
-                Delete
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsDialogOpen(false)
-                setIsCreating(false)
-                setSelectedEvent(null)
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={isCreating ? handleCreateEvent : handleUpdateEvent}>
-              {isCreating ? "Create" : "Save"}
-            </Button>
-          </DialogFooter>
+                  <div className="space-y-2">
+                    <Label htmlFor="color">Color</Label>
+                    <Select
+                      value={newEvent.color}
+                      onValueChange={(value) => setNewEvent((prev) => ({ ...prev, color: value }))}
+                    >
+                      <SelectTrigger id="color">
+                        <SelectValue placeholder="Select color" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {colors.map((color) => (
+                          <SelectItem key={color.value} value={color.value}>
+                            <div className="flex items-center gap-2">
+                              <div className={cn("h-4 w-4 rounded", color.bg)} />
+                              {color.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tags</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.map((tag) => {
+                      const isSelected = newEvent.tags?.includes(tag)
+                      return (
+                        <Badge
+                          key={tag}
+                          variant={isSelected ? "default" : "outline"}
+                          className="cursor-pointer transition-all hover:scale-105"
+                          onClick={() => toggleTag(tag, true)}
+                        >
+                          {tag}
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsDialogOpen(false)
+                    setIsCreating(false)
+                    setNewEvent({
+                      title: "",
+                      description: "",
+                      color: colors[0].value,
+                      category: categories[0],
+                      tags: [],
+                    })
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateEvent}>Create</Button>
+              </DialogFooter>
+            </>
+          ) : selectedEvent ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>รายละเอียดใบงาน</DialogTitle>
+                <DialogDescription>ข้อมูลสรุปของใบงาน</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>ชื่อใบงาน</Label>
+                  <div className="text-base font-semibold">{selectedEvent.title}</div>
+                </div>
+
+                {selectedEvent.description && (
+                  <div className="space-y-2">
+                    <Label>คำอธิบาย</Label>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEvent.description}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>วันที่เริ่มต้น</Label>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        {selectedEvent.startTime.toLocaleDateString("th-TH", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>
+                        {selectedEvent.startTime.toLocaleTimeString("th-TH", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>วันที่สิ้นสุด</Label>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        {selectedEvent.endTime.toLocaleDateString("th-TH", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>
+                        {selectedEvent.endTime.toLocaleTimeString("th-TH", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedEvent.category && (
+                  <div className="space-y-2">
+                    <Label>หมวดหมู่</Label>
+                    <Badge variant="secondary">{selectedEvent.category}</Badge>
+                  </div>
+                )}
+
+                {selectedEvent.tags && selectedEvent.tags.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Tags</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedEvent.tags.map((tag) => (
+                        <Badge key={tag} variant="outline">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsDialogOpen(false)
+                    setSelectedEvent(null)
+                  }}
+                >
+                  ปิด
+                </Button>
+                <Button
+                  onClick={() => {
+                    router.push(`/dashboard/(admin)/admin/jobs/${selectedEvent.id}`)
+                    setIsDialogOpen(false)
+                    setSelectedEvent(null)
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  ดูรายละเอียดเต็ม
+                </Button>
+              </DialogFooter>
+            </>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>
@@ -940,8 +1017,15 @@ function EventCard({
   getColorClasses: (color: string) => { bg: string; text: string }
   variant?: "default" | "compact" | "detailed"
 }) {
+  const router = useRouter()
   const [isHovered, setIsHovered] = useState(false)
   const colorClasses = getColorClasses(event.color)
+  
+  const handleViewJob = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    // Try admin route first, fallback to employee route
+    router.push(`/dashboard/(admin)/admin/jobs/${event.id}`)
+  }
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
@@ -982,33 +1066,62 @@ function EventCard({
           {event.title}
         </div>
         {isHovered && (
-          <div className="absolute left-0 top-full z-50 mt-1 w-64 animate-in fade-in slide-in-from-top-2 duration-200">
-            <Card className="border-2 p-3 shadow-xl">
-              <div className="space-y-2">
+          <div className="absolute left-0 top-full z-50 mt-1 w-72 animate-in fade-in slide-in-from-top-2 duration-200">
+            <Card className="border-2 p-4 shadow-xl bg-background">
+              <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="font-semibold text-sm leading-tight">{event.title}</h4>
                   <div className={cn("h-3 w-3 rounded-full flex-shrink-0", colorClasses.bg)} />
                 </div>
-                {event.description && <p className="text-xs text-muted-foreground line-clamp-2">{event.description}</p>}
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>
-                    {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                  </span>
-                  <span className="text-[10px]">({getDuration()})</span>
+                
+                {event.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-3">{event.description}</p>
+                )}
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      {event.startTime.toLocaleDateString("th-TH", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                    </span>
+                    <span className="text-[10px]">({getDuration()})</span>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  {event.category && (
-                    <Badge variant="secondary" className="text-[10px] h-5">
-                      {event.category}
-                    </Badge>
-                  )}
-                  {event.tags?.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-[10px] h-5">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
+                
+                {(event.category || event.tags?.length) && (
+                  <div className="flex flex-wrap gap-1">
+                    {event.category && (
+                      <Badge variant="secondary" className="text-[10px] h-5">
+                        {event.category}
+                      </Badge>
+                    )}
+                    {event.tags?.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-[10px] h-5">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full text-xs h-8"
+                  onClick={handleViewJob}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1.5" />
+                  ดูรายละเอียดใบงาน
+                </Button>
               </div>
             </Card>
           </div>
@@ -1078,15 +1191,29 @@ function EventCard({
         <div className="truncate">{event.title}</div>
       </div>
       {isHovered && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-72 animate-in fade-in slide-in-from-top-2 duration-200">
-          <Card className="border-2 p-4 shadow-xl">
+        <div className="absolute left-0 top-full z-50 mt-1 w-80 animate-in fade-in slide-in-from-top-2 duration-200">
+          <Card className="border-2 p-4 shadow-xl bg-background">
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <h4 className="font-semibold leading-tight">{event.title}</h4>
                 <div className={cn("h-4 w-4 rounded-full flex-shrink-0", colorClasses.bg)} />
               </div>
-              {event.description && <p className="text-sm text-muted-foreground">{event.description}</p>}
-              <div className="space-y-1.5">
+              
+              {event.description && (
+                <p className="text-sm text-muted-foreground line-clamp-3">{event.description}</p>
+              )}
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>
+                    {event.startTime.toLocaleDateString("th-TH", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" />
                   <span>
@@ -1094,6 +1221,9 @@ function EventCard({
                   </span>
                   <span className="text-[10px]">({getDuration()})</span>
                 </div>
+              </div>
+              
+              {(event.category || event.tags?.length) && (
                 <div className="flex flex-wrap gap-1">
                   {event.category && (
                     <Badge variant="secondary" className="text-xs">
@@ -1106,7 +1236,17 @@ function EventCard({
                     </Badge>
                   ))}
                 </div>
-              </div>
+              )}
+              
+              <Button
+                size="sm"
+                variant="default"
+                className="w-full text-xs h-8"
+                onClick={handleViewJob}
+              >
+                <ExternalLink className="h-3 w-3 mr-1.5" />
+                ดูรายละเอียดใบงาน
+              </Button>
             </div>
           </Card>
         </div>
@@ -1138,7 +1278,7 @@ function MonthView({
   const startDate = new Date(firstDayOfMonth)
   startDate.setDate(startDate.getDate() - startDate.getDay())
 
-  const days = []
+  const days: Date[] = []
   const currentDay = new Date(startDate)
 
   for (let i = 0; i < 42; i++) {
@@ -1148,13 +1288,61 @@ function MonthView({
 
   const getEventsForDay = (date: Date) => {
     return events.filter((event) => {
-      const eventDate = new Date(event.startTime)
-      return (
-        eventDate.getDate() === date.getDate() &&
-        eventDate.getMonth() === date.getMonth() &&
-        eventDate.getFullYear() === date.getFullYear()
-      )
+      const eventStart = new Date(event.startTime)
+      const eventEnd = new Date(event.endTime)
+      
+      // Normalize dates to start of day for comparison
+      const dayStart = new Date(date)
+      dayStart.setHours(0, 0, 0, 0)
+      
+      const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+      const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
+      const dayDate = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate())
+      
+      // Check if the day is within the event's date range
+      return dayDate >= eventStartDate && dayDate <= eventEndDate
     })
+  }
+  
+  // Helper function to determine if event starts on this day
+  const isEventStartDay = (event: Event, date: Date) => {
+    const eventStart = new Date(event.startTime)
+    const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+    const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    return eventStartDate.getTime() === dayDate.getTime()
+  }
+  
+  // Helper function to determine if event ends on this day
+  const isEventEndDay = (event: Event, date: Date) => {
+    const eventEnd = new Date(event.endTime)
+    const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
+    const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    return eventEndDate.getTime() === dayDate.getTime()
+  }
+  
+  // Helper function to get event span (how many days)
+  const getEventSpan = (event: Event, date: Date) => {
+    const eventStart = new Date(event.startTime)
+    const eventEnd = new Date(event.endTime)
+    
+    const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+    const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
+    const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    
+    if (dayDate < eventStartDate || dayDate > eventEndDate) return 0
+    
+    // Calculate how many days from start to end
+    const totalDays = Math.ceil((eventEndDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const dayIndex = Math.ceil((dayDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24))
+    
+    // Calculate remaining days from this day to end
+    const remainingDays = totalDays - dayIndex
+    
+    // Check if this is the last day in the visible week
+    const dayOfWeek = date.getDay()
+    const daysUntilWeekEnd = 6 - dayOfWeek
+    
+    return Math.min(remainingDays, daysUntilWeekEnd + 1)
   }
 
   return (
@@ -1167,35 +1355,178 @@ function MonthView({
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7">
-        {days.map((day, index) => {
-          const dayEvents = getEventsForDay(day)
-          const isCurrentMonth = day.getMonth() === currentDate.getMonth()
-          const isToday = day.toDateString() === new Date().toDateString()
+      <div className="relative">
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7">
+          {days.map((day, index) => {
+            const isCurrentMonth = day.getMonth() === currentDate.getMonth()
+            const isToday = day.toDateString() === new Date().toDateString()
 
-          return (
-            <div
-              key={index}
-              className={cn(
-                "min-h-20 border-b border-r p-1 transition-colors last:border-r-0 sm:min-h-24 sm:p-2",
-                !isCurrentMonth && "bg-muted/30",
-                "hover:bg-accent/50",
-              )}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => onDrop(day)}
-            >
+            return (
               <div
+                key={index}
                 className={cn(
-                  "mb-1 flex h-5 w-5 items-center justify-center rounded-full text-xs sm:h-6 sm:w-6 sm:text-sm",
-                  isToday && "bg-primary text-primary-foreground font-semibold",
+                  "min-h-20 border-b border-r p-1 transition-colors last:border-r-0 sm:min-h-24 sm:p-2 relative",
+                  !isCurrentMonth && "bg-muted/30",
+                  "hover:bg-accent/50",
                 )}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => onDrop(day)}
               >
-                {day.getDate()}
+                <div
+                  className={cn(
+                    "mb-1 flex h-5 w-5 items-center justify-center rounded-full text-xs sm:h-6 sm:w-6 sm:text-sm",
+                    isToday && "bg-primary text-primary-foreground font-semibold",
+                  )}
+                >
+                  {day.getDate()}
+                </div>
+                {/* Placeholder for events that start on this day */}
+                <div className="space-y-1 relative z-10" style={{ minHeight: '1.5rem' }}>
+                  {getEventsForDay(day)
+                    .filter(event => isEventStartDay(event, day))
+                    .slice(0, 3)
+                    .map((event) => (
+                      <div key={`placeholder-${event.id}`} style={{ height: '1.25rem' }} />
+                    ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {dayEvents.slice(0, 3).map((event) => (
+            )
+          })}
+        </div>
+        
+        {/* Events overlay - positioned absolutely to span multiple days */}
+        <div className="absolute inset-0 pointer-events-none" style={{ padding: '0.25rem' }}>
+          {(() => {
+            // Filter and prepare events
+            const visibleEvents = events.filter(event => {
+              const eventStart = new Date(event.startTime)
+              const eventEnd = new Date(event.endTime)
+              const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+              const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
+              
+              // Check if event overlaps with visible calendar days
+              const visibleStart = days[0]
+              const visibleEnd = days[days.length - 1]
+              const visibleStartDate = new Date(visibleStart.getFullYear(), visibleStart.getMonth(), visibleStart.getDate())
+              const visibleEndDate = new Date(visibleEnd.getFullYear(), visibleEnd.getMonth(), visibleEnd.getDate())
+              
+              return eventEndDate >= visibleStartDate && eventStartDate <= visibleEndDate
+            })
+
+            // Group events by their start day index and calculate row positions
+            const eventRows = new Map<number, number[]>() // dayIndex -> array of row positions
+            const eventPositions = new Map<string, { row: number; dayIndex: number; span: number }>()
+
+            visibleEvents.forEach(event => {
+              const eventStart = new Date(event.startTime)
+              const eventEnd = new Date(event.endTime)
+              const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+              const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
+              
+              // Find the day index where event starts
+              const startDayIndex = days.findIndex(day => {
+                const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate())
+                return dayDate.getTime() === eventStartDate.getTime()
+              })
+              
+              if (startDayIndex === -1) return
+              
+              // Calculate how many days the event spans
+              const totalDays = Math.ceil((eventEndDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+              const remainingDays = days.length - startDayIndex
+              const visibleSpan = Math.min(totalDays, remainingDays)
+              
+              // Find available row for this event
+              // Check all days this event spans to find conflicts
+              let row = 0
+              let hasConflict = true
+              
+              while (hasConflict) {
+                hasConflict = false
+                
+                // Check if this row conflicts with any existing event in the days this event spans
+                for (let dayOffset = 0; dayOffset < visibleSpan; dayOffset++) {
+                  const checkDayIndex = startDayIndex + dayOffset
+                  if (checkDayIndex >= days.length) break
+                  
+                  // Check all events to see if they conflict on this specific day
+                  eventPositions.forEach((pos, eventId) => {
+                    if (eventId === event.id) return
+                    
+                    // Check if events overlap in day range
+                    const posStartDay = pos.dayIndex
+                    const posEndDay = pos.dayIndex + pos.span - 1
+                    const currentStartDay = startDayIndex
+                    const currentEndDay = startDayIndex + visibleSpan - 1
+                    
+                    // Check if day ranges overlap
+                    if (!(currentStartDay > posEndDay || currentEndDay < posStartDay)) {
+                      // They overlap in day range, check if same row
+                      if (pos.row === row) {
+                        // Also check if they overlap on this specific day
+                        if (checkDayIndex >= posStartDay && checkDayIndex <= posEndDay) {
+                          hasConflict = true
+                        }
+                      }
+                    }
+                  })
+                  
+                  if (hasConflict) break
+                }
+                
+                if (hasConflict) {
+                  row++
+                  // Limit to maximum rows to prevent infinite loop
+                  if (row > 10) {
+                    hasConflict = false
+                    break
+                  }
+                }
+              }
+              
+              // Store this event's position
+              eventPositions.set(event.id, { row, dayIndex: startDayIndex, span: visibleSpan })
+            })
+
+            // Render events with calculated positions
+            return visibleEvents.map((event, eventIndex) => {
+              const position = eventPositions.get(event.id)
+              if (!position) return null
+              
+              const { row, dayIndex, span } = position
+              
+              const eventStart = new Date(event.startTime)
+              const eventEnd = new Date(event.endTime)
+              const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+              
+              // Calculate position
+              const dayWidth = 100 / 7 // 7 days in a week
+              const leftPercent = (dayIndex % 7) * dayWidth
+              const widthPercent = span * dayWidth
+              
+              // Calculate row (which week)
+              const weekRow = Math.floor(dayIndex / 7)
+              const rowHeight = 95 // Approximate height per row in pixels (min-h-20 = 5rem = 80px)
+              const eventRowHeight = 20 // Height of each event row
+              const dateNumberHeight = 24 // Height for date number (h-6 = 1.5rem = 24px)
+              const spacingAfterDate = 12 // Spacing after date number to avoid overlap
+              const topOffset = weekRow * rowHeight + dateNumberHeight + spacingAfterDate + (row * eventRowHeight) // Offset to avoid overlapping with date number
+              
+              return (
+                <div
+                  key={`event-${event.id}-${eventIndex}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${leftPercent}%`,
+                    width: `${widthPercent}%`,
+                    top: `${topOffset}px`,
+                    pointerEvents: 'auto',
+                    zIndex: 10 + eventIndex,
+                    padding: '0 0.125rem',
+                  }}
+                >
                   <EventCard
-                    key={event.id}
                     event={event}
                     onEventClick={onEventClick}
                     onDragStart={onDragStart}
@@ -1203,14 +1534,11 @@ function MonthView({
                     getColorClasses={getColorClasses}
                     variant="compact"
                   />
-                ))}
-                {dayEvents.length > 3 && (
-                  <div className="text-[10px] text-muted-foreground sm:text-xs">+{dayEvents.length - 3} more</div>
-                )}
-              </div>
-            </div>
-          )
-        })}
+                </div>
+              )
+            })
+          })()}
+        </div>
       </div>
     </Card>
   )
@@ -1235,7 +1563,7 @@ function WeekView({
   getColorClasses: (color: string) => { bg: string; text: string }
 }) {
   const startOfWeek = new Date(currentDate)
-  startOfWeek.setDate(currentDate.getDay())
+  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const day = new Date(startOfWeek)
@@ -1245,17 +1573,50 @@ function WeekView({
 
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
+  // Get events that start in this day and hour
   const getEventsForDayAndHour = (date: Date, hour: number) => {
     return events.filter((event) => {
-      const eventDate = new Date(event.startTime)
-      const eventHour = eventDate.getHours()
+      const eventStart = new Date(event.startTime)
+      const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+      const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
       return (
-        eventDate.getDate() === date.getDate() &&
-        eventDate.getMonth() === date.getMonth() &&
-        eventDate.getFullYear() === date.getFullYear() &&
-        eventHour === hour
+        eventStartDate.getTime() === dayDate.getTime() &&
+        eventStart.getHours() === hour
       )
     })
+  }
+
+  // Calculate event position and height in hours
+  const getEventStyle = (event: Event, day: Date) => {
+    const eventStart = new Date(event.startTime)
+    const eventEnd = new Date(event.endTime)
+    const dayStart = new Date(day)
+    dayStart.setHours(0, 0, 0, 0)
+    
+    // Check if event is on this day
+    const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+    const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate())
+    
+    if (eventStartDate.getTime() !== dayDate.getTime()) {
+      return null
+    }
+
+    const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes()
+    const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes()
+    const durationMinutes = endMinutes - startMinutes
+    
+    // Each hour cell is approximately 48px (min-h-12) on mobile, 64px (min-h-16) on desktop
+    // Use desktop height for better visibility
+    const hourHeight = 64 // base height per hour in pixels
+    const topOffset = (startMinutes / 60) * hourHeight
+    const height = (durationMinutes / 60) * hourHeight
+    
+    return {
+      top: `${topOffset}px`,
+      height: `${Math.max(height, 32)}px`, // Minimum height
+      position: 'absolute' as const,
+      zIndex: 10,
+    }
   }
 
   return (
@@ -1275,41 +1636,70 @@ function WeekView({
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-8">
-        {hours.map((hour) => (
-          <div key={`time-${hour}`}>
-            <div 
-              className="border-b border-r p-1 text-[10px] text-muted-foreground sm:p-2 sm:text-xs"
-            >
-              {hour.toString().padStart(2, "0")}:00
-            </div>
-            {weekDays.map((day) => {
-              const dayEvents = getEventsForDayAndHour(day, hour)
-              return (
+      <div className="relative">
+        {/* Time column and day columns */}
+        <div className="grid grid-cols-8">
+          {hours.map((hour) => (
+            <div key={`time-${hour}`} className="contents">
+              <div 
+                className="border-b border-r p-1 text-[10px] text-muted-foreground sm:p-2 sm:text-xs sticky top-0 bg-background z-20"
+              >
+                {hour.toString().padStart(2, "0")}:00
+              </div>
+              {weekDays.map((day) => (
                 <div
                   key={`${day.toISOString()}-${hour}`}
-                  className="min-h-12 border-b border-r p-0.5 transition-colors hover:bg-accent/50 last:border-r-0 sm:min-h-16 sm:p-1"
+                  className="min-h-12 border-b border-r p-0.5 transition-colors hover:bg-accent/50 last:border-r-0 sm:min-h-16 sm:p-1 relative"
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => onDrop(day, hour)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+        
+        {/* Events overlay - positioned absolutely */}
+        <div className="absolute inset-0 pointer-events-none">
+          {weekDays.map((day, dayIndex) => {
+            const dayEvents = events.filter((event) => {
+              const eventStart = new Date(event.startTime)
+              const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+              const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate())
+              return eventStartDate.getTime() === dayDate.getTime()
+            })
+            
+            return dayEvents.map((event) => {
+              const eventStyle = getEventStyle(event, day)
+              if (!eventStyle) return null
+              
+              // Calculate position based on grid
+              // Time column takes 1/8, each day takes 1/8
+              const leftPercent = ((dayIndex + 1) * 12.5)
+              const widthPercent = 12.5
+              
+              return (
+                <div
+                  key={`event-${event.id}-${day.toISOString()}`}
+                  style={{
+                    ...eventStyle,
+                    left: `${leftPercent}%`,
+                    width: `${widthPercent}%`,
+                    pointerEvents: 'auto',
+                  }}
                 >
-                  <div className="space-y-1">
-                    {dayEvents.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onEventClick={onEventClick}
-                        onDragStart={onDragStart}
-                        onDragEnd={onDragEnd}
-                        getColorClasses={getColorClasses}
-                        variant="default"
-                      />
-                    ))}
-                  </div>
+                  <EventCard
+                    event={event}
+                    onEventClick={onEventClick}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                    getColorClasses={getColorClasses}
+                    variant="default"
+                  />
                 </div>
               )
-            })}
-          </div>
-        ))}
+            })
+          })}
+        </div>
       </div>
     </Card>
   )
@@ -1335,52 +1725,138 @@ function DayView({
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
+  // Get events that start in this hour
   const getEventsForHour = (hour: number) => {
     return events.filter((event) => {
-      const eventDate = new Date(event.startTime)
-      const eventHour = eventDate.getHours()
+      const eventStart = new Date(event.startTime)
       return (
-        eventDate.getDate() === currentDate.getDate() &&
-        eventDate.getMonth() === currentDate.getMonth() &&
-        eventDate.getFullYear() === currentDate.getFullYear() &&
-        eventHour === hour
+        eventStart.getDate() === currentDate.getDate() &&
+        eventStart.getMonth() === currentDate.getMonth() &&
+        eventStart.getFullYear() === currentDate.getFullYear() &&
+        eventStart.getHours() === hour
       )
     })
   }
 
+  // Calculate event position and height
+  const getEventStyle = (event: Event) => {
+    const eventStart = new Date(event.startTime)
+    const eventEnd = new Date(event.endTime)
+    
+    // Check if event is on this day
+    if (
+      eventStart.getDate() !== currentDate.getDate() ||
+      eventStart.getMonth() !== currentDate.getMonth() ||
+      eventStart.getFullYear() !== currentDate.getFullYear()
+    ) {
+      return null
+    }
+
+    const dayStart = new Date(currentDate)
+    dayStart.setHours(0, 0, 0, 0)
+    
+    const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes()
+    const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes()
+    const durationMinutes = endMinutes - startMinutes
+    
+    // Each hour cell is approximately 64px (min-h-16) on mobile, 80px (min-h-20) on desktop
+    const hourHeightMobile = 64
+    const hourHeightDesktop = 80
+    const topOffsetMobile = (startMinutes / 60) * hourHeightMobile
+    const topOffsetDesktop = (startMinutes / 60) * hourHeightDesktop
+    const heightMobile = (durationMinutes / 60) * hourHeightMobile
+    const heightDesktop = (durationMinutes / 60) * hourHeightDesktop
+    
+    return {
+      mobile: {
+        top: `${topOffsetMobile}px`,
+        height: `${Math.max(heightMobile, 32)}px`,
+      },
+      desktop: {
+        top: `${topOffsetDesktop}px`,
+        height: `${Math.max(heightDesktop, 40)}px`,
+      },
+    }
+  }
+
+  // Get all events for this day
+  const dayEvents = events.filter((event) => {
+    const eventStart = new Date(event.startTime)
+    return (
+      eventStart.getDate() === currentDate.getDate() &&
+      eventStart.getMonth() === currentDate.getMonth() &&
+      eventStart.getFullYear() === currentDate.getFullYear()
+    )
+  })
+
   return (
     <Card className="overflow-auto">
-      <div className="space-y-0">
+      <div className="space-y-0 relative">
         {hours.map((hour) => {
           const hourEvents = getEventsForHour(hour)
           return (
             <div
               key={hour}
-              className="flex border-b last:border-b-0"
+              className="flex border-b last:border-b-0 relative"
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => onDrop(currentDate, hour)}
             >
-              <div className="w-14 flex-shrink-0 border-r p-2 text-xs text-muted-foreground sm:w-20 sm:p-3 sm:text-sm">
+              <div className="w-14 flex-shrink-0 border-r p-2 text-xs text-muted-foreground sm:w-20 sm:p-3 sm:text-sm sticky top-0 bg-background z-10">
                 {hour.toString().padStart(2, "0")}:00
               </div>
-              <div className="min-h-16 flex-1 p-1 transition-colors hover:bg-accent/50 sm:min-h-20 sm:p-2">
-                <div className="space-y-2">
-                  {hourEvents.map((event) => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onEventClick={onEventClick}
-                      onDragStart={onDragStart}
-                      onDragEnd={onDragEnd}
-                      getColorClasses={getColorClasses}
-                      variant="detailed"
-                    />
-                  ))}
-                </div>
+              <div className="min-h-16 flex-1 p-1 transition-colors hover:bg-accent/50 sm:min-h-20 sm:p-2 relative">
+                {/* Placeholder for events that start in this hour */}
+                {hourEvents.length > 0 && (
+                  <div className="space-y-2">
+                    {hourEvents.map((event) => (
+                      <div key={event.id} className="sm:hidden">
+                        <EventCard
+                          event={event}
+                          onEventClick={onEventClick}
+                          onDragStart={onDragStart}
+                          onDragEnd={onDragEnd}
+                          getColorClasses={getColorClasses}
+                          variant="detailed"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )
         })}
+        
+        {/* Desktop: Absolute positioned events */}
+        <div className="hidden sm:block absolute top-0 left-20 right-0" style={{ height: `${24 * 80}px` }}>
+          {dayEvents.map((event) => {
+            const eventStyle = getEventStyle(event)
+            if (!eventStyle) return null
+            
+            return (
+              <div
+                key={`desktop-${event.id}`}
+                style={{
+                  position: 'absolute',
+                  left: '0.5rem',
+                  right: '0.5rem',
+                  top: eventStyle.desktop.top,
+                  height: eventStyle.desktop.height,
+                  zIndex: 10,
+                }}
+              >
+                <EventCard
+                  event={event}
+                  onEventClick={onEventClick}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  getColorClasses={getColorClasses}
+                  variant="detailed"
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
     </Card>
   )

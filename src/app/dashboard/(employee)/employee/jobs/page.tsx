@@ -1,15 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { MoreHorizontal, Search, User, Calendar } from "lucide-react";
+import { MoreHorizontal, Search, User, Calendar, X } from "lucide-react";
 import { toast } from "sonner";
-import { type Dispatch } from '@uiw/react-signature';
+import SignatureCanvas from "react-signature-canvas";
 
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
+import { useUserStore } from "@/stores/features/userStore";
 
 // UI Components
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,16 +30,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -54,21 +54,108 @@ export default function JobManagementPage() {
 
   const allJobs = useJobStore((state) => state.jobs);
   const updateJob = useJobStore((state) => state.updateJob);
+  const requestJobCompletion = useJobStore((state) => state.requestJobCompletion);
+  const { currentUser } = useUserStore();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
+  const signatureRef = useRef<SignatureCanvas>(null);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const handleComplete = (job: Job) => {
     setJobToDelete(job);
-    setIsDeleteDialogOpen(true);
+    setSignatureData(null);
+    setIsCompleteDialogOpen(true);
   };
 
-  const confirmComplete = () => {
+  // -------------------- Signature Logic --------------------
+
+  const getSignatureImage = () => {
+    const ref = signatureRef.current;
+    if (!ref) return null;
+
+    // react-signature-canvas มี method toDataURL() โดยตรง
+    if (ref.isEmpty()) return null;
+
+    const dataURL = ref.toDataURL("image/png");
+
+    // ตรวจสอบว่าไม่ใช่ empty image
+    if (!dataURL || dataURL.length < 50) return null;
+
+    // รูป transparent 1px = ไม่มีลายเซ็น
+    const emptyPNG =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    if (dataURL === emptyPNG) return null;
+
+    return dataURL;
+  };
+
+  const checkSignature = React.useCallback(() => {
+    const result = getSignatureImage();
+    setSignatureData(result);
+  }, []);
+
+  useEffect(() => {
+    if (!isCompleteDialogOpen) return;
+
+    const interval = setInterval(() => {
+      checkSignature();
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [isCompleteDialogOpen, checkSignature]);
+
+  const handleSignatureEnd = () => {
+    setTimeout(() => checkSignature(), 80);
+  };
+
+  const handleClearSignature = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+      setSignatureData(null);
+    }
+  };
+
+  const confirmComplete = async () => {
+    const latest = getSignatureImage();
+
+    if (!latest) {
+      toast.error("กรุณาลงลายเซ็นก่อนทำการ Complete");
+      return;
+    }
+
+    if (!currentUser) {
+      toast.error("ไม่พบข้อมูลผู้ใช้");
+      return;
+    }
+
+    setSignatureData(latest);
+
     if (jobToDelete) {
-      updateJob(jobToDelete.id, { status: "completed" });
-      toast.success("Job completed successfully!");
-      setIsDeleteDialogOpen(false);
+      setIsCompleting(true);
+      try {
+        // ส่งคำขอจบงานแทนการ complete โดยตรง
+        requestJobCompletion(
+          jobToDelete.id,
+          { id: currentUser.id, name: currentUser.name },
+          latest
+        );
+        toast.success("ส่งคำขอจบงานแล้ว รอการอนุมัติจากหัวหน้าช่าง");
+
+        setIsCompleteDialogOpen(false);
+        setSignatureData(null);
+
+        if (signatureRef.current) {
+          signatureRef.current.clear();
+        }
+      } catch (error) {
+        toast.error("เกิดข้อผิดพลาดในการส่งคำขอจบงาน");
+      } finally {
+        setIsCompleting(false);
+      }
     }
   };
 
@@ -77,8 +164,31 @@ export default function JobManagementPage() {
     router.push(`/dashboard/employee/jobs/${jobId}/edit`);
   };
 
-  const filteredJobs = allJobs.filter((job) =>
+  // กรองเฉพาะงานที่ถูกมอบหมายให้ employee คนนี้
+  const assignedJobs = allJobs.filter((job) => {
+    if (!currentUser) return false;
+    // ตรวจสอบว่า currentUser อยู่ใน assignedEmployees หรือไม่
+    return job.assignedEmployees?.some(emp => emp.id === currentUser.id) || false;
+  });
+
+  // กรองตาม search term
+  const filteredJobs = assignedJobs.filter((job) =>
     job.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // แยกงานออกเป็น 2 กลุ่ม
+  const activeJobs = filteredJobs.filter(
+    (job) =>
+      job.status === "pending" ||
+      job.status === "in_progress" ||
+      job.status === "pending_approval" ||
+      job.status === "rejected" // งานที่ถูก reject ต้องแก้ไขใหม่และส่งคำขอใหม่ได้
+  );
+
+  const completedJobs = filteredJobs.filter(
+    (job) =>
+      job.status === "completed" ||
+      job.status === "cancelled"
   );
 
   return (
@@ -100,54 +210,142 @@ export default function JobManagementPage() {
       </div>
 
       {/* Content */}
-      <div>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            {filteredJobs.length > 0 ? (
-              filteredJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onView={(id) =>
-                    router.push(`/dashboard/employee/jobs/${id}`)
-                  }
-                  onEdit={(id) =>
-                    router.push(`/dashboard/employee/jobs/edit/${id}`)
-                  }
-                  onDelete={handleComplete}
+      <div className="space-y-8">
+        {/* งานใหม่ */}
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">งานใหม่</h2>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeJobs.length > 0 ? (
+                activeJobs.map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    onView={(id) =>
+                      router.push(`/dashboard/employee/jobs/${id}`)
+                    }
+                    onEdit={(id) =>
+                      router.push(`/dashboard/employee/jobs/edit/${id}`)
+                    }
+                    onDelete={handleComplete}
+                    showCompleteButton={true}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center text-muted-foreground py-12">
+                  <p>ไม่มีงานใหม่</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </div>
+
+        {/* งานที่ทำเสร็จแล้ว */}
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">งานที่ทำเสร็จแล้ว</h2>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {completedJobs.length > 0 ? (
+                completedJobs.map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    onView={(id) =>
+                      router.push(`/dashboard/employee/jobs/${id}`)
+                    }
+                    onEdit={(id) =>
+                      router.push(`/dashboard/employee/jobs/edit/${id}`)
+                    }
+                    onDelete={handleComplete}
+                    showCompleteButton={false}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center text-muted-foreground py-12">
+                  <p>ไม่มีงานที่ทำเสร็จแล้ว</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </div>
+      </div>
+
+      {/* Complete Dialog with Signature */}
+      <Dialog open={isCompleteDialogOpen} onOpenChange={setIsCompleteDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>ยืนยันการ Complete งาน</DialogTitle>
+            <DialogDescription>
+              กรุณาลายเซ็นเพื่อยืนยันการ Complete งาน: <strong>{jobToDelete?.title}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Signature Pad */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">ลายเซ็น</Label>
+            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/20">
+              <div className="w-full" style={{ maxWidth: "100%" }}>
+                <SignatureCanvas
+                  ref={signatureRef}
+                  onEnd={handleSignatureEnd}
+                  canvasProps={{
+                    className: "signature-canvas w-full h-[200px]",
+                    style: { width: "100%", height: "200px" },
+                  }}
+                  backgroundColor="white"
+                  penColor="#000000"
                 />
-              ))
-            ) : (
-              <div className="col-span-full text-center text-muted-foreground py-12">
-                <p>No jobs found.</p>
-                <p className="text-sm">
-                  Try adjusting your search or add a new job.
-                </p>
+              </div>
+            </div>
+
+            {signatureData && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span>ลายเซ็นพร้อมแล้ว</span>
               </div>
             )}
           </div>
-        </CardContent>
-      </div>
 
-      {/* Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will mark the job titled "{jobToDelete?.title}" as completed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button variant="destructive" onClick={confirmComplete}>
-                Complete
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          {/* Signature Actions */}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClearSignature}
+            >
+              <X className="h-4 w-4 mr-2" />
+              ลบลายเซ็น
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCompleteDialogOpen(false);
+                setSignatureData(null);
+                if (signatureRef.current) {
+                  signatureRef.current.clear();
+                }
+              }}
+              disabled={isCompleting}
+            >
+              ยกเลิก
+            </Button>
+
+            <Button
+              variant="default"
+              onClick={confirmComplete}
+              disabled={!signatureData || isCompleting}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isCompleting ? "กำลังดำเนินการ..." : "ยืนยัน Complete งาน"}
+            </Button>
+          </DialogFooter>
+
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -158,9 +356,10 @@ interface JobCardProps {
   onView: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (job: Job) => void;
+  showCompleteButton?: boolean;
 }
 
-function JobCard({ job, onView, onEdit, onDelete }: JobCardProps) {
+function JobCard({ job, onView, onEdit, onDelete, showCompleteButton = true }: JobCardProps) {
   const router = useRouter();
   const employees = job.assignedEmployees;
   const handleEditJob = (e: React.MouseEvent, jobId: string) => {
@@ -182,6 +381,16 @@ function JobCard({ job, onView, onEdit, onDelete }: JobCardProps) {
             <Badge className="capitalize mt-2" variant={getStatusVariant(job.status)}>
               {job.status.replace(/_/g, " ")}
             </Badge>
+            {job.status === "rejected" && job.rejectionReason && (
+              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">
+                  เหตุผลการปฏิเสธ:
+                </p>
+                <p className="text-xs text-red-600 dark:text-red-300">
+                  {job.rejectionReason}
+                </p>
+              </div>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -196,9 +405,11 @@ function JobCard({ job, onView, onEdit, onDelete }: JobCardProps) {
               <DropdownMenuItem onClick={(e) => handleEditJob(e, job.id)}>
                 Edit Job
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(job)}>
-                Complete Job
-              </DropdownMenuItem>
+              {showCompleteButton && (
+                <DropdownMenuItem onClick={() => onDelete(job)}>
+                  Complete Job
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

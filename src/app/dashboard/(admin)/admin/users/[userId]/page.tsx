@@ -99,7 +99,7 @@ export default function UserAnalyticsPage() {
   const jobHistory = userJobs.map((j) => ({
     id: j.id,
     taskName: j.title,
-    project: j.department || "-",
+    project: j.departments && j.departments.length > 0 ? j.departments.join(", ") : "-",
     status: j.status === "completed" ? "Completed" : j.status === "in_progress" ? "In Progress" : String(j.status),
     date: (j.startDate || j.createdAt).slice(0, 10),
   }))

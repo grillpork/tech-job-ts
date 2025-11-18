@@ -85,11 +85,7 @@ export default function Sidebar() {
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
     ],
     employee: [
-      {
-        name: "Dashboard",
-        href: "/dashboard/employee/dashboard",
-        icon: LayoutDashboard,
-      },
+      { name: "Dashboard", href: "/dashboard/employee/dashboard", icon: LayoutDashboard },
       { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
       { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
       {

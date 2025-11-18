@@ -161,11 +161,18 @@ export default function GlobalSearch() {
 
               {/* Inventories */}
               {filteredInventories.length > 0 && (
-                <CommandGroup heading="Inventory">
+                <CommandGroup heading="Inventorys">
                   {filteredInventories.map((item) => (
                     <CommandItem
                       key={item.id}
-                      onSelect={() => handleSelect("inventory", item.id)}
+                      onSelect={() => {
+                        setOpen(false);
+                        // ใช้ path ที่ถูกต้องตาม role
+                        const inventoryPath = role === "admin" || role === "manager" || role === "lead_technician"
+                          ? `/dashboard/admin/inventorys/${item.id}`
+                          : `/dashboard/employee/inventorys/${item.id}`;
+                        router.push(inventoryPath);
+                      }}
                       className="cursor-pointer"
                     >
                       <Boxes className="w-4 h-4 mr-2 text-orange-500" />

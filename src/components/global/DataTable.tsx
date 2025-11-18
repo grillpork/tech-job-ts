@@ -36,6 +36,7 @@ interface DataTableProps<T> {
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
   onRowReorder?: (newData: T[]) => void;
+  onRowClick?: (row: T) => void;
   showCheckbox?: boolean;
 }
 
@@ -53,6 +54,7 @@ export function DataTable<T extends { id: string | number }>({
   onPageChange,
   onRowsPerPageChange,
   onRowReorder,
+  onRowClick,
   showCheckbox = true,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
@@ -139,7 +141,10 @@ export function DataTable<T extends { id: string | number }>({
 
     const newData = [...data];
     const [moved] = newData.splice(srcIndex, 1);
-    const insertIndex = srcIndex < dstIndex ? dstIndex : dstIndex;
+    // หลังจาก splice ออกแล้ว index จะเลื่อน ดังนั้น insert ที่ dstIndex
+    // ถ้า drag ลง (srcIndex < dstIndex): insert ที่ dstIndex (เพราะ splice ออกแล้ว index จะเลื่อน)
+    // ถ้า drag ขึ้น (srcIndex > dstIndex): insert ที่ dstIndex (เพราะ splice ออกแล้ว index จะเลื่อน)
+    const insertIndex = srcIndex < dstIndex ? dstIndex : dstIndex + 1;
     newData.splice(insertIndex, 0, moved);
 
     if (onRowReorder) onRowReorder(newData);
@@ -185,50 +190,56 @@ export function DataTable<T extends { id: string | number }>({
 
   return (
     <div className="h-full space-y-3 overflow-hidden">
-      {/* Toolbar with fade-in animation */}
-      <motion.div 
-        className="flex flex-wrap items-center justify-between gap-3"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Input
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-[240px]"
-        />
+      {/* Toolbar with fade-in animation - แสดงเฉพาะเมื่อมี searchKey หรือ filters */}
+      {(searchKey || (filters && filters.length > 0)) && (
+        <motion.div 
+          className="flex flex-wrap items-center justify-between gap-3"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {searchKey && (
+            <Input
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-[240px]"
+            />
+          )}
 
-        <div className="flex gap-2 flex-wrap">
-          {filters?.map((f, idx) => (
-            <motion.div
-              key={String(f.key)}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.8 }}
-            >
-              <Select
-                value={filterValues[String(f.key)] || "all"}
-                onValueChange={(val) =>
-                  setFilterValues((prev) => ({ ...prev, [String(f.key)]: val }))
-                }
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder={f.placeholder || "Filter"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {f.options.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
+          {filters && filters.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {filters.map((f, idx) => (
+                <motion.div
+                  key={String(f.key)}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.8 }}
+                >
+                  <Select
+                    value={filterValues[String(f.key)] || "all"}
+                    onValueChange={(val) =>
+                      setFilterValues((prev) => ({ ...prev, [String(f.key)]: val }))
+                    }
+                  >
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder={f.placeholder || "Filter"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {f.options.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Table with animated rows */}
       <motion.div 
@@ -292,7 +303,8 @@ export function DataTable<T extends { id: string | number }>({
                     onDragStart={(e: any) => onRowReorder && handleDragStart(e, row.id)}
                     onDragOver={(e: any) => onRowReorder && handleDragOver(e)}
                     onDrop={(e: any) => onRowReorder && handleDrop(e, row.id)}
-                    className={onRowReorder ? "cursor-grab" : undefined}
+                    onClick={() => onRowClick && onRowClick(row)}
+                    className={onRowReorder ? "cursor-grab" : onRowClick ? "cursor-pointer" : undefined}
                     style={{
                       opacity: draggingId === row.id ? 0.5 : 1
                     }}

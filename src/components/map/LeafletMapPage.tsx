@@ -73,13 +73,12 @@ const mapJobToLocationData = (job: Job, index: number): LocationData => {
     rejected: "pending",
   };
 
-  // Determine nature from department or default to "building"
-  const getNature = (department: string | null): string => {
-    if (!department) return "building";
-    const dept = department.toLowerCase();
-    if (dept.includes("บ้าน") || dept.includes("home") || dept.includes("residential")) {
+  // Determine nature from job type or default to "building"
+  const getNature = (type: "บ้าน" | "คอนโด" | null | undefined): string => {
+    if (type === "บ้าน") {
       return "home";
     }
+    // ถ้าเป็น "คอนโด" หรือไม่มี type ให้เป็น "building"
     return "building";
   };
 
@@ -93,7 +92,7 @@ const mapJobToLocationData = (job: Job, index: number): LocationData => {
     description: job.description || job.location?.name || "ไม่มีคำอธิบาย",
     status: statusMap[job.status],
     radius: 500, // Default radius
-    nature: getNature(job.department),
+    nature: getNature(job.type),
     locationImage: job.locationImages && job.locationImages.length > 0 ? job.locationImages[0] : defaultImage,
     jobId: job.id,
   };
@@ -330,8 +329,8 @@ export default function LeafletMapPage() {
 
                   {loc.status}
                 </Badge>
-                {loc.title}
-                <p className="text-sm dark:text-white/50 text-black/50">
+                <p className="text-sm font-bold line-clamp-1">{loc.title}</p>
+                <p className="text-sm dark:text-white/50 text-black/50 line-clamp-2">
                   {loc.description}
                 </p>
                 

@@ -22,9 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import UserForm from "@/components/admin/UserForm";
 import UserView from "@/components/admin/UserView";
 import { columns } from "@/components/job_m/columns";
 
@@ -38,8 +36,6 @@ export default function UsersPage() {
 
   // Dialog state
   const [viewUser, setViewUser] = useState<any | null>(null);
-  const [editUser, setEditUser] = useState<any | null>(null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const columns: any = [
     {
@@ -55,14 +51,23 @@ export default function UsersPage() {
           .join("")
           .toUpperCase();
 
+        // Check if imageUrl exists and is a valid non-empty string
+        const hasImageUrl = row?.imageUrl && 
+          typeof row.imageUrl === 'string' && 
+          row.imageUrl.trim().length > 0;
+
         return (
           <div className="flex items-center gap-3">
-            <Avatar>
-              {row?.imageUrl ? (
-                <AvatarImage src={row.imageUrl} alt={row.name} />
-              ) : (
-                <AvatarFallback>{initials || "U"}</AvatarFallback>
-              )}
+            <Avatar className="h-7 w-7">
+              {hasImageUrl ? (
+                <AvatarImage 
+                  src={row.imageUrl.trim()} 
+                  alt={row?.name || "User"}
+                />
+              ) : null}
+              <AvatarFallback className="bg-muted text-muted-foreground">
+                {initials || "U"}
+              </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
               <span className="font-medium">{row?.name}</span>
@@ -92,9 +97,11 @@ export default function UsersPage() {
               <User className="mr-2 h-4 w-4" />
               View details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setEditUser(row)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit user
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/admin/users/${row.id}/edit`}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit user
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -129,10 +136,12 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold">จัดการผู้ใช้</h1>
           <p className="text-sm text-muted-foreground">จัดการบัญชีผู้ใช้ทั้งหมดในระบบ</p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <User className="h-4 w-4 mr-2" />
-          เพิ่มผู้ใช้ใหม่
-        </Button>
+        <Link href="/dashboard/admin/users/create">
+          <Button>
+            <User className="h-4 w-4 mr-2" />
+            เพิ่มผู้ใช้ใหม่
+          </Button>
+        </Link>
       </div>
 
       <DataTable
@@ -149,6 +158,7 @@ export default function UsersPage() {
             options: [
               { label: "Admin", value: "admin" },
               { label: "Manager", value: "manager" },
+              { label: "Lead Technician", value: "lead_technician" },
               { label: "Employee", value: "employee" },
             ],
           },
@@ -158,6 +168,16 @@ export default function UsersPage() {
             options: [
               { label: "Active", value: "active" },
               { label: "Inactive", value: "inactive" },
+            ],
+          },
+          {
+            key: "department",
+            placeholder: "Filter Department",
+            options: [
+              { label: "แผนกช่างไฟ (Electrical)", value: "Electrical" },
+              { label: "แผนกช่างกล (Mechanical)", value: "Mechanical" },
+              { label: "แผนกช่างเทคนิค (Technical)", value: "Technical" },
+              { label: "แผนกช่างโยธา (Civil)", value: "Civil" },
             ],
           },
         ]}
@@ -201,34 +221,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit user</DialogTitle>
-            <DialogDescription>Edit user information and save.</DialogDescription>
-          </DialogHeader>
-          {editUser && <UserForm user={editUser} onClose={() => setEditUser(null)} />}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditUser(null)}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create User Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>สร้างบัญชีผู้ใช้ใหม่</DialogTitle>
-            <DialogDescription>
-              กรอกข้อมูลเพื่อสร้างบัญชีผู้ใช้ใหม่ในระบบ
-            </DialogDescription>
-          </DialogHeader>
-          <UserForm onClose={() => setIsCreateDialogOpen(false)} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

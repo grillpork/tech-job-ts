@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { User } from "@/lib/types/user";
 import { MOCK_USERS } from "@/lib/mocks/user";
+import { useAuditLogStore } from "./auditLogStore";
 
 interface Credentials {
   email: string;
@@ -80,6 +81,7 @@ export const useUserStore = create<UserStoreState>()(
       },
 
       createUser: (userData) => {
+        let newUserId: string | null = null;
         set((state) => {
           if (state.users.some((u) => u.email === userData.email)) {
             console.error("❌ UserStore: Cannot create user, email already exists.");
@@ -91,12 +93,39 @@ export const useUserStore = create<UserStoreState>()(
             ...userData,
             password: userData.password || "password123",
           };
+          newUserId = newUser.id;
           state.users.push(newUser);
         });
         console.log("✅ UserStore: User created:", userData.name);
+        
+        // ✅ บันทึก audit log
+        if (newUserId) {
+          try {
+            const currentUser = get().currentUser;
+            if (currentUser) {
+              useAuditLogStore.getState().addAuditLog({
+                action: "create",
+                entityType: "user",
+                entityId: newUserId,
+                entityName: userData.name,
+                performedBy: {
+                  id: currentUser.id,
+                  name: currentUser.name,
+                  role: currentUser.role,
+                },
+                details: `เพิ่มผู้ใช้ใหม่: ${userData.name} (${userData.email})`,
+              });
+            }
+          } catch (error) {
+            console.error("Failed to log audit:", error);
+          }
+        }
       },
 
       updateUser: (userId, updatedData) => {
+        let updatedUser: User | null = null;
+        let oldUserData: User | null = null;
+        
         set((state) => {
           const userIndex = state.users.findIndex((user) => user.id === userId);
           if (userIndex !== -1) {
@@ -108,6 +137,7 @@ export const useUserStore = create<UserStoreState>()(
               return;
             }
             const currentUserData = state.users[userIndex];
+            oldUserData = { ...currentUserData };
             state.users[userIndex] = {
               ...currentUserData,
               ...updatedData,
@@ -116,14 +146,52 @@ export const useUserStore = create<UserStoreState>()(
                   ? currentUserData.password
                   : updatedData.password || currentUserData.password,
             };
+            updatedUser = state.users[userIndex];
             console.log("✅ UserStore: User updated:", state.users[userIndex].name);
           } else {
             console.warn(`⚠️ UserStore: User with ID ${userId} not found for update.`);
           }
         });
+        
+        // ✅ บันทึก audit log
+        if (updatedUser && oldUserData) {
+          try {
+            const currentUser = get().currentUser;
+            if (currentUser) {
+              const changes: { field: string; oldValue: any; newValue: any }[] = [];
+              if (updatedData.name && updatedData.name !== oldUserData.name) {
+                changes.push({ field: "name", oldValue: oldUserData.name, newValue: updatedData.name });
+              }
+              if (updatedData.email && updatedData.email !== oldUserData.email) {
+                changes.push({ field: "email", oldValue: oldUserData.email, newValue: updatedData.email });
+              }
+              if (updatedData.role && updatedData.role !== oldUserData.role) {
+                changes.push({ field: "role", oldValue: oldUserData.role, newValue: updatedData.role });
+              }
+              
+              useAuditLogStore.getState().addAuditLog({
+                action: "update",
+                entityType: "user",
+                entityId: updatedUser.id,
+                entityName: updatedUser.name,
+                performedBy: {
+                  id: currentUser.id,
+                  name: currentUser.name,
+                  role: currentUser.role,
+                },
+                details: `แก้ไขข้อมูลผู้ใช้: ${updatedUser.name}`,
+                changes: changes.length > 0 ? changes : undefined,
+              });
+            }
+          } catch (error) {
+            console.error("Failed to log audit:", error);
+          }
+        }
       },
 
       deleteUser: (userId) => {
+        const userToDelete = get().users.find((u) => u.id === userId);
+        
         set((state) => {
           if (state.currentUser?.id === userId) {
             console.warn("⚠️ UserStore: Cannot delete current logged-in user.");
@@ -132,6 +200,29 @@ export const useUserStore = create<UserStoreState>()(
           state.users = state.users.filter((user) => user.id !== userId);
         });
         console.log(`🗑️ UserStore: User with ID ${userId} deleted.`);
+        
+        // ✅ บันทึก audit log
+        if (userToDelete) {
+          try {
+            const currentUser = get().currentUser;
+            if (currentUser) {
+              useAuditLogStore.getState().addAuditLog({
+                action: "delete",
+                entityType: "user",
+                entityId: userToDelete.id,
+                entityName: userToDelete.name,
+                performedBy: {
+                  id: currentUser.id,
+                  name: currentUser.name,
+                  role: currentUser.role,
+                },
+                details: `ลบผู้ใช้: ${userToDelete.name} (${userToDelete.email})`,
+              });
+            }
+          } catch (error) {
+            console.error("Failed to log audit:", error);
+          }
+        }
       },
       reorderUsers: (userIdOrder: string[]) => {
         set((state) => {

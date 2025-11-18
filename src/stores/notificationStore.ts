@@ -7,11 +7,16 @@ export type NotificationType =
   | "job_created" 
   | "job_updated" 
   | "job_completed" 
+  | "job_assigned"
+  | "job_status_changed"
   | "report_submitted" 
   | "report_assigned" 
   | "report_resolved"
   | "user_created"
   | "inventory_low"
+  | "inventory_request_created"
+  | "inventory_request_approved"
+  | "inventory_request_rejected"
   | "task_assigned"
   | "message"
   | "comment"
@@ -193,6 +198,66 @@ export const notificationHelpers = {
       title: `อุปกรณ์ใกล้หมด: ${itemName}`,
       description: `เหลือเพียง ${quantity} ชิ้น`,
       link: `/dashboard/admin/inventorys`,
+    });
+  },
+
+  jobAssigned: (jobTitle: string, assignerName: string, jobId: string) => {
+    useNotificationStore.getState().addNotification({
+      type: "job_assigned",
+      title: `มอบหมายงาน: ${jobTitle}`,
+      description: `${assignerName} มอบหมายงานให้คุณ`,
+      user: assignerName,
+      link: `/dashboard/employee/jobs/${jobId}`,
+    });
+  },
+
+  jobStatusChanged: (jobTitle: string, status: string, jobId: string) => {
+    const statusLabels: Record<string, string> = {
+      pending: "รอดำเนินการ",
+      in_progress: "กำลังดำเนินการ",
+      pending_approval: "รออนุมัติ",
+      completed: "เสร็จสมบูรณ์",
+      cancelled: "ยกเลิก",
+      rejected: "ปฏิเสธ",
+    };
+    
+    useNotificationStore.getState().addNotification({
+      type: "job_status_changed",
+      title: `สถานะงานเปลี่ยน: ${jobTitle}`,
+      description: `สถานะเปลี่ยนเป็น: ${statusLabels[status] || status}`,
+      link: `/dashboard/employee/jobs/${jobId}`,
+    });
+  },
+
+  inventoryRequestCreated: (jobTitle: string, requesterName: string, requestId: string, jobId: string) => {
+    useNotificationStore.getState().addNotification({
+      type: "inventory_request_created",
+      title: `คำขอเบิกวัสดุ: ${jobTitle}`,
+      description: `${requesterName} สร้างคำขอเบิกวัสดุ`,
+      user: requesterName,
+      link: `/dashboard/employee/jobs/${jobId}`,
+    });
+  },
+
+  inventoryRequestApproved: (jobTitle: string, approverName: string, requestId: string, jobId: string) => {
+    useNotificationStore.getState().addNotification({
+      type: "inventory_request_approved",
+      title: `อนุมัติเบิกวัสดุ: ${jobTitle}`,
+      description: `${approverName} อนุมัติคำขอเบิกวัสดุแล้ว`,
+      user: approverName,
+      link: `/dashboard/employee/jobs/${jobId}`,
+    });
+  },
+
+  inventoryRequestRejected: (jobTitle: string, rejecterName: string, requestId: string, jobId: string, reason?: string) => {
+    useNotificationStore.getState().addNotification({
+      type: "inventory_request_rejected",
+      title: `ปฏิเสธเบิกวัสดุ: ${jobTitle}`,
+      description: reason 
+        ? `${rejecterName} ปฏิเสธคำขอ: ${reason}`
+        : `${rejecterName} ปฏิเสธคำขอเบิกวัสดุ`,
+      user: rejecterName,
+      link: `/dashboard/employee/jobs/${jobId}`,
     });
   },
 };

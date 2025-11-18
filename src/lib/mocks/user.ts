@@ -8,7 +8,6 @@ export const MOCK_USERS: User[] = [
     role: "admin",
     imageUrl: "https://i.pravatar.cc/150?u=admin1",
     email: "somchai.admin@company.com",
-    status: "active",
     phone: "+66 81 234 5678",
     bio: "ผู้บริหารที่มีประสบการณ์ด้านการจัดการทีมและโครงการมานานกว่า 10 ปี ชอบพัฒนากระบวนการทำงานให้มีประสิทธิภาพ",
     skills: ["Management", "Planning", "KPI"],
@@ -21,6 +20,7 @@ export const MOCK_USERS: User[] = [
     accountTier: "Admin",
     referralCode: "ADM001",
     accountProgressTier: "Tier 3",
+    status: "active",
     password: "password123",
   },
   {
@@ -41,12 +41,14 @@ export const MOCK_USERS: User[] = [
     accountTier: "Manager",
     referralCode: "MGR010",
     accountProgressTier: "Tier 2",
+    status: "active",
     password: "password123",
   },
   {
     id: "user-lead-1",
     name: "สมศักดิ์ ช่างใหญ่",
     role: "lead_technician",
+    department: "Electrical", // ✅ หัวหน้าช่างแผนกช่างไฟ
     imageUrl: "https://i.pravatar.cc/150?u=mgr1",
     email: "somsak.lead@company.com",
     phone: "+66 82 333 4444",
@@ -60,6 +62,70 @@ export const MOCK_USERS: User[] = [
     accountTier: "Lead",
     referralCode: "LD020",
     accountProgressTier: "Tier 2",
+    status: "active",
+    password: "password123",
+  },
+  {
+    id: "user-lead-2",
+    name: "ประยุทธ์ ช่างกล",
+    role: "lead_technician",
+    department: "Mechanical", // ✅ หัวหน้าช่างแผนกช่างกล
+    imageUrl: "https://i.pravatar.cc/150?u=lead2",
+    email: "prayut.lead@company.com",
+    phone: "+66 83 444 5555",
+    bio: "หัวหน้าช่างเครื่องกลที่มีประสบการณ์ด้านซ่อมบำรุงและจัดการทีมช่าง",
+    skills: ["Maintenance", "Team Management", "Quality Control"],
+    joinedAt: "2019-11-20",
+    address: "78 ถนนรัชดาภิเษก แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพฯ",
+    employeeId: "TCH-0021",
+    github: null,
+    employmentType: "Full-time",
+    accountTier: "Lead",
+    referralCode: "LD021",
+    accountProgressTier: "Tier 2",
+    status: "active",
+    password: "password123",
+  },
+  {
+    id: "user-lead-3",
+    name: "สมหมาย ช่างโยธา",
+    role: "lead_technician",
+    department: "Civil", // ✅ หัวหน้าช่างแผนกช่างโยธา
+    imageUrl: "https://i.pravatar.cc/150?u=lead3",
+    email: "sommai.lead@company.com",
+    phone: "+66 85 666 7777",
+    bio: "หัวหน้าช่างโยธาที่เชี่ยวชาญด้านโครงสร้างและการก่อสร้าง",
+    skills: ["Construction", "Structural Engineering", "Project Management"],
+    joinedAt: "2021-03-10",
+    address: "12/3 ถนนพหลโยธิน แขวงจตุจักร เขตจตุจักร กรุงเทพฯ",
+    employeeId: "TCH-0022",
+    github: null,
+    employmentType: "Full-time",
+    accountTier: "Lead",
+    referralCode: "LD022",
+    accountProgressTier: "Tier 2",
+    status: "active",
+    password: "password123",
+  },
+  {
+    id: "user-lead-4",
+    name: "สมชาย ช่างเทคนิค",
+    role: "lead_technician",
+    department: "Technical", // ✅ หัวหน้าช่างแผนกช่างเทคนิค
+    imageUrl: "https://i.pravatar.cc/150?u=lead4",
+    email: "somchai.tech@company.com",
+    phone: "+66 86 777 8888",
+    bio: "หัวหน้าช่างเทคนิคที่เชี่ยวชาญด้านระบบอัตโนมัติและเทคโนโลยี",
+    skills: ["Automation", "System Integration", "Technical Support"],
+    joinedAt: "2020-01-05",
+    address: "45 ถนนสีลม แขวงสีลม เขตบางรัก กรุงเทพฯ",
+    employeeId: "TCH-0023",
+    github: null,
+    employmentType: "Full-time",
+    accountTier: "Lead",
+    referralCode: "LD023",
+    accountProgressTier: "Tier 2",
+    status: "active",
     password: "password123",
   },
 
@@ -69,6 +135,7 @@ export const MOCK_USERS: User[] = [
     name: "นาย สมควร ลาโลก",
     role: "employee",
     department: "Electrical", // ✅ พนักงานแผนกช่างไฟ
+    imageUrl: "https://i.pravatar.cc/150?u=emp-e1",
     email: "emp1@company.com",
     phone: "+66 84 555 6666",
     bio: "ช่างไฟฟ้าประสบการณ์ 3 ปี ถนัดงานติดตั้งและตรวจสอบระบบไฟฟ้า",
@@ -80,6 +147,7 @@ export const MOCK_USERS: User[] = [
     accountTier: "Employee",
     referralCode: "EMP101",
     accountProgressTier: "Tier 1",
+    status: "active",
     password: "password123",
   },
   {
@@ -87,7 +155,9 @@ export const MOCK_USERS: User[] = [
     name: "นางสาว พิรัย กรรม ",
     role: "employee",
     department: "Electrical", // ✅ พนักงานแผนกช่างไฟ
+    imageUrl: "https://i.pravatar.cc/150?u=emp-e2",
     email: "emp2@company.com",
+    status: "active",
     password: "password123",
   },
   
@@ -96,7 +166,9 @@ export const MOCK_USERS: User[] = [
     name: "นางสาว สมศรี เรืองแสง ",
     role: "employee",
     department: "Electrical", // ✅ พนักงานแผนกช่างไฟ
+    imageUrl: "https://i.pravatar.cc/150?u=emp-e3",
     email: "emp3@company.com",
+    status: "active",
     password: "password123",
   },
 
@@ -105,7 +177,9 @@ export const MOCK_USERS: User[] = [
     name: "นาย ประยุบ อังคาร ",
     role: "employee",
     department: "Electrical", // ✅ พนักงานแผนกช่างไฟ
+    imageUrl: "https://i.pravatar.cc/150?u=emp-e4",
     email: "emp4@company.com",
+    status: "active",
     password: "password123",
   },
 
@@ -114,7 +188,9 @@ export const MOCK_USERS: User[] = [
     name: "นาย สมศักดิ์ มาทำไม ",
     role: "employee",
     department: "Electrical", // ✅ พนักงานแผนกช่างไฟ
+    imageUrl: "https://i.pravatar.cc/150?u=emp-e5",
     email: "emp5@company.com",
+    status: "active",
     password: "password123",
   },
 
@@ -124,6 +200,7 @@ export const MOCK_USERS: User[] = [
     name: "นาย มาลี แหม่ม ",
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
+    imageUrl: "https://i.pravatar.cc/150?u=emp-m1",
     email: "emp-m1@company.com",
     phone: "+66 86 777 8888",
     bio: "ช่างเครื่องกลชำนาญงานซ่อมบำรุงและอ่านแบบชิ้นส่วนเครื่องจักร",
@@ -135,6 +212,7 @@ export const MOCK_USERS: User[] = [
     accountTier: "Employee",
     referralCode: "EMP201",
     accountProgressTier: "Tier 1",
+    status: "active",
     password: "password123",
   },
 
@@ -143,7 +221,9 @@ export const MOCK_USERS: User[] = [
     name: "นาย คิง โซเยอร์",
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
+    imageUrl: "https://i.pravatar.cc/150?u=emp-m2",
     email: "emp-m2@company.com",
+    status: "active",
     password: "password123",
   },
 
@@ -152,7 +232,9 @@ export const MOCK_USERS: User[] = [
     name: "นาย อูโน่ หลาวทอง",
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
+    imageUrl: "https://i.pravatar.cc/150?u=emp-m3",
     email: "emp-m3@company.com",
+    status: "active",
     password: "password123",
   },
 
@@ -161,7 +243,9 @@ export const MOCK_USERS: User[] = [
     name: "นาย ทนงทวย คงควรคอย",
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
+    imageUrl: "https://i.pravatar.cc/150?u=emp-m4",
     email: "emp-m4@company.com",
+    status: "active",
     password: "password123",
   },
 
@@ -170,7 +254,9 @@ export const MOCK_USERS: User[] = [
     name: "นาย สัญญา ชอบโกหก",
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
+    imageUrl: "https://i.pravatar.cc/150?u=emp-m5",
     email: "emp-m5@company.com",
+    status: "active",
     password: "password123",
   },
 
@@ -180,7 +266,9 @@ export const MOCK_USERS: User[] = [
     name: "นาง ง. (ช่างโยธา)",
     role: "employee",
     department: "Civil", // ✅ พนักงานแผนกช่างโยธา
+    imageUrl: "https://i.pravatar.cc/150?u=emp-civil",
     email: "emp4@company.com",
+    status: "active",
     password: "password123",
   },
 
@@ -190,7 +278,9 @@ export const MOCK_USERS: User[] = [
     name: "นาย จ. (ช่างเทคนิค)",
     role: "employee",
     department: "Technical", // ✅ พนักงานแผนกช่างเทคนิค
+    imageUrl: "https://i.pravatar.cc/150?u=emp-tech",
     email: "emp5@company.com",
+    status: "active",
     password: "password123",
   },
 ];

@@ -4,8 +4,8 @@ export type Inventory = {
   imageUrl?: string | null;
   quantity: number;
   location: string;
-  status: "Available" | "In Use" | "Pending" | "Damaged";
-  type: "Device" | "Accessory" | "Tool" | "Other";
+  status: "พร้อมใช้" | "ใกล้หมด" | "หมด";
+  type: "ต้องคืน" | "ไม่ต้องคืน";
   price: number;
   requireFrom: string;
 };

@@ -2,10 +2,11 @@
 
 // ✅ Tweak 1: ต้อง import React เข้ามาเพื่อใช้ React.use()
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 // import { useRouter } from "next/navigation"; // ไม่ได้ใช้แล้ว
 import dayjs from "dayjs";
 import 'dayjs/locale/th'; // สำหรับภาษาไทย (ถ้าต้องการ)
+import useEmblaCarousel from 'embla-carousel-react';
 
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
@@ -34,6 +35,8 @@ import {
   Paperclip,
   Building,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
@@ -67,6 +70,99 @@ const getStatusVariant = (status: string) => {
       return 'default';
   }
 };
+
+// Location Images Carousel Component
+function LocationImagesCarousel({ images }: { images: string[] }) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [prevBtnDisabled, setPrevBtnDisabled] = useState(true);
+  const [nextBtnDisabled, setNextBtnDisabled] = useState(true);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const onSelect = useCallback((emblaApi: any) => {
+    setPrevBtnDisabled(!emblaApi.canScrollPrev());
+    setNextBtnDisabled(!emblaApi.canScrollNext());
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, []);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    onSelect(emblaApi);
+    emblaApi.on('reInit', onSelect);
+    emblaApi.on('select', onSelect);
+  }, [emblaApi, onSelect]);
+
+  return (
+    <div>
+      <p className="text-sm text-muted-foreground mb-2">รูปภาพสถานที่</p>
+      <div className="relative">
+        <div className="overflow-hidden rounded-md border" ref={emblaRef}>
+          <div className="flex">
+            {images.map((imageUrl, index) => (
+              <div
+                key={index}
+                className="flex-[0_0_100%] min-w-0 relative aspect-video bg-muted"
+              >
+                <img
+                  src={imageUrl}
+                  alt={`Location image ${index + 1}`}
+                  className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => window.open(imageUrl, '_blank')}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        {images.length > 1 && (
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 hover:bg-background shadow-md z-10"
+              onClick={scrollPrev}
+              disabled={prevBtnDisabled}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 hover:bg-background shadow-md z-10"
+              onClick={scrollNext}
+              disabled={nextBtnDisabled}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+      </div>
+      {images.length > 1 && (
+        <div className="flex justify-center gap-1 mt-2">
+          {images.map((_, index) => (
+            <button
+              key={index}
+              className={`h-1.5 rounded-full transition-all ${
+                selectedIndex === index
+                  ? 'w-6 bg-primary'
+                  : 'w-1.5 bg-muted-foreground/30'
+              }`}
+              onClick={() => emblaApi?.scrollTo(index)}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function JobViewPage() {
   // ✅ Tweak 1: แก้ไข Error โดยใช้ React.use() เพื่อ "แกะ" Promise params
@@ -288,21 +384,7 @@ export default function JobViewPage() {
 
             {/* --- Section: Location Images --- */}
             {job.locationImages && job.locationImages.length > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">รูปภาพสถานที่</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {job.locationImages.map((imageUrl, index) => (
-                    <div key={index} className="relative group aspect-video rounded-md border overflow-hidden bg-muted">
-                      <img
-                        src={imageUrl}
-                        alt={`Location image ${index + 1}`}
-                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => window.open(imageUrl, '_blank')}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <LocationImagesCarousel images={job.locationImages} />
             )}
 
             {/* --- Section: Before Images --- */}

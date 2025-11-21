@@ -1,11 +1,9 @@
 "use client";
 
-// ✅ Tweak 1: ต้อง import React เข้ามาเพื่อใช้ React.use()
 import * as React from "react";
 import { useEffect, useState, useCallback } from "react";
-// import { useRouter } from "next/navigation"; // ไม่ได้ใช้แล้ว
 import dayjs from "dayjs";
-import 'dayjs/locale/th'; // สำหรับภาษาไทย (ถ้าต้องการ)
+import 'dayjs/locale/th';
 import useEmblaCarousel from 'embla-carousel-react';
 
 // Zustand Store
@@ -16,8 +14,9 @@ import { useUserStore } from "@/stores/features/userStore";
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -31,24 +30,41 @@ import {
   MapPin,
   Calendar,
   User,
-  ClipboardList,
-  Paperclip,
+  Phone,
+  Hash,
+  FileText,
+  Briefcase,
   Building,
+  Users,
+  UserCheck,
+  Package,
+  History,
+  ImageIcon,
+  Paperclip,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
+  Loader2,
+  Clock,
+  CalendarRange,
+  CheckCircle2,
+  AlertCircle,
+  Building2,
+  Receipt
 } from "lucide-react";
-import { Loader2 } from "lucide-react";
 
 import dynamic from 'next/dynamic';
 import { useParams } from "next/navigation";
 
-const StaticMapView = dynamic(
-  () => import('@/components/map/MapContainer'),
+const MapRouting = dynamic(
+  () => import('@/components/map/MapRouting'),
   {
     loading: () => (
-      <div className="h-[300px] w-full flex items-center justify-center bg-secondary rounded-md">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="h-[300px] w-full flex items-center justify-center bg-secondary/20 rounded-md border border-dashed">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="text-sm">Loading Map...</span>
+        </div>
       </div>
     ),
     ssr: false,
@@ -58,18 +74,38 @@ const StaticMapView = dynamic(
 const getStatusVariant = (status: string) => {
   switch (status) {
     case 'completed':
-      return 'default';
+      return 'default'; // Usually black/primary
     case 'pending_approval':
       return 'secondary';
     case 'in_progress':
-      return 'outline';
+      return 'outline'; // Often used for active states
     case 'cancelled':
     case 'rejected':
       return 'destructive';
     default:
-      return 'default';
+      return 'secondary';
   }
 };
+
+const getStatusColor = (status: string) => {
+   switch (status) {
+    case 'completed': return 'bg-emerald-500/15 text-emerald-700 border-emerald-200';
+    case 'in_progress': return 'bg-blue-500/15 text-blue-700 border-blue-200';
+    case 'pending_approval': return 'bg-amber-500/15 text-amber-700 border-amber-200';
+    case 'cancelled': return 'bg-rose-500/15 text-rose-700 border-rose-200';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+}
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case 'urgent': return 'bg-red-500/15 text-red-700 border-red-200';
+    case 'high': return 'bg-orange-500/15 text-orange-700 border-orange-200';
+    case 'medium': return 'bg-blue-500/15 text-blue-700 border-blue-200';
+    case 'low': return 'bg-slate-100 text-slate-700 border-slate-200';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+}
 
 // Location Images Carousel Component
 function LocationImagesCarousel({ images }: { images: string[] }) {
@@ -101,84 +137,76 @@ function LocationImagesCarousel({ images }: { images: string[] }) {
   }, [emblaApi, onSelect]);
 
   return (
-    <div>
-      <p className="text-sm text-muted-foreground mb-2">รูปภาพสถานที่</p>
-      <div className="relative">
-        <div className="overflow-hidden rounded-md border" ref={emblaRef}>
-          <div className="flex">
-            {images.map((imageUrl, index) => (
-              <div
-                key={index}
-                className="flex-[0_0_100%] min-w-0 relative aspect-video bg-muted"
-              >
-                <img
-                  src={imageUrl}
-                  alt={`Location image ${index + 1}`}
-                  className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => window.open(imageUrl, '_blank')}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-        {images.length > 1 && (
-          <>
-            <Button
-              variant="outline"
-              size="icon"
-              className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 hover:bg-background shadow-md z-10"
-              onClick={scrollPrev}
-              disabled={prevBtnDisabled}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 hover:bg-background shadow-md z-10"
-              onClick={scrollNext}
-              disabled={nextBtnDisabled}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-      </div>
-      {images.length > 1 && (
-        <div className="flex justify-center gap-1 mt-2">
-          {images.map((_, index) => (
-            <button
+    <div className="relative group">
+      <div className="overflow-hidden rounded-lg border bg-muted/30" ref={emblaRef}>
+        <div className="flex">
+          {images.map((imageUrl, index) => (
+            <div
               key={index}
-              className={`h-1.5 rounded-full transition-all ${
-                selectedIndex === index
-                  ? 'w-6 bg-primary'
-                  : 'w-1.5 bg-muted-foreground/30'
-              }`}
-              onClick={() => emblaApi?.scrollTo(index)}
-              aria-label={`Go to slide ${index + 1}`}
-            />
+              className="flex-[0_0_100%] min-w-0 relative aspect-video"
+            >
+              <img
+                src={imageUrl}
+                alt={`Location image ${index + 1}`}
+                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500"
+                onClick={() => window.open(imageUrl, '_blank')}
+              />
+            </div>
           ))}
         </div>
+      </div>
+      {images.length > 1 && (
+        <>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+            onClick={scrollPrev}
+            disabled={prevBtnDisabled}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+            onClick={scrollNext}
+            disabled={nextBtnDisabled}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 p-1 rounded-full bg-black/20 backdrop-blur-sm">
+            {images.map((_, index) => (
+              <button
+                key={index}
+                className={`h-1.5 rounded-full transition-all ${
+                  selectedIndex === index
+                    ? 'w-4 bg-white'
+                    : 'w-1.5 bg-white/50'
+                }`}
+                onClick={() => emblaApi?.scrollTo(index)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
 export default function JobViewPage() {
-  // ✅ Tweak 1: แก้ไข Error โดยใช้ React.use() เพื่อ "แกะ" Promise params
   const params = useParams();
   const jobId = params.jobId as string;
 
   const getJobById = useJobStore((state) => state.getJobById);
   const { inventories } = useInventoryStore();
-  const { currentUser } = useUserStore();
   const job = getJobById(jobId);
 
   if (!job) {
     return (
-      <div className="p-8 text-center">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-        <p>Loading job details...</p>
+      <div className="h-[50vh] flex flex-col items-center justify-center text-muted-foreground">
+        <Loader2 className="h-10 w-10 animate-spin mb-4 text-primary" />
+        <p className="text-lg font-medium">Loading job details...</p>
       </div>
     );
   }
@@ -186,394 +214,451 @@ export default function JobViewPage() {
   dayjs.locale('th');
 
   return (
-    <div className="p-">
-      <div className="border rounded-lg p-6"> 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-
-          {/* --- คอลัมน์ซ้าย (Main Details) --- */}
-          <div className="lg:col-span-3 space-y-6">
-
-            {/* --- Section: Header (Status, Create, Title) --- */}
-            <div className="space-y-3">
-              <Badge variant={getStatusVariant(job.status)} className="capitalize">
-                {job.status.replace(/_/g, ' ')}
+    <div className="max-w-[1600px] mx-auto p-6 space-y-8">
+      
+      {/* --- Header Section --- */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 border-b pb-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className={`px-3 py-1 text-sm font-medium capitalize border ${getStatusColor(job.status)}`}>
+              {job.status.replace(/_/g, ' ')}
+            </Badge>
+            {job.priority && (
+              <Badge variant="outline" className={`px-3 py-1 text-sm font-medium capitalize border ${getPriorityColor(job.priority)}`}>
+                {job.priority} Priority
               </Badge>
-
-              <h1 className="text-3xl font-bold">{job.title}</h1>
-              
-              <p className="text-sm">
-                <span className="text-muted-foreground">Job ID: </span>
-                <span className="text-foreground">{job.id.substring(0, 8)}...</span>
-              </p>
-              
-              <p className="text-sm pt-2">
-                <span className="text-muted-foreground">Create by: </span>
-                <span className="text-foreground">{job.creator.name}</span>
-              </p>
-              
-              <p className="text-sm">
-                <span className="text-muted-foreground">Create at: </span>
-                <span className="text-foreground">{dayjs(job.createdAt).format('DD/MM/YY')}</span>
-              </p>
-            </div>
-
-            {/* --- Section: Description --- */}
-            {job.description && (
-              <div>
-                <p className="text-sm text-muted-foreground">Description</p>
-                <p className="text-foreground/90 leading-relaxed break-words">
-                  {job.description}
-                </p>
-              </div>
             )}
-
-            {/* --- Section: Department --- */}
-            <div>
-              <p className="text-sm text-muted-foreground">Department</p>
-              <p className="text-foreground/90">{job.department || 'N/A'}</p>
-            </div>
-
-            {/* --- Section: Type --- */}
-            {job.type && (
-              <div>
-                <p className="text-sm text-muted-foreground">Type</p>
-                <p className="text-foreground/90">{job.type}</p>
+            <span className="text-sm text-muted-foreground flex items-center gap-1 ml-2">
+              <Hash className="h-3.5 w-3.5" />
+              {job.id.substring(0, 8)}
+            </span>
+          </div>
+          
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{job.title}</h1>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-primary/70" />
+                <span>Created by <span className="font-medium text-foreground">{job.creator.name}</span></span>
               </div>
-            )}
-
-            {/* --- Section: Customer Information --- */}
-            {(job.customerName || job.customerPhone) && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">ข้อมูลลูกค้า</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {job.customerName && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">ชื่อลูกค้า</p>
-                      <p className="text-foreground/90">{job.customerName}</p>
-                    </div>
-                  )}
-                  {job.customerPhone && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">เบอร์โทรลูกค้า</p>
-                      <p className="text-foreground/90">{job.customerPhone}</p>
-                    </div>
-                  )}
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary/70" />
+                <span>Created on {dayjs(job.createdAt).format('DD MMM YYYY')}</span>
+              </div>
+              {job.department && (
+                <div className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-primary/70" />
+                  <span>{Array.isArray(job.departments) ? job.departments.join(", ") : (job.departments || job.department)}</span>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {/* --- Section: Signature --- */}
-            {job.signature && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">ลายเซ็นลูกค้า</p>
-                <div className="border rounded-md p-4 bg-muted/20">
-                  <img
-                    src={job.signature}
-                    alt="ลายเซ็นลูกค้า"
-                    className="max-h-[150px] object-contain mx-auto"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* --- Section: Team --- */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Lead technician</p>
-                {job.leadTechnician ? (
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={job.leadTechnician.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${job.leadTechnician.name}`} alt={job.leadTechnician.name} />
-                      <AvatarFallback>{job.leadTechnician.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{job.leadTechnician.name}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* --- Left Column (Main Info) --- */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* 1. Customer & Location (High Priority) */}
+          <Card className="shadow-sm border-none ring-1 ring-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5 text-primary" />
+                Job Site & Customer
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Customer Info Grid */}
+              <div className="p-4 bg-muted/30 rounded-lg border border-dashed space-y-4">
+                {/* Basic Contact Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-background rounded-full shadow-sm">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Name</p>
+                      <p className="font-medium">{job.customerName || "N/A"}</p>
+                    </div>
                   </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">Not assigned</span>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-background rounded-full shadow-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contact Number</p>
+                      <p className="font-medium">{job.customerPhone || "N/A"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Organization Details (Conditional) */}
+                {job.customerType === 'organization' && (
+                  <>
+                    <Separator className="bg-border/50" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-background rounded-full shadow-sm">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Company Name</p>
+                          <p className="font-medium">{job.customerCompanyName || "-"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-background rounded-full shadow-sm">
+                          <Receipt className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tax ID</p>
+                          <p className="font-medium">{job.customerTaxId || "-"}</p>
+                        </div>
+                      </div>
+                      {job.customerAddress && (
+                        <div className="col-span-full flex items-start gap-3">
+                          <div className="p-2 bg-background rounded-full shadow-sm">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Company Address</p>
+                            <p className="font-medium text-sm leading-relaxed">{job.customerAddress}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
+
+              {/* Map & Location */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    Location Details
+                  </h4>
+                  {job.location?.lat && (
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {job.location.lat.toFixed(5)}, {job.location.lng.toFixed(5)}
+                    </Badge>
+                  )}
+                </div>
+                
+                {job.location && job.location.lat != null && job.location.lng != null ? (
+                  <MapRouting
+                    companyLocation={{
+                      lat: 13.7563,
+                      lng: 100.5018,
+                      name: "HQ"
+                    }}
+                    jobLocation={{
+                      lat: job.location.lat,
+                      lng: job.location.lng,
+                      name: job.location.name || "Job Site"
+                    }}
+                    className="h-[300px] w-full rounded-lg overflow-hidden border shadow-sm"
+                  />
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center bg-muted/30 rounded-lg border border-dashed text-muted-foreground">
+                    <MapPin className="h-8 w-8 opacity-20 mr-2" />
+                    <span>No location data available</span>
+                  </div>
+                )}
+                
+                {job.locationImages && job.locationImages.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      Site Photos
+                    </p>
+                    <LocationImagesCarousel images={job.locationImages} />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 2. Job Description & Details */}
+          <Card className="shadow-sm border-none ring-1 ring-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5 text-primary" />
+                Job Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Job Type</p>
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{job.type || "General"}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Schedule</p>
+                  <div className="flex items-center gap-2">
+                    <CalendarRange className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {job.startDate ? dayjs(job.startDate).format('DD/MM/YY') : 'TBD'} 
+                      {' - '} 
+                      {job.endDate ? dayjs(job.endDate).format('DD/MM/YY') : 'TBD'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {job.description && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Description</p>
+                  <div className="p-4 bg-muted/30 rounded-lg border text-sm leading-relaxed">
+                    {job.description}
+                  </div>
+                </div>
+              )}
+
+              {/* Attachments */}
+              {job.attachments && job.attachments.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <Paperclip className="h-4 w-4 text-muted-foreground" />
+                    Attachments ({job.attachments.length})
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {job.attachments.map((attachment) => (
+                      <a
+                        key={attachment.id}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 hover:border-accent transition-all group"
+                      >
+                        <div className="p-2 bg-background rounded-md border group-hover:border-primary/30 transition-colors">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                            {attachment.fileName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {(attachment.size / 1024 / 1024).toFixed(2)} MB • {dayjs(attachment.uploadedAt).format('DD MMM')}
+                          </p>
+                        </div>
+                        <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 3. Execution Evidence (Before/After) */}
+          {(job.beforeImages?.length > 0 || job.afterImages?.length > 0) && (
+            <Card className="shadow-sm border-none ring-1 ring-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <ImageIcon className="h-5 w-5 text-primary" />
+                  Work Evidence
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                {job.beforeImages && job.beforeImages.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Before</Badge>
+                      <span className="text-xs text-muted-foreground">Photos taken before work started</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {job.beforeImages.map((imageUrl, index) => (
+                        <div key={index} className="relative group aspect-square rounded-lg border overflow-hidden bg-muted">
+                          <img
+                            src={imageUrl}
+                            alt={`Before ${index + 1}`}
+                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                            onClick={() => window.open(imageUrl, '_blank')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {job.beforeImages?.length > 0 && job.afterImages?.length > 0 && <Separator />}
+
+                {job.afterImages && job.afterImages.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">After</Badge>
+                      <span className="text-xs text-muted-foreground">Photos taken after work completed</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {job.afterImages.map((imageUrl, index) => (
+                        <div key={index} className="relative group aspect-square rounded-lg border overflow-hidden bg-muted">
+                          <img
+                            src={imageUrl}
+                            alt={`After ${index + 1}`}
+                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                            onClick={() => window.open(imageUrl, '_blank')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {job.signature && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm font-medium mb-3">Customer Signature</p>
+                    <div className="inline-block border rounded-lg p-4 bg-white">
+                      <img
+                        src={job.signature}
+                        alt="Customer Signature"
+                        className="h-24 object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* --- Right Column (Sidebar) --- */}
+        <div className="space-y-6">
+          
+          {/* Team Card */}
+          <Card className="shadow-sm border-none ring-1 ring-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="h-4 w-4 text-primary" />
+                Assigned Team
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Employees</p>
+                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                  <UserCheck className="h-3 w-3" /> Lead Technician
+                </p>
+                {job.leadTechnician ? (
+                  <div className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <Avatar className="h-8 w-8 border">
+                      <AvatarImage src={job.leadTechnician.imageUrl} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">{job.leadTechnician.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium">{job.leadTechnician.name}</span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic pl-2">Not assigned</span>
+                )}
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Team Members</p>
                 {job.assignedEmployees.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-1">
                     {job.assignedEmployees.map(employee => (
-                      <div key={employee.id} className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={employee.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${employee.name}`} alt={employee.name} />
-                          <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                      <div key={employee.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                        <Avatar className="h-8 w-8 border">
+                          <AvatarImage src={employee.imageUrl} />
+                          <AvatarFallback className="text-xs">{employee.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <span className="text-sm">{employee.name}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground">No employees assigned</span>
+                  <span className="text-sm text-muted-foreground italic pl-2">No other members</span>
                 )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* --- Section: Dates --- */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Start Date:</p>
-                <p className="text-foreground/90">{job.startDate ? dayjs(job.startDate).format('DD/MM/YY') : 'N/A'}</p>
+          {/* Inventory Card */}
+          <Card className="shadow-sm border-none ring-1 ring-border/50">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Package className="h-4 w-4 text-primary" />
+                  Inventory
+                </CardTitle>
+                <Badge variant="secondary" className="text-xs font-normal">
+                  {job.usedInventory?.length || 0} Items
+                </Badge>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">End Date:</p>
-                <p className="text-foreground/90">{job.endDate ? dayjs(job.endDate).format('DD/MM/YY') : 'N/A'}</p>
-              </div>
-            </div>
-
-            {/* --- Section: Attachments --- */}
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Attachments</p>
-              {job.attachments && job.attachments.length > 0 ? (
-                <div className="space-y-2">
-                  {job.attachments.map((attachment) => (
-                    <a
-                      key={attachment.id}
-                      href={attachment.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 border rounded-md hover:bg-secondary transition-colors"
-                    >
-                      <Paperclip className="h-4 w-4 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-blue-400 hover:underline block truncate">
-                          {attachment.fileName}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {dayjs(attachment.uploadedAt).format('DD/MM/YY HH:mm')}
-                        </span>
+            </CardHeader>
+            <CardContent>
+              {job.usedInventory && job.usedInventory.length > 0 ? (
+                <div className="space-y-3">
+                  {job.usedInventory.map((usedInv) => {
+                    const item = inventories.find((inv) => inv.id === usedInv.id);
+                    if (!item) return null;
+                    return (
+                      <div key={usedInv.id} className="flex items-center justify-between p-2 rounded-md border bg-muted/20 text-sm">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                          <span className="truncate font-medium">{item.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-bold">{usedInv.qty}</span>
+                          <span className="text-xs text-muted-foreground">units</span>
+                        </div>
                       </div>
-                      <span className="text-xs text-muted-foreground ml-auto flex-shrink-0">
-                        {(attachment.size / 1024 / 1024).toFixed(2)} MB
-                      </span>
-                      <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                    </a>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="p-4 border rounded-md text-center">
-                  <Paperclip className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                  <span className="text-sm text-muted-foreground">ไม่มีไฟล์แนบสำหรับงานนี้</span>
+                <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-md">
+                  No inventory used
                 </div>
               )}
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* --- Section: Map --- */}
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Map</p>
-              {job.location && job.location.lat != null && job.location.lng != null ? (
-                <div className="space-y-2">
-                  {job.location.name && (
-                    <p className="text-sm font-medium">{job.location.name}</p>
-                  )}
-                  <p className="text-sm text-muted-foreground">
-                    Latitude: {job.location.lat.toFixed(6)}, Longitude: {job.location.lng.toFixed(6)}
-                  </p>
-                  <StaticMapView
-                    location={job.location}
-                    className="h-[280px] sm:h-[320px] md:h-[380px] w-full rounded-md overflow-hidden relative z-0"
-                  />
-                </div>
-              ) : (
-                <span className="text-sm text-white">No specific location assigned.</span>
-              )}
-            </div>
-
-            {/* --- Section: Location Images --- */}
-            {job.locationImages && job.locationImages.length > 0 && (
-              <LocationImagesCarousel images={job.locationImages} />
-            )}
-
-            {/* --- Section: Before Images --- */}
-            {job.beforeImages && job.beforeImages.length > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">รูปภาพก่อนซ่อม (Before)</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {job.beforeImages.map((imageUrl, index) => (
-                    <div key={index} className="relative group aspect-square rounded-md border overflow-hidden bg-muted">
-                      <img
-                        src={imageUrl}
-                        alt={`Before image ${index + 1}`}
-                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => window.open(imageUrl, '_blank')}
-                      />
+          {/* History Log Card */}
+          <Card className="shadow-sm border-none ring-1 ring-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <History className="h-4 w-4 text-primary" />
+                Activity Log
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative pl-4 border-l space-y-6">
+                {job.workLogs && job.workLogs.length > 0 ? (
+                  job.workLogs.map((log, idx) => (
+                    <div key={log.id} className="relative">
+                      <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border bg-background ring-4 ring-background" />
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {dayjs(log.date).format('DD MMM HH:mm')}
+                          </span>
+                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 capitalize">
+                            {log.status.replace(/_/g, ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-sm font-medium">{log.note}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Avatar className="h-4 w-4">
+                            <AvatarFallback className="text-[8px]">{log.updatedBy.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs text-muted-foreground">{log.updatedBy.name}</span>
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* --- Section: After Images --- */}
-            {job.afterImages && job.afterImages.length > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">รูปภาพหลังซ่อม (After)</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {job.afterImages.map((imageUrl, index) => (
-                    <div key={index} className="relative group aspect-square rounded-md border overflow-hidden bg-muted">
-                      <img
-                        src={imageUrl}
-                        alt={`After image ${index + 1}`}
-                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => window.open(imageUrl, '_blank')}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </div>
-
-          {/* --- คอลัมน์ขวา (Logs, Inventory) --- */}
-          <div className="lg:col-span-2 space-y-8">
-
-            {/* --- Section: Work Log & History --- */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Work Log & History</h3>
-                {job.workLogs && job.workLogs.length > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {job.workLogs.length} รายการ
-                  </Badge>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground italic pl-2">No activity recorded</div>
                 )}
               </div>
-              <div className="border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow> 
-                      <TableHead>Date</TableHead>
-                      <TableHead>Update By</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Note</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {job.workLogs && job.workLogs.length > 0 ? (
-                      job.workLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="text-sm">
-                            {dayjs(log.date).format('DD/MM/YY HH:mm')}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-5 w-5">
-                                <AvatarFallback className="text-xs">
-                                  {log.updatedBy.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">{log.updatedBy.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={getStatusVariant(log.status)} className="text-xs capitalize">
-                              {log.status.replace(/_/g, ' ')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                            {log.note}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                          <div className="flex flex-col items-center gap-2">
-                            <ClipboardList className="h-8 w-8 opacity-50" />
-                            <span>ไม่มีประวัติการทำงาน</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* --- Section: Required Inventory --- */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Required Inventory</h3>
-                {job.usedInventory && job.usedInventory.length > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {job.usedInventory.length} รายการ
-                  </Badge>
-                )}
-              </div>
-              <div className="border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item Name</TableHead>
-                      <TableHead>Item Type</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {job.usedInventory && job.usedInventory.length > 0 ? (
-                      job.usedInventory.map((usedInv) => {
-                        const inventoryItem = inventories.find((inv) => inv.id === usedInv.id);
-                        if (!inventoryItem) {
-                          return (
-                            <TableRow key={usedInv.id}>
-                              <TableCell colSpan={4} className="text-sm text-muted-foreground">
-                                ไม่พบข้อมูลอุปกรณ์ (ID: {usedInv.id})
-                              </TableCell>
-                            </TableRow>
-                          );
-                        }
-                        return (
-                          <TableRow key={usedInv.id}>
-                            <TableCell className="font-medium">
-                              {inventoryItem.name}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-xs">
-                                {inventoryItem.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-semibold">{usedInv.qty}</span>
-                              <span className="text-xs text-muted-foreground ml-1">
-                                / {inventoryItem.quantity} available
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  inventoryItem.status === "พร้อมใช้"
-                                    ? "default"
-                                    : inventoryItem.status === "ใกล้หมด"
-                                    ? "outline"
-                                    : "destructive"
-                                }
-                                className="text-xs"
-                              >
-                                {inventoryItem.status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                          <div className="flex flex-col items-center gap-2">
-                            <Building className="h-8 w-8 opacity-50" />
-                            <span>ไม่มีอุปกรณ์ที่ต้องการ</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-
-          </div>
         </div>
       </div>
     </div>

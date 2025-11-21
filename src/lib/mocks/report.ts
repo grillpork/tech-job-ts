@@ -7,7 +7,7 @@ export const MOCK_REPORTS: Report[] = [
     description: "เมื่อพยายามเข้าสู่ระบบผ่าน Safari browser บน macOS จะเกิด error และไม่สามารถเข้าสู่ระบบได้ แต่บน Chrome ใช้งานได้ปกติ",
     type: "bug",
     status: "open",
-    createdAt: "2024-01-15T10:30:00Z",
+    createdAt: "2025-11-21T10:30:00Z",
     updatedAt: null,
     reporter: { id: "user-employee-1", name: "สมเกียรติ ช่างไฟฟ้า" },
     assignee: null,

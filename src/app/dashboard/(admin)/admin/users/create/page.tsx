@@ -98,7 +98,7 @@ export default function CreateUserPage() {
 
   return (
     <div className="p-6">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-[#0b1220] border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+      <div className="max-w-4xl mx-auto bg-card border rounded-lg p-6">
         <h2 className="text-xl font-semibold mb-4">สร้างบัญชีผู้ใช้ใหม่</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

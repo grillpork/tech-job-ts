@@ -143,7 +143,7 @@ export default function UserAnalyticsPage() {
   const filteredAgenda = userAgenda.filter((item) => item.day === selectedDate)
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <div className="flex min-h-screen w-full flex-col">
       <div className="flex flex-1 flex-col gap-8 p-4 md:flex-row md:items-start md:p-8 lg:p-10">
         {/* === Main Content Area === */}
         <main className="flex-1">

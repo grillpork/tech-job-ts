@@ -56,7 +56,7 @@ export default function Sidebar() {
       { name: "Map", href: "/dashboard/admin/map", icon: Map },
       { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
       {
-        name: "Inventorys",
+        name: "Inventories",
         href: "/dashboard/admin/inventorys",
         icon: ToolCase,
       },

@@ -172,15 +172,25 @@ const InventoryManagement = () => {
   const calculateInventoryStatus = (quantity: number): Inventory["status"] => {
     if (quantity === 0) {
       return "หมด";
-    } else if (quantity < 10) {
+    } else if (quantity < 20) {
       return "ใกล้หมด";
-    } else if (quantity > 50) {
-      return "พร้อมใช้";
     } else {
-      // ถ้าอยู่ระหว่าง 10-50 ให้เป็น "พร้อมใช้" (หรือจะเปลี่ยนเป็น "ใกล้หมด" ก็ได้ตามต้องการ)
       return "พร้อมใช้";
     }
   };
+
+  // อัปเดตสถานะของอุปกรณ์ที่มีอยู่แล้วเมื่อโหลดหน้า
+useEffect(() => {
+  inventories.forEach((item) => {
+    const newStatus = calculateInventoryStatus(item.quantity);
+    if (item.status !== newStatus) {
+      updateInventory({
+        ...item,
+        status: newStatus,
+      });
+    }
+  });
+}, [inventories, updateInventory]); // รันครั้งเดียวตอนโหลดหน้า
 
   const getStatusColor = (status: string) => {
     switch (status) {

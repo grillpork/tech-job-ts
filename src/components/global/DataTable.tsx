@@ -13,6 +13,7 @@ export interface Column<T> {
   key: keyof T;
   label: string;
   sortable?: boolean;
+  align?: "left" | "center" | "right";
   render?: (row: T) => React.ReactNode;
 }
 
@@ -261,33 +262,41 @@ export function DataTable<T extends { id: string | number }>({
                   />
                 </TableHead>
               )}
-              {columns.map((col) => (
-                <TableHead
-                  key={String(col.key)}
-                  onClick={() => col.sortable && handleSort(col.key)}
-                  className={col.sortable ? "cursor-pointer select-none" : ""}
-                >
-                  <motion.div 
-                    className="flex items-center gap-1 overflow-hidden"
-                    whileHover={col.sortable ? { scale: 1.05 } : {}}
+              {columns.map((col) => {
+                const alignClass = col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "";
+                const sortableClass = col.sortable ? "cursor-pointer select-none" : "";
+                
+                return (
+                  <TableHead
+                    key={String(col.key)}
+                    onClick={() => col.sortable && handleSort(col.key)}
+                    className={`${sortableClass} ${alignClass}`}
                   >
-                    {col.label}
-                    {col.sortable && (
-                      <motion.div
-                        animate={{ 
-                          rotate: sortConfigs.find(s => s.key === col.key)?.direction === "desc" ? 180 : 0 
-                        }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ArrowUpDown className="w-3 h-3 opacity-70" />
-                      </motion.div>
-                    )}
-                  </motion.div>
-                </TableHead>
-              ))}
+                    <motion.div 
+                      className={`flex items-center gap-1 overflow-hidden ${
+                        col.align === "center" ? "justify-center" : 
+                        col.align === "right" ? "justify-end" : ""
+                      }`}
+                      whileHover={col.sortable ? { scale: 1.05 } : {}}
+                    >
+                      {col.label}
+                      {col.sortable && (
+                        <motion.div
+                          animate={{ 
+                            rotate: sortConfigs.find(s => s.key === col.key)?.direction === "desc" ? 180 : 0 
+                          }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ArrowUpDown className="w-3 h-3 opacity-70" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  </TableHead>
+                );
+              })}
             </TableRow>
           </TableHeader>
-          <TableBody>
+            <TableBody>
             <AnimatePresence mode="popLayout">
               {paginatedData.length > 0 ? (
                 paginatedData.map((row, index) => (
@@ -322,7 +331,13 @@ export function DataTable<T extends { id: string | number }>({
                       </TableCell>
                     )}
                     {columns.map((col) => (
-                      <TableCell key={String(col.key)}>
+                      <TableCell 
+                        key={String(col.key)}
+                        className={
+                          col.align === "center" ? "text-center" : 
+                          col.align === "right" ? "text-right" : ""
+                        }
+                      >
                         {col.render ? col.render(row) : String(row[col.key])}
                       </TableCell>
                     ))}

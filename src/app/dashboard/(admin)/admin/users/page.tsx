@@ -77,12 +77,13 @@ export default function UsersPage() {
         );
       },
     },
-    { key: "email", label: "Email" },
+    { key: "email", label: "Email"},
     { key: "role", label: "Role", sortable: true },
     { key: "status", label: "Status", sortable: true },
     {
       key: "actions",
       label: "Actions",
+      align: "center",
       render: (row: any) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -91,7 +92,7 @@ export default function UsersPage() {
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" >
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => setViewUser(row)}>
               <User className="mr-2 h-4 w-4" />
@@ -192,7 +193,7 @@ export default function UsersPage() {
 
       {/* View Dialog */}
       <Dialog open={!!viewUser} onOpenChange={(open) => !open && setViewUser(null)}>
-        <DialogContent>
+        <DialogContent className="bg-card border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
           <DialogHeader>
             <DialogTitle>User details</DialogTitle>
             <DialogDescription>Details for the selected user.</DialogDescription>

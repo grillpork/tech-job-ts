@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Search, MoreVertical, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, MoreHorizontal, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,6 +118,7 @@ const InventoryManagement = () => {
     {
       key: "status",
       label: "Status",
+      align: "center",
       render: (row: Inventory) => (
         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(row.status)}`}>
           {row.status}
@@ -127,15 +128,18 @@ const InventoryManagement = () => {
     {
       key: "type",
       label: "Type",
+      align: "center",
     },
     {
       key: "quantity",
       label: "Quantity",
+      align: "center",
       render: (row: Inventory) => <span className="font-semibold">{row.quantity}</span>,
     },
     {
       key: "actions",
       label: "Actions",
+      align: "center",
       render: (row: Inventory) => (
         <div className="flex justify-center">
           <DropdownMenu>
@@ -145,10 +149,10 @@ const InventoryManagement = () => {
                 size="sm"
                 className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1d29]"
               >
-                <MoreVertical className="h-4 w-4" />
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 w-40">
+            <DropdownMenuContent align="end" className="bg-card border-gray-200 dark:border-gray-800 w-40">
               <DropdownMenuItem onClick={() => handleEdit(row)} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0f1117] hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
@@ -501,12 +505,12 @@ const InventoryManagement = () => {
                           size="sm"
                           className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1d29]"
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="end"
-                        className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 w-40"
+                        className="bg-card border-gray-200 dark:border-gray-800 w-40"
                       >
                         <DropdownMenuItem
                           onClick={() => handleEdit(item)}
@@ -808,7 +812,7 @@ const InventoryManagement = () => {
 
       {/* ADD/EDIT DIALOG */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[550px] w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 z-50 fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
+        <DialogContent className="sm:max-w-[550px] w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto bg-card border-gray-200 dark:border-gray-800 z-50 fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">
               {editingItem ? "แก้ไขอุปกรณ์" : "เพิ่มอุปกรณ์ใหม่"}
@@ -924,7 +928,7 @@ const InventoryManagement = () => {
       {/* DELETE CONFIRMATION DIALOG */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         {isDeleteAlertOpen && <div className="fixed inset-0 z-40" />}
-        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 z-50 fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md bg-card border-gray-200 dark:border-gray-800 z-50 fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg text-gray-900 dark:text-white">
               ยืนยันการลบ

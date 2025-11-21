@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Search, MoreVertical, Calendar as CalendarIcon, Filter, X, Trash2 } from "lucide-react";
+import { Plus, Pencil, Search, MoreHorizontal, Calendar as CalendarIcon, Filter, X, Trash2 } from "lucide-react";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -454,6 +454,7 @@ const JobsList = () => {
     {
       key: "actions",
       label: "Actions",
+      align: "center",
       render: (row: Job) => (
         <div className="flex justify-center">
           <DropdownMenu>
@@ -464,7 +465,7 @@ const JobsList = () => {
                 className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400"
                 onClick={(e) => e.stopPropagation()} // 12. หยุด event click ไม่ให้ลามไปถึง row
               >
-                <MoreVertical className="h-4 w-4" />
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 w-40">
@@ -743,7 +744,7 @@ const JobsList = () => {
                       className="h-8 w-8 p-0"
                       onClick={(e) => e.stopPropagation()} // 24. หยุด event click
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 w-40">

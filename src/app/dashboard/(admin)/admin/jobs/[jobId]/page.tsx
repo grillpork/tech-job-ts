@@ -239,16 +239,16 @@ export default function JobViewPage() {
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-primary/70" />
-                <span>Created by <span className="font-medium text-foreground">{job.creator.name}</span></span>
+                <span>หัวหน้าช่าง : <span className="font-medium text-foreground">{job.creator.name}</span></span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary/70" />
-                <span>Created on {dayjs(job.createdAt).format('DD MMM YYYY')}</span>
+                <span>วันที่สร้าง : {dayjs(job.createdAt).format('DD MMM YYYY')}</span>
               </div>
-              {job.department && (
+              {job.departments && (
                 <div className="flex items-center gap-2">
                   <Building className="h-4 w-4 text-primary/70" />
-                  <span>{Array.isArray(job.departments) ? job.departments.join(", ") : (job.departments || job.department)}</span>
+                  <span>แผนก : {Array.isArray(job.departments) ? job.departments.join(", ") : (job.departments || job.departments)}</span>
                 </div>
               )}
             </div>

@@ -23,6 +23,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import UserView from "@/components/admin/UserView";
 import { columns } from "@/components/job_m/columns";
 
@@ -36,6 +46,7 @@ export default function UsersPage() {
 
   // Dialog state
   const [viewUser, setViewUser] = useState<any | null>(null);
+  const [userToDelete, setUserToDelete] = useState<any | null>(null);
 
   const columns: any = [
     {
@@ -106,11 +117,7 @@ export default function UsersPage() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => {
-                if (confirm("Are you sure you want to delete this user?")) {
-                  deleteUser(row.id);
-                }
-              }}
+              onClick={() => setUserToDelete(row)}
               className="text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -221,6 +228,34 @@ export default function UsersPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user account
+              <span className="font-medium text-foreground"> {userToDelete?.name} </span>
+              and remove their data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (userToDelete) {
+                  deleteUser(userToDelete.id);
+                  setUserToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );

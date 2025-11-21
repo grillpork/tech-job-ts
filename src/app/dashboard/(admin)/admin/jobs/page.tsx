@@ -468,7 +468,7 @@ const JobsList = () => {
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 w-40">
+            <DropdownMenuContent align="end" className="bg-card border-gray-200 dark:border-gray-800 w-40">
               <DropdownMenuItem onClick={(e) => handleEditJob(e, row.id)} className="text-gray-700 dark:text-gray-300 hover:text-blue-600 cursor-pointer">
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Job
@@ -747,7 +747,7 @@ const JobsList = () => {
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white dark:bg-[#1a1d29] border-gray-200 dark:border-gray-800 w-40">
+                  <DropdownMenuContent align="end" className="bg-card border-gray-200 dark:border-gray-800 w-40">
                     <DropdownMenuItem
                       onClick={(e) => handleEditJob(e, item.id)}
                       className="text-gray-700 dark:text-gray-300 hover:text-blue-600 cursor-pointer"
@@ -898,7 +898,7 @@ const JobsList = () => {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md bg-card border-gray-200 dark:border-gray-800 z-50 fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบใบงาน</AlertDialogTitle>
             <AlertDialogDescription>

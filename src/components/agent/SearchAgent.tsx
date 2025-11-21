@@ -9,6 +9,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 
+
 interface ChatMessage {
   id: number;
   sender: "user" | "ai";
@@ -27,32 +28,68 @@ const SearchAI = () => {
   const [input, setInput] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-
-  const GEMINI_URL = process.env.NEXT_PUBLIC_AI_KEY;
+  const N8N_AI_URL = process.env.NEXT_PUBLIC_N8N_AI_URL;
 
   const mutation = useMutation({
     mutationFn: async (question: string) => {
-      // Ensure the endpoint is available at runtime and narrow the type to string
-      const url = GEMINI_URL;
-      if (!url) {
-        throw new Error("Missing NEXT_PUBLIC_AI_KEY environment variable");
-      }
-
-      const payload = { question };
-      const res = await fetch(url, {
+      const payload = { answer: question };
+      const res = await fetch(N8N_AI_URL as string, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Network response was not ok");
-      const data = await res.json();
-      return data;
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const raw = await res.text();
+      console.log("RAW RESPONSE:", raw);
+
+      if (!raw || raw.trim() === "") {
+        throw new Error("Response body is empty");
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed;
+      } catch (error) {
+        throw new Error("Response is not JSON: " + raw);
+      }
     },
+
     onSuccess: (data) => {
       setIsTyping(false);
-      const firstKey = Object.keys(data)[0];
-      const fullText =
-        data[firstKey]?.[0]?.output || "ไม่มีข้อความตอบกลับจาก AI";
+
+      // API ส่ง response กลับมาเป็น object ที่มี key เป็นข้อความภาษาไทย
+      // และ value เป็น array ที่มี object ที่มี output อยู่ข้างใน
+      let fullText = "ไม่มีข้อความตอบกลับจาก AI";
+
+      if (data && typeof data === "object") {
+        // หา key แรกใน object (ซึ่งเป็นข้อความภาษาไทย)
+        const firstKey = Object.keys(data)[0];
+        if (firstKey && Array.isArray(data[firstKey])) {
+          // ดึง output จาก array แรก
+          const firstItem = data[firstKey][0];
+          if (firstItem && firstItem.output) {
+            fullText = firstItem.output;
+          } else if (firstKey) {
+            // ถ้าไม่มี output ให้ใช้ key เป็นข้อความ
+            fullText = firstKey;
+          }
+        } else if (data.answer) {
+          fullText = data.answer;
+        } else if (data.output) {
+          fullText = data.output;
+        } else if (data.result) {
+          fullText = data.result;
+        } else if (data.text) {
+          fullText = data.text;
+        }
+      }
 
       const newAiMessage: ChatMessage = {
         id: Date.now() + 1,
@@ -74,6 +111,7 @@ const SearchAI = () => {
         if (i >= fullText.length) clearInterval(interval);
       }, 20);
     },
+
     onError: (error) => {
       setIsTyping(false);
       const errorMessage: ChatMessage = {
@@ -106,7 +144,6 @@ const SearchAI = () => {
     setInput("");
   };
 
-  // ✅ กดการ์ด preset แล้วส่งคำถามทันที
   const handlePresetClick = (question: string) => {
     const fakeEvent = { preventDefault: () => {} } as FormEvent;
     handleSubmit(fakeEvent, question);
@@ -114,7 +151,6 @@ const SearchAI = () => {
 
   return (
     <div className="flex flex-col h-[90vh] mx-auto max-w-full p-4 antialiased">
-      {/* ✅ กล่องข้อความแชท */}
       <div className="flex-grow overflow-y-auto space-y-3 mb-4">
         <AnimatePresence initial={false}>
           {messages.length === 0 ? (
@@ -152,11 +188,7 @@ const SearchAI = () => {
         </AnimatePresence>
 
         {isTyping && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-start"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <Card className="p-2">
               <AITextLoading />
             </Card>
@@ -165,24 +197,16 @@ const SearchAI = () => {
         <div ref={chatEndRef} />
       </div>
 
-      {/* ✅ ช่องพิมพ์ข้อความ */}
-      <form
-        onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t pt-2"
-      >
+      <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t pt-2">
         <Input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="พิมพ์ข้อความที่นี่..."
-          className="flex-1 px-4 py-4 rounded-md transition-all text-sm md:text-base"
+          className="flex-1 px-4 py-4 rounded-md text-sm md:text-base"
           disabled={mutation.isPending}
         />
-        <Button
-          type="submit"
-          className="p-4 rounded-md shadow-lg transition-colors disabled:bg-blue-300"
-          disabled={mutation.isPending}
-        >
+        <Button type="submit" className="p-4 rounded-md shadow-lg" disabled={mutation.isPending}>
           <SendHorizonal size={20} />
         </Button>
       </form>
@@ -194,14 +218,8 @@ const SearchAI = () => {
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {FAQ_PRESETS.map((q, idx) => (
-              <Card
-                key={idx}
-                onClick={() => handlePresetClick(q)}
-                className="cursor-pointer hover:bg-muted transition-all p-2"
-              >
-                <CardContent className="p-2 text-sm text-center">
-                  {q}
-                </CardContent>
+              <Card key={idx} onClick={() => handlePresetClick(q)} className="cursor-pointer p-2">
+                <CardContent className="p-2 text-sm text-center">{q}</CardContent>
               </Card>
             ))}
           </div>
@@ -219,17 +237,7 @@ interface AITextLoadingProps {
   interval?: number;
 }
 
-function AITextLoading({
-  texts = [
-    "Thinking...",
-    "Processing...",
-    "Analyzing...",
-    "Computing...",
-    "Almost...",
-  ],
-  className,
-  interval = 1500,
-}: AITextLoadingProps) {
+function AITextLoading({ texts = ["Thinking...", "Processing...", "Analyzing...", "Computing...", "Almost..."], className, interval = 1500, }: AITextLoadingProps) {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
 
   useEffect(() => {
@@ -241,35 +249,15 @@ function AITextLoading({
 
   return (
     <div className="flex items-center justify-center">
-      <motion.div
-        className="relative text-sm w-full"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-      >
+      <motion.div className="relative text-sm w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTextIndex}
             initial={{ opacity: 0, y: 20 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              backgroundPosition: ["200% center", "-200% center"],
-            }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{
-              opacity: { duration: 0.3 },
-              y: { duration: 0.3 },
-              backgroundPosition: {
-                duration: 2.5,
-                ease: "linear",
-                repeat: Infinity,
-              },
-            }}
-            className={cn(
-              "flex justify-center text-sm font-bold bg-gradient-to-r from-neutral-950 via-neutral-400 to-neutral-950 dark:from-white dark:via-neutral-600 dark:to-white bg-[length:200%_100%] bg-clip-text text-transparent whitespace-nowrap min-w-max",
-              className
-            )}
+            transition={{ duration: 0.3 }}
+            className={cn("flex justify-center text-sm font-bold bg-gradient-to-r from-neutral-950 via-neutral-400 to-neutral-950 bg-[length:200%_100%] bg-clip-text text-transparent", className)}
           >
             {texts[currentTextIndex]}
           </motion.div>

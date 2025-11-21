@@ -13,8 +13,7 @@ import {
   Search,
   Calendar,
   User,
-  Tag,
-  MessageSquare
+  Tag
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -32,7 +31,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { useReportStore, type Report as StoreReport } from "@/stores/features/reportStore"
 
 // Types
@@ -161,14 +159,13 @@ const statusConfig: Record<Status, { label: string, color: string }> = {
 }
 
 export default function ReportPage() {
-  const { reports: storeReports } = useReportStore()
+  const { reports: storeReports, updateReport } = useReportStore()
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [filterDepartment, setFilterDepartment] = useState<Department | "all">("all")
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all")
   const [filterPriority, setFilterPriority] = useState<Priority | "all">("all")
   const [selectedReport, setSelectedReport] = useState<Report | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [comment, setComment] = useState("")
 
   // Map store reports to page reports
   const reports = useMemo(() => {
@@ -503,45 +500,34 @@ export default function ReportPage() {
 
                   <Separator />
 
-                  {/* Comments Section */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm font-medium">ความคิดเห็น</p>
-                    </div>
-                    <div className="space-y-3">
-                      <Textarea
-                        placeholder="เพิ่มความคิดเห็น..."
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        className="min-h-[100px]"
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setComment("")}>
-                          ยกเลิก
-                        </Button>
-                        <Button onClick={() => {
-                          // Handle comment submission
-                          console.log("Comment submitted:", comment)
-                          setComment("")
-                        }}>
-                          ส่งความคิดเห็น
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-2 pt-4">
-                    <Button variant="outline" size="sm">
-                      แก้ไขรายงาน
+                  <div className="flex justify-end gap-2 pt-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      ปิด
                     </Button>
-                    <Button variant="outline" size="sm">
-                      มอบหมายงาน
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      เปลี่ยนสถานะ
-                    </Button>
+                    {selectedReport.status !== "resolved" && (
+                      <Button 
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => {
+                          // Find the original store report and update its status
+                          const storeReport = storeReports.find(r => r.id === selectedReport.id)
+                          if (storeReport) {
+                            updateReport({
+                              ...storeReport,
+                              status: "resolved",
+                              updatedAt: new Date().toISOString()
+                            })
+                          }
+                          setIsDialogOpen(false)
+                        }}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        แก้ไขแล้ว
+                      </Button>
+                    )}
                   </div>
                 </div>
               </>

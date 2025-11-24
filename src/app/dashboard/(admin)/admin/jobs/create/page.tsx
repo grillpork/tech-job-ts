@@ -539,7 +539,7 @@ export default function CreateJobPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="basic" className="space-y-6 mt-6">
+            <TabsContent value="basic" forceMount className="space-y-6 mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -679,7 +679,7 @@ export default function CreateJobPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="customer" className="space-y-6 mt-6">
+            <TabsContent value="customer" forceMount className="space-y-6 mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -874,7 +874,7 @@ export default function CreateJobPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="team" className="space-y-6 mt-6">
+            <TabsContent value="team" forceMount className="space-y-6 mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1207,7 +1207,7 @@ export default function CreateJobPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="media" className="space-y-6 mt-6">
+            <TabsContent value="media" forceMount className="space-y-6 mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1337,341 +1337,347 @@ export default function CreateJobPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                ตำแหน่งงาน
+                ข้อมูลเพิ่มเติม
               </CardTitle>
-              <CardDescription>เลือกพิกัดที่ตั้งเพื่อแนบไปกับใบงาน</CardDescription>
+              <CardDescription>แผนที่และรูปภาพประกอบงาน</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border overflow-hidden">
-                <MapPicker 
-                  initialPosition={location} 
-                  onPositionChange={setLocation}
-                  disabled={isLeadTechnician}
-                />
-              </div>
-            </CardContent>
-          </Card>
+              <Tabs defaultValue="location" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="location" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>แผนที่</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="images" className="flex items-center gap-2">
+                    <Camera className="h-4 w-4" />
+                    <span>Before/After</span>
+                  </TabsTrigger>
+                </TabsList>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="h-5 w-5" />
-                รูปภาพสถานที่
-              </CardTitle>
-              <CardDescription>อัปโหลดภาพหน้างานก่อนเริ่มดำเนินการ</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  "rounded-lg border border-dashed border-input transition-colors",
-                  "flex flex-col",
-                  "min-h-[120px]",
-                  isDraggingImages && "border-primary bg-muted/50",
-                  isLeadTechnician && "opacity-50 pointer-events-none"
-                )}
-                onDragOver={!isLeadTechnician ? handleLocationImageDragOver : undefined}
-                onDragLeave={!isLeadTechnician ? handleLocationImageDragLeave : undefined}
-                onDrop={!isLeadTechnician ? handleLocationImageDrop : undefined}
-              >
-                <input
-                  ref={locationImageInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLocationImageSelect}
-                  disabled={isLeadTechnician}
-                />
-
-                {locationImages.length === 0 ? (
-                  <div
-                    className={cn(
-                      "flex-1 flex flex-col items-center justify-center text-center p-6",
-                      !isLeadTechnician && "cursor-pointer"
-                    )}
-                    onClick={!isLeadTechnician ? openLocationImageDialog : undefined}
-                  >
-                    <ImageIcon className="mx-auto h-10 w-10 text-gray-400" />
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="p-0 h-auto font-semibold text-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isLeadTechnician) openLocationImageDialog();
-                        }}
+                <TabsContent value="location" forceMount className="space-y-4 mt-4">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">ตำแหน่งงาน</Label>
+                    <div className="rounded-lg border overflow-hidden">
+                      <MapPicker 
+                        initialPosition={location} 
+                        onPositionChange={setLocation}
                         disabled={isLeadTechnician}
-                      >
-                        click to browse
-                      </Button>
-                      .
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">รองรับไฟล์รูปภาพเท่านั้น</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="p-4 border-b border-dashed">
-                      <p className="text-sm text-muted-foreground text-center">
-                        <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
-                        <Button
-                          type="button"
-                          variant="link"
-                          className="p-0 h-auto font-semibold text-primary"
-                          onClick={openLocationImageDialog}
-                          disabled={isLeadTechnician}
-                        >
-                          click to browse
-                        </Button>
-                        .
-                      </p>
+                      />
                     </div>
-                    <ScrollArea className="flex-1 min-h-0">
-                      <div className="grid grid-cols-2 gap-3 p-4">
-                        {locationImages.map((file, index) => (
-                          <div key={index} className="relative group">
-                            <div className="aspect-video rounded-md border overflow-hidden bg-muted">
-                              <img
-                                src={URL.createObjectURL(file)}
-                                alt={file.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">รูปภาพสถานที่</Label>
+                    <CardDescription className="text-xs">อัปโหลดภาพหน้างานก่อนเริ่มดำเนินการ</CardDescription>
+                    <div
+                      className={cn(
+                        "rounded-lg border border-dashed border-input transition-colors",
+                        "flex flex-col",
+                        "min-h-[120px]",
+                        isDraggingImages && "border-primary bg-muted/50",
+                        isLeadTechnician && "opacity-50 pointer-events-none"
+                      )}
+                      onDragOver={!isLeadTechnician ? handleLocationImageDragOver : undefined}
+                      onDragLeave={!isLeadTechnician ? handleLocationImageDragLeave : undefined}
+                      onDrop={!isLeadTechnician ? handleLocationImageDrop : undefined}
+                    >
+                      <input
+                        ref={locationImageInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLocationImageSelect}
+                        disabled={isLeadTechnician}
+                      />
+
+                      {locationImages.length === 0 ? (
+                        <div
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center text-center p-6",
+                            !isLeadTechnician && "cursor-pointer"
+                          )}
+                          onClick={!isLeadTechnician ? openLocationImageDialog : undefined}
+                        >
+                          <ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
                             <Button
                               type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => deleteLocationImage(file.name)}
+                              variant="link"
+                              className="p-0 h-auto font-semibold text-primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isLeadTechnician) openLocationImageDialog();
+                              }}
                               disabled={isLeadTechnician}
                             >
-                              <X className="h-4 w-4" />
+                              click to browse
                             </Button>
-                            <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
-                              {file.name}
+                            .
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">รองรับไฟล์รูปภาพเท่านั้น</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="p-3 border-b border-dashed">
+                            <p className="text-xs text-muted-foreground text-center">
+                              <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="p-0 h-auto text-xs font-semibold text-primary"
+                                onClick={openLocationImageDialog}
+                                disabled={isLeadTechnician}
+                              >
+                                click to browse
+                              </Button>
+                              .
                             </p>
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="h-5 w-5" />
-                รูปภาพก่อนซ่อม (Before)
-              </CardTitle>
-              <CardDescription>อัปโหลดภาพก่อนดำเนินงานเพื่อใช้อ้างอิง</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  "rounded-lg border border-dashed border-input transition-colors",
-                  "flex flex-col",
-                  "min-h-[120px]",
-                  isDraggingBefore && "border-primary bg-muted/50",
-                  !canEditBeforeAfterImages && "opacity-50 pointer-events-none"
-                )}
-                onDragOver={canEditBeforeAfterImages ? handleBeforeImageDragOver : undefined}
-                onDragLeave={canEditBeforeAfterImages ? handleBeforeImageDragLeave : undefined}
-                onDrop={canEditBeforeAfterImages ? handleBeforeImageDrop : undefined}
-              >
-                <input
-                  ref={beforeImageInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleBeforeImageSelect}
-                  disabled={!canEditBeforeAfterImages}
-                />
-
-                {beforeImages.length === 0 ? (
-                  <div
-                    className={cn(
-                      "flex-1 flex flex-col items-center justify-center text-center p-6",
-                      canEditBeforeAfterImages && "cursor-pointer"
-                    )}
-                    onClick={canEditBeforeAfterImages ? openBeforeImageDialog : undefined}
-                  >
-                    <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="p-0 h-auto font-semibold text-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openBeforeImageDialog();
-                        }}
-                      >
-                        click to browse
-                      </Button>
-                      .
-                    </p>
-                    <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="p-4 border-b border-dashed">
-                      <p className="text-sm text-muted-foreground text-center">
-                        <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
-                        <Button
-                          type="button"
-                          variant="link"
-                          className="p-0 h-auto font-semibold text-primary"
-                          onClick={openBeforeImageDialog}
-                        >
-                          click to browse
-                        </Button>
-                        .
-                      </p>
-                    </div>
-                    <ScrollArea className="flex-1 min-h-0">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
-                        {beforeImages.map((file, index) => (
-                          <div key={index} className="group relative">
-                            <div className="aspect-square rounded-md overflow-hidden border bg-muted">
-                              <img
-                                src={URL.createObjectURL(file)}
-                                alt={file.name}
-                                className="w-full h-full object-cover"
-                              />
+                          <ScrollArea className="flex-1 min-h-0 max-h-[300px]">
+                            <div className="grid grid-cols-2 gap-2 p-3">
+                              {locationImages.map((file, index) => (
+                                <div key={index} className="relative group">
+                                  <div className="aspect-video rounded-md border overflow-hidden bg-muted">
+                                    <img
+                                      src={URL.createObjectURL(file)}
+                                      alt={file.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => deleteLocationImage(file.name)}
+                                    disabled={isLeadTechnician}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                  <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
+                                    {file.name}
+                                  </p>
+                                </div>
+                              ))}
                             </div>
+                          </ScrollArea>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="images" forceMount className="space-y-4 mt-4">
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Camera className="h-4 w-4" />
+                      รูปภาพก่อนซ่อม (Before)
+                    </Label>
+                    <CardDescription className="text-xs">อัปโหลดภาพก่อนดำเนินงานเพื่อใช้อ้างอิง</CardDescription>
+                    <div
+                      className={cn(
+                        "rounded-lg border border-dashed border-input transition-colors",
+                        "flex flex-col",
+                        "min-h-[120px]",
+                        isDraggingBefore && "border-primary bg-muted/50",
+                        !canEditBeforeAfterImages && "opacity-50 pointer-events-none"
+                      )}
+                      onDragOver={canEditBeforeAfterImages ? handleBeforeImageDragOver : undefined}
+                      onDragLeave={canEditBeforeAfterImages ? handleBeforeImageDragLeave : undefined}
+                      onDrop={canEditBeforeAfterImages ? handleBeforeImageDrop : undefined}
+                    >
+                      <input
+                        ref={beforeImageInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleBeforeImageSelect}
+                        disabled={!canEditBeforeAfterImages}
+                      />
+
+                      {beforeImages.length === 0 ? (
+                        <div
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center text-center p-4",
+                            canEditBeforeAfterImages && "cursor-pointer"
+                          )}
+                          onClick={canEditBeforeAfterImages ? openBeforeImageDialog : undefined}
+                        >
+                          <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
                             <Button
                               type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => deleteBeforeImage(file.name)}
-                              disabled={!canEditBeforeAfterImages}
+                              variant="link"
+                              className="p-0 h-auto text-xs font-semibold text-primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openBeforeImageDialog();
+                              }}
                             >
-                              <X className="h-4 w-4" />
+                              click to browse
                             </Button>
-                            <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
-                              {file.name}
+                            .
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="p-2 border-b border-dashed">
+                            <p className="text-xs text-muted-foreground text-center">
+                              <span className="font-semibold text-primary">Drag 'n' drop</span> more, or{" "}
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="p-0 h-auto text-xs font-semibold text-primary"
+                                onClick={openBeforeImageDialog}
+                              >
+                                browse
+                              </Button>
                             </p>
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="h-5 w-5" />
-                รูปภาพหลังซ่อม (After)
-              </CardTitle>
-              <CardDescription>เก็บหลักฐานผลงานหลังดำเนินการเสร็จ</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  "rounded-lg border border-dashed border-input transition-colors",
-                  "flex flex-col",
-                  "min-h-[120px]",
-                  isDraggingAfter && "border-primary bg-muted/50",
-                  !canEditBeforeAfterImages && "opacity-50 pointer-events-none"
-                )}
-                onDragOver={canEditBeforeAfterImages ? handleAfterImageDragOver : undefined}
-                onDragLeave={canEditBeforeAfterImages ? handleAfterImageDragLeave : undefined}
-                onDrop={canEditBeforeAfterImages ? handleAfterImageDrop : undefined}
-              >
-                <input
-                  ref={afterImageInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAfterImageSelect}
-                  disabled={!canEditBeforeAfterImages}
-                />
-
-                {afterImages.length === 0 ? (
-                  <div
-                    className={cn(
-                      "flex-1 flex flex-col items-center justify-center text-center p-6",
-                      canEditBeforeAfterImages && "cursor-pointer"
-                    )}
-                    onClick={canEditBeforeAfterImages ? openAfterImageDialog : undefined}
-                  >
-                    <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="p-0 h-auto font-semibold text-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openAfterImageDialog();
-                        }}
-                      >
-                        click to browse
-                      </Button>
-                      .
-                    </p>
-                    <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="p-4 border-b border-dashed">
-                      <p className="text-sm text-muted-foreground text-center">
-                        <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
-                        <Button
-                          type="button"
-                          variant="link"
-                          className="p-0 h-auto font-semibold text-primary"
-                          onClick={openAfterImageDialog}
-                        >
-                          click to browse
-                        </Button>
-                        .
-                      </p>
-                    </div>
-                    <ScrollArea className="flex-1 min-h-0">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
-                        {afterImages.map((file, index) => (
-                          <div key={index} className="group relative">
-                            <div className="aspect-square rounded-md overflow-hidden border bg-muted">
-                              <img
-                                src={URL.createObjectURL(file)}
-                                alt={file.name}
-                                className="w-full h-full object-cover"
-                              />
+                          <ScrollArea className="flex-1 min-h-0 max-h-[200px]">
+                            <div className="grid grid-cols-2 gap-2 p-2">
+                              {beforeImages.map((file, index) => (
+                                <div key={index} className="group relative">
+                                  <div className="aspect-square rounded-md overflow-hidden border bg-muted">
+                                    <img
+                                      src={URL.createObjectURL(file)}
+                                      alt={file.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => deleteBeforeImage(file.name)}
+                                    disabled={!canEditBeforeAfterImages}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                  <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
+                                    {file.name}
+                                  </p>
+                                </div>
+                              ))}
                             </div>
+                          </ScrollArea>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Camera className="h-4 w-4" />
+                      รูปภาพหลังซ่อม (After)
+                    </Label>
+                    <CardDescription className="text-xs">เก็บหลักฐานผลงานหลังดำเนินการเสร็จ</CardDescription>
+                    <div
+                      className={cn(
+                        "rounded-lg border border-dashed border-input transition-colors",
+                        "flex flex-col",
+                        "min-h-[120px]",
+                        isDraggingAfter && "border-primary bg-muted/50",
+                        !canEditBeforeAfterImages && "opacity-50 pointer-events-none"
+                      )}
+                      onDragOver={canEditBeforeAfterImages ? handleAfterImageDragOver : undefined}
+                      onDragLeave={canEditBeforeAfterImages ? handleAfterImageDragLeave : undefined}
+                      onDrop={canEditBeforeAfterImages ? handleAfterImageDrop : undefined}
+                    >
+                      <input
+                        ref={afterImageInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAfterImageSelect}
+                        disabled={!canEditBeforeAfterImages}
+                      />
+
+                      {afterImages.length === 0 ? (
+                        <div
+                          className={cn(
+                            "flex-1 flex flex-col items-center justify-center text-center p-4",
+                            canEditBeforeAfterImages && "cursor-pointer"
+                          )}
+                          onClick={canEditBeforeAfterImages ? openAfterImageDialog : undefined}
+                        >
+                          <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
                             <Button
                               type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => deleteAfterImage(file.name)}
-                              disabled={!canEditBeforeAfterImages}
+                              variant="link"
+                              className="p-0 h-auto text-xs font-semibold text-primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openAfterImageDialog();
+                              }}
                             >
-                              <X className="h-4 w-4" />
+                              click to browse
                             </Button>
-                            <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
-                              {file.name}
+                            .
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="p-2 border-b border-dashed">
+                            <p className="text-xs text-muted-foreground text-center">
+                              <span className="font-semibold text-primary">Drag 'n' drop</span> more, or{" "}
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="p-0 h-auto text-xs font-semibold text-primary"
+                                onClick={openAfterImageDialog}
+                              >
+                                browse
+                              </Button>
                             </p>
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </>
-                )}
-              </div>
+                          <ScrollArea className="flex-1 min-h-0 max-h-[200px]">
+                            <div className="grid grid-cols-2 gap-2 p-2">
+                              {afterImages.map((file, index) => (
+                                <div key={index} className="group relative">
+                                  <div className="aspect-square rounded-md overflow-hidden border bg-muted">
+                                    <img
+                                      src={URL.createObjectURL(file)}
+                                      alt={file.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => deleteAfterImage(file.name)}
+                                    disabled={!canEditBeforeAfterImages}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                  <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
+                                    {file.name}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>

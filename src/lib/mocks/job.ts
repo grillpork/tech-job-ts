@@ -6,7 +6,7 @@ export const MOCK_JOBS: Job[] = [
     id: "job-001",
     title: "ซ่อมเครื่องปรับอากาศ ชั้น 5",
     description: "แอร์ห้องประชุมใหญ่ไม่เย็น มีน้ำหยด ต้องตรวจสอบและซ่อมแซม",
-    status: "pending",
+    status: "in_progress",
     departments: ["Mechanical"],
     type: "คอนโด",
     priority: "high",
@@ -77,14 +77,14 @@ export const MOCK_JOBS: Job[] = [
     type: "บ้าน",
     priority: "medium",
     creator: { 
-      id: "user-admin-1", 
-      name: "สมชาย จัดการเก่ง", 
-      role: "admin" 
+      id: "user-manager-1",
+      name: "วิภา หัวหน้าทีม",
+      role: "manager"
     },
     assignedEmployees: [
       MOCK_USERS[17] // user-emp-5 (นาย จ. ช่างเทคนิค)
     ],
-    leadTechnician: MOCK_USERS[4], // user-lead-4 (สมชาย ช่างเทคนิค)
+    leadTechnician: MOCK_USERS[3], // user-lead-4 (สมชาย ช่างเทคนิค)
     tasks: [
       {
         id: "task-3",

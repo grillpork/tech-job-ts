@@ -456,7 +456,7 @@ export default function JobViewPage() {
           </Card>
 
           {/* 3. Execution Evidence (Before/After) */}
-          {(job.beforeImages?.length > 0 || job.afterImages?.length > 0) && (
+          {(job.beforeImages && job.beforeImages.length > 0 || job.afterImages && job.afterImages.length > 0) && (
             <Card className="shadow-sm border-none ring-1 ring-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -486,7 +486,7 @@ export default function JobViewPage() {
                   </div>
                 )}
                 
-                {job.beforeImages?.length > 0 && job.afterImages?.length > 0 && <Separator />}
+                {job.beforeImages && job.beforeImages.length > 0 && job.afterImages && job.afterImages.length > 0 && <Separator />}
 
                 {job.afterImages && job.afterImages.length > 0 && (
                   <div className="space-y-3">
@@ -545,7 +545,7 @@ export default function JobViewPage() {
                 {job.leadTechnician ? (
                   <div className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
                     <Avatar className="h-8 w-8 border">
-                      <AvatarImage src={job.leadTechnician.imageUrl} />
+                      <AvatarImage src={job.leadTechnician.imageUrl || ""} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">{job.leadTechnician.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span className="text-sm font-medium">{job.leadTechnician.name}</span>
@@ -564,7 +564,7 @@ export default function JobViewPage() {
                     {job.assignedEmployees.map(employee => (
                       <div key={employee.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Avatar className="h-8 w-8 border">
-                          <AvatarImage src={employee.imageUrl} />
+                          <AvatarImage src={employee.imageUrl || ""} />
                           <AvatarFallback className="text-xs">{employee.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <span className="text-sm">{employee.name}</span>

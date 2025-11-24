@@ -4,6 +4,9 @@
 // @ts-ignore: allow side-effect import of CSS without type declarations
 import 'leaflet/dist/leaflet.css';
 import * as L from 'leaflet';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import { Input } from "@/components/ui/input";
@@ -11,11 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Crosshair, MapPin } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
+const resolveIcon = (icon: string | { src: string }) =>
+  typeof icon === "string" ? icon : icon?.src ?? "";
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'leaflet/images/marker-icon-2x.png',
-  iconUrl: 'leaflet/images/marker-icon.png',
-  shadowUrl: 'leaflet/images/marker-shadow.png',
+  iconRetinaUrl: resolveIcon(markerIcon2x),
+  iconUrl: resolveIcon(markerIcon),
+  shadowUrl: resolveIcon(markerShadow),
 });
 
 interface MapPickerProps {

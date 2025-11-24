@@ -4,15 +4,14 @@ import * as React from "react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
 } from "recharts";
 import NumberFlow from "@number-flow/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -33,7 +32,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { chartData } from "@/lib/mocks/chart-date";
 import { 
   ArrowUpRight, 
   ArrowDownRight, 
@@ -51,6 +49,7 @@ import { useUserStore } from "@/stores/features/userStore";
 import { useJobStore } from "@/stores/features/jobStore";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
 import { useReportStore } from "@/stores/features/reportStore";
+import type { Job } from "@/stores/features/jobStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -61,10 +60,21 @@ dayjs.extend(relativeTime);
 export const description = "Interactive Dashboard";
 
 const chartConfig = {
-  complete: { label: "Complete", color: "hsl(var(--chart-1))" },
-  progressing: { label: "Progressing", color: "hsl(var(--chart-2))" },
-  pending: { label: "Pending", color: "hsl(var(--chart-3))" },
+  complete: { label: "Complete", color: "#22c55e" },
+  progressing: { label: "Progressing", color: "#0ea5e9" },
+  pending: { label: "Pending", color: "#a3a3a3" },
 } satisfies ChartConfig;
+
+const CHART_WINDOW_DAYS = 180;
+
+const statusToChartKey: Record<Job["status"], keyof typeof chartConfig | null> = {
+  pending: "pending",
+  in_progress: "progressing",
+  pending_approval: "pending",
+  completed: "complete",
+  cancelled: "pending",
+  rejected: "pending",
+};
 
 const COLORS = ['#0ea5e9', '#22c55e', '#f97316', '#a855f7', '#e11d48'];
 
@@ -136,50 +146,92 @@ export default function Page() {
 
   const graphKeys = React.useMemo(() => (["complete", "progressing", "pending"] as const), []);
 
-  const filteredData = React.useMemo(() => {
-    const referenceDate = new Date("2024-06-30");
-    const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
-    const startDate = new Date(referenceDate);
-    startDate.setDate(startDate.getDate() - days);
-    return chartData.filter((item) => new Date(item.date) >= startDate);
-  }, [timeRange]);
+  const rangeDays = React.useMemo(() => (timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90), [timeRange]);
 
-  const total = React.useMemo(
-    () => ({
-      complete: filteredData.reduce((acc, curr) => acc + curr.complete, 0),
-      progressing: filteredData.reduce((acc, curr) => acc + curr.progressing, 0),
-      pending: filteredData.reduce((acc, curr) => acc + curr.pending, 0),
-    }),
+  const allChartData = React.useMemo(() => {
+    const end = dayjs().endOf("day");
+    const start = end.subtract(CHART_WINDOW_DAYS - 1, "day");
+    const data: { date: string; complete: number; progressing: number; pending: number }[] = [];
+    const dateMap = new Map<string, { date: string; complete: number; progressing: number; pending: number }>();
+
+    for (let i = 0; i < CHART_WINDOW_DAYS; i++) {
+      const date = start.add(i, "day");
+      const key = date.format("YYYY-MM-DD");
+      const entry = { date: key, complete: 0, progressing: 0, pending: 0 };
+      data.push(entry);
+      dateMap.set(key, entry);
+    }
+
+    jobs.forEach((job: Job) => {
+      if (!job?.createdAt) return;
+      const jobDate = dayjs(job.createdAt);
+      if (!jobDate.isValid()) return;
+      if (jobDate.isBefore(start, "day") || jobDate.isAfter(end, "day")) return;
+      const chartKey = statusToChartKey[job.status];
+      if (!chartKey) return;
+      const key = jobDate.format("YYYY-MM-DD");
+      const entry = dateMap.get(key);
+      if (entry) {
+        entry[chartKey] += 1;
+      }
+    });
+
+    return data;
+  }, [jobs]);
+
+  const filteredData = React.useMemo(() => {
+    if (allChartData.length === 0) return [];
+    return allChartData.slice(-rangeDays);
+  }, [allChartData, rangeDays]);
+
+  const hasFilteredData = React.useMemo(
+    () =>
+      filteredData.some(
+        (entry) => entry.complete > 0 || entry.progressing > 0 || entry.pending > 0
+      ),
     [filteredData]
   );
 
-  const previousData = React.useMemo(() => {
-    const referenceDate = new Date("2024-06-30");
-    const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
-    const endDate = new Date(referenceDate);
-    const startDate = new Date(referenceDate);
-    startDate.setDate(startDate.getDate() - days * 2);
-    const prevRange = chartData.filter(
-      (item) =>
-        new Date(item.date) >= startDate && new Date(item.date) < endDate
-    );
-    return {
-      complete: prevRange.reduce((acc, curr) => acc + curr.complete, 0),
-      progressing: prevRange.reduce((acc, curr) => acc + curr.progressing, 0),
-      pending: prevRange.reduce((acc, curr) => acc + curr.pending, 0),
-    };
-  }, [timeRange]);
+  const chartData = React.useMemo(
+    () => (hasFilteredData ? filteredData : allChartData),
+    [hasFilteredData, filteredData, allChartData]
+  );
+
+  const total = React.useMemo(
+    () => ({
+      complete: chartData.reduce((acc, curr) => acc + curr.complete, 0),
+      progressing: chartData.reduce((acc, curr) => acc + curr.progressing, 0),
+      pending: chartData.reduce((acc, curr) => acc + curr.pending, 0),
+    }),
+    [chartData]
+  );
+
+  const previousRangeData = React.useMemo(() => {
+    if (allChartData.length === 0 || !hasFilteredData) return [];
+    const endIndex = Math.max(0, allChartData.length - rangeDays);
+    const startIndex = Math.max(0, endIndex - rangeDays);
+    return allChartData.slice(startIndex, endIndex);
+  }, [allChartData, rangeDays, hasFilteredData]);
+
+  const previousTotals = React.useMemo(
+    () => ({
+      complete: previousRangeData.reduce((acc, curr) => acc + curr.complete, 0),
+      progressing: previousRangeData.reduce((acc, curr) => acc + curr.progressing, 0),
+      pending: previousRangeData.reduce((acc, curr) => acc + curr.pending, 0),
+    }),
+    [previousRangeData]
+  );
 
   const percentChange = (key: keyof typeof chartConfig) => {
-    const prev = previousData[key];
+    const prev = previousTotals[key];
     const curr = total[key];
     if (prev === 0) return 0;
     return ((curr - prev) / prev) * 100;
   };
 
   const miniData = React.useMemo(() => {
-    return filteredData.filter((_, index) => index % 3 === 0);
-  }, [filteredData]);
+    return chartData.filter((_, index) => index % 3 === 0);
+  }, [chartData]);
 
   const filteredReports = React.useMemo(() => {
     const now = dayjs();
@@ -363,7 +415,7 @@ export default function Page() {
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[320px] w-full">
-                <AreaChart data={filteredData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     {graphKeys.map((key) => (
                       <linearGradient id={`colorGradient-${key}`} key={key} x1="0" y1="0" x2="0" y2="1">
@@ -529,45 +581,59 @@ export default function Page() {
             </CardContent>
           </Card>
 
-          {/* Top Inventory (Pie Chart) */}
+          {/* Top Inventory (Horizontal Bar Chart) */}
           <Card className="shadow-sm border-none ring-1 ring-border/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold">Inventory Distribution</CardTitle>
               <CardDescription>Top items by quantity</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[280px] w-full relative mt-2">
+              <div className="space-y-4 mt-2">
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground font-medium">
+                  <span>Item</span>
+                  <span>Units</span>
+                </div>
                 {topInventory.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+                  <div className="flex items-center justify-center h-[260px] text-xs text-muted-foreground">
                     No inventory data
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={topInventory}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={65}
-                        outerRadius={90}
-                        paddingAngle={4}
-                        dataKey="count"
-                        cornerRadius={4}
-                        strokeWidth={0}
-                      >
-                        {topInventory.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart
+                      data={topInventory}
+                      layout="vertical"
+                      margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                      barCategoryGap={12}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted/30" />
+                      <XAxis
+                        type="number"
+                        tickLine={false}
+                        axisLine={false}
+                        className="text-xs text-muted-foreground"
+                      />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        tickLine={false}
+                        axisLine={false}
+                        width={140}
+                        className="text-xs text-muted-foreground"
+                      />
+                      <Tooltip
+                        cursor={{ fill: "hsl(var(--muted))", opacity: 0.35 }}
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
+                            const item = payload[0];
                             return (
                               <div className="bg-popover/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 text-xs animate-in fade-in zoom-in-95 duration-200">
-                                <p className="font-semibold mb-1">{payload[0].name}</p>
+                                <p className="font-semibold mb-1">{item.payload.name}</p>
                                 <div className="flex items-center gap-2">
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: payload[0].fill }} />
-                                  <span className="text-muted-foreground">{payload[0].value} units</span>
+                                  <span
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: item.color }}
+                                  />
+                                  <span className="text-muted-foreground">{item.value} units</span>
                                 </div>
                               </div>
                             );
@@ -575,25 +641,22 @@ export default function Page() {
                           return null;
                         }}
                       />
-                      <Legend 
-                        verticalAlign="bottom" 
-                        height={36}
-                        iconType="circle"
-                        iconSize={8}
-                        formatter={(value) => <span className="text-xs text-muted-foreground font-medium ml-1">{value}</span>}
-                      />
-                    </PieChart>
+                      <Bar dataKey="count" radius={[0, 12, 12, 0]} barSize={18}>
+                        {topInventory.map((entry, index) => (
+                          <Cell key={`bar-${entry.id}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 )}
-                {/* Center Text Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
-                   <div className="text-center">
-                      <span className="text-3xl font-bold block tracking-tight text-foreground">
-                        <NumberFlow value={topInventory.reduce((a, b) => a + b.count, 0)} format={{ notation: "compact" }} />
-                      </span>
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total Items</span>
-                   </div>
-                </div>
+                {topInventory.length > 0 && (
+                  <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground border-t">
+                    <span>รวมทั้งหมด</span>
+                    <span className="font-semibold text-foreground">
+                      <NumberFlow value={topInventory.reduce((a, b) => a + b.count, 0)} format={{ notation: "compact" }} />
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

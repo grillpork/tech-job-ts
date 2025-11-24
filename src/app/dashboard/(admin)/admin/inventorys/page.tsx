@@ -576,17 +576,17 @@ useEffect(() => {
             <div className="space-y-4">
               {/* DESKTOP TABLE VIEW */}
               <div className="hidden md:block">
-                <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                <div className="rounded-xl border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-gray-700 dark:text-gray-300">ใบงาน</TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300">สถานะ</TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300">แผนก</TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300">จำนวนรายการ</TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300">สถานะการอนุมัติ</TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300">รายละเอียด</TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300">การดำเนินการ</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Job</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Status</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Department</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Quantity</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Approval Status</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Details</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

@@ -98,7 +98,9 @@ export default function Sidebar() {
         href: "/dashboard/employee/calendar",
         icon: Calendar,
       },
+      { name: "AI", href: "/dashboard/employee/ai", icon: Bot },
     ],
+
   };
 
   const menus = roleMenus[currentUser?.role || "employee"] || [];

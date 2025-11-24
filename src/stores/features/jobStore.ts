@@ -44,6 +44,7 @@ export interface WorkLog {
 }
 
 export interface Job {
+  department: string;
   id: string;
   title: string;
   description: string | null;

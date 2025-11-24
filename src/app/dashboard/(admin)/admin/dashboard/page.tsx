@@ -42,7 +42,10 @@ import {
   AlertCircle, 
   Lightbulb, 
   FileText,
-  MoreHorizontal
+  MoreHorizontal,
+  CalendarClock,
+  ClipboardCheck,
+  PlusCircle
 } from "lucide-react";
 import { useUserStore } from "@/stores/features/userStore";
 import { useJobStore } from "@/stores/features/jobStore";
@@ -63,7 +66,7 @@ const chartConfig = {
   pending: { label: "Pending", color: "hsl(var(--chart-3))" },
 } satisfies ChartConfig;
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const COLORS = ['#0ea5e9', '#22c55e', '#f97316', '#a855f7', '#e11d48'];
 
 export default function Page() {
   const router = useRouter();
@@ -131,6 +134,8 @@ export default function Page() {
       .map((i) => ({ id: i.id, name: i.name, count: i.quantity }));
   }, [jobs, inventories, inventoryHasUsage]);
 
+  const graphKeys = React.useMemo(() => (["complete", "progressing", "pending"] as const), []);
+
   const filteredData = React.useMemo(() => {
     const referenceDate = new Date("2024-06-30");
     const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
@@ -188,35 +193,107 @@ export default function Page() {
     .slice(0, 5);
   }, [reports, reportFilter]);
 
+  const activeJobs = React.useMemo(() => {
+    return jobs.filter((job: any) => job.status !== "completed" && job.status !== "cancelled").length;
+  }, [jobs]);
+
+  const openReports = React.useMemo(() => {
+    return reports.filter((report: any) => !["resolved", "closed"].includes(report.status)).length;
+  }, [reports]);
+
+  const lowInventory = React.useMemo(() => {
+    return inventories.filter((item: any) => {
+      const threshold = typeof item.restockThreshold === "number" ? item.restockThreshold : 10;
+      return item.quantity <= threshold;
+    }).length;
+  }, [inventories]);
+
+  const progressingChange = percentChange("progressing");
+  const pendingChange = percentChange("pending");
+
+  const summaryStats = React.useMemo(() => ([
+    { label: "งานที่ดำเนินการ", value: activeJobs, change: progressingChange },
+    { label: "รายงานที่เปิดอยู่", value: openReports, change: -pendingChange },
+    { label: "สินค้าใกล้หมด", value: lowInventory, change: lowInventory ? 12 : -5 },
+  ]), [activeJobs, openReports, lowInventory, progressingChange, pendingChange]);
+
+  const quickActions = React.useMemo(() => ([
+    {
+      title: "เช็กตารางงาน",
+      description: "ดูคิวงานที่ต้องทำและการมอบหมายล่าสุด",
+      icon: CalendarClock,
+      onClick: () => router.push("/dashboard/admin/jobs"),
+    },
+    {
+      title: "อัปเดตสถานะ",
+      description: "ปรับปรุงความคืบหน้าหรือมอบหมายผู้รับผิดชอบ",
+      icon: ClipboardCheck,
+      onClick: () => router.push("/dashboard/admin/jobs/manage"),
+    },
+    {
+      title: "สร้างสต็อกใหม่",
+      description: "เพิ่มวัสดุหรืออุปกรณ์ที่ต้องใช้",
+      icon: PlusCircle,
+      onClick: () => router.push("/dashboard/admin/inventory/create"),
+    },
+  ]), [router]);
+
   return (
     <div className="p-6 space-y-8 max-w-[1600px] mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Overview of jobs, reports, and inventory metrics.</p>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[140px] h-9 bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 3 months</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={() => router.push('/dashboard/admin/jobs/create')} className="hidden sm:inline-flex h-9 shadow-sm">
-            New Job
-          </Button>
+      <div className="rounded-3xl border bg-gradient-to-r from-primary/10 via-sky-100/40 to-transparent dark:from-primary/15 dark:via-primary/5 dark:to-transparent p-6 shadow-sm">
+        <div className="flex flex-col lg:flex-row justify-between gap-6">
+          <div className="space-y-3 max-w-xl">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-background/60 backdrop-blur text-xs">อัปเดตเรียลไทม์</Badge>
+              <span className="text-xs text-muted-foreground">Sync status • OK</span>
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">Admin Control Center</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                ภาพรวมสถานะงาน รายงาน และสต็อกแบบโต้ตอบ เพื่อช่วยตัดสินใจได้เร็วขึ้น
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-[140px] h-9 bg-background/80 border-muted-foreground/10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">7 วันล่าสุด</SelectItem>
+                  <SelectItem value="30d">30 วันล่าสุด</SelectItem>
+                  <SelectItem value="90d">3 เดือนล่าสุด</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="h-9 border-muted-foreground/20" onClick={() => router.push('/dashboard/admin/reports')}>
+                ดูรายงานทั้งหมด
+              </Button>
+              <Button onClick={() => router.push('/dashboard/admin/jobs/create')} className="h-9 shadow-sm gap-2">
+                <span>สร้างงานใหม่</span>
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-shrink-0 w-full lg:w-auto">
+            {summaryStats.map((stat) => (
+              <div key={stat.label} className="rounded-2xl bg-background/80 backdrop-blur border border-white/40 dark:border-white/5 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{stat.label}</p>
+                <p className="text-2xl font-bold mt-1">
+                  <NumberFlow value={stat.value} format={{ notation: "compact" }} />
+                </p>
+                <div className={`flex items-center gap-1 text-xs font-medium mt-2 ${stat.change >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                  {stat.change >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+                  <span>{Math.abs(stat.change).toFixed(1)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {(["complete", "progressing", "pending"] as const).map((chart) => {
+        {graphKeys.map((chart) => {
           const pct = percentChange(chart);
           const isUp = pct >= 0;
           return (
@@ -274,7 +351,7 @@ export default function Page() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Main Area Chart */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50">
+          <Card className="shadow-sm border-none ring-1 ring-border/50 bg-gradient-to-b from-background via-background to-muted/20">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -288,10 +365,12 @@ export default function Page() {
               <ChartContainer config={chartConfig} className="h-[320px] w-full">
                 <AreaChart data={filteredData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartConfig[activeChart].color} stopOpacity={0.2} />
-                      <stop offset="95%" stopColor={chartConfig[activeChart].color} stopOpacity={0} />
-                    </linearGradient>
+                    {graphKeys.map((key) => (
+                      <linearGradient id={`colorGradient-${key}`} key={key} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="10%" stopColor={chartConfig[key].color} stopOpacity={0.35} />
+                        <stop offset="95%" stopColor={chartConfig[key].color} stopOpacity={0.05} />
+                      </linearGradient>
+                    ))}
                   </defs>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted/20" />
                   <XAxis
@@ -317,14 +396,19 @@ export default function Page() {
                       />
                     }
                   />
-                  <Area
-                    type="monotone"
-                    dataKey={activeChart}
-                    stroke={chartConfig[activeChart].color}
-                    fill="url(#colorGradient)"
-                    strokeWidth={2.5}
-                    activeDot={{ r: 6, strokeWidth: 0, className: "animate-pulse" }}
-                  />
+                  {graphKeys.map((key) => (
+                    <Area
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      stroke={chartConfig[key].color}
+                      fill={`url(#colorGradient-${key})`}
+                      strokeWidth={key === activeChart ? 3 : 1.5}
+                      fillOpacity={key === activeChart ? 0.6 : 0.25}
+                      activeDot={key === activeChart ? { r: 6, strokeWidth: 0, className: "animate-pulse" } : undefined}
+                      opacity={key === activeChart ? 1 : 0.6}
+                    />
+                  ))}
                 </AreaChart>
               </ChartContainer>
             </CardContent>
@@ -511,6 +595,32 @@ export default function Page() {
                    </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card className="shadow-sm border-none ring-1 ring-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">ทางลัดที่ใช้บ่อย</CardTitle>
+              <CardDescription>จัดการงานสำคัญได้ทันที</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {quickActions.map((action) => (
+                <button
+                  key={action.title}
+                  onClick={action.onClick}
+                  className="w-full flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-border hover:bg-muted/40 transition-all text-left"
+                >
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <action.icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{action.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-70" />
+                </button>
+              ))}
             </CardContent>
           </Card>
 

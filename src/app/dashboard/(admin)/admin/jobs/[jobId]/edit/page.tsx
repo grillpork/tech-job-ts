@@ -697,8 +697,9 @@ export default function EditJobPage() {
                             value={priority}
                             onValueChange={setPriority}
                             disabled={isLeadTechnician}
+                            
                           >
-                            <SelectTrigger id="priority" className="h-11">
+                            <SelectTrigger id="priority" className="h-11 w-full">
                               <SelectValue placeholder="เลือกความสำคัญ" />
                             </SelectTrigger>
                             <SelectContent>
@@ -721,7 +722,7 @@ export default function EditJobPage() {
                             onValueChange={setType}
                             disabled={isLeadTechnician}
                           >
-                            <SelectTrigger id="type" className="h-11">
+                            <SelectTrigger id="type" className="h-11 w-full">
                               <SelectValue placeholder="เลือกประเภท" />
                             </SelectTrigger>
                             <SelectContent>

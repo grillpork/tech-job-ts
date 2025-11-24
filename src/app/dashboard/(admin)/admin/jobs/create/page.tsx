@@ -12,7 +12,15 @@ import {
   UploadCloud,
   ToolCase,
   Image as ImageIcon,
-  Plus
+  Plus,
+  FileText,
+  User,
+  Users,
+  Camera,
+  PenTool,
+  Building2,
+  AlertCircle,
+  MapPin
 } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { cn } from "@/lib/utils";
@@ -73,6 +81,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 
 // Interface และข้อมูลตัวอย่างสำหรับพนักงาน
@@ -379,12 +396,12 @@ export default function CreateJobPage() {
     e.preventDefault();
 
     const formElements = e.currentTarget.elements as typeof e.currentTarget.elements & {
-      jobTitle: { value: string };
-      jobDescription: { value: string };
-      customerName: { value: string };
-      customerPhone: { value: string };
+      jobTitle?: HTMLInputElement;
+      jobDescription?: HTMLTextAreaElement;
+      customerName?: HTMLInputElement;
+      customerPhone?: HTMLInputElement;
     };
-    const title = formElements.jobTitle.value;
+    const title = formElements.jobTitle?.value ?? "";
 
     // ตรวจสอบข้อมูลที่จำเป็น
     if (!title || title.trim() === "") {
@@ -439,9 +456,10 @@ export default function CreateJobPage() {
       // Get signature if available
       const signature = getSignatureImage();
 
-      const jobData = {
-        title: title,
-        description: formElements.jobDescription.value,
+    const jobData = {
+      department: departments[0] || "",
+      title,
+      description: formElements.jobDescription?.value ?? "",
         leadTechnicianId: leadTechnician,
         departments: departments,
         priority: priority as "low" | "medium" | "high" | "urgent" | null,
@@ -458,8 +476,8 @@ export default function CreateJobPage() {
         beforeImages: beforeImagesUrls.length > 0 ? beforeImagesUrls : undefined,
         afterImages: afterImagesUrls.length > 0 ? afterImagesUrls : undefined,
         customerType: customerType,
-        customerName: customerName || null,
-        customerPhone: customerPhone || null,
+        customerName: formElements.customerName?.value || customerName || null,
+        customerPhone: formElements.customerPhone?.value || customerPhone || null,
         customerCompanyName: customerType === "organization" ? (customerCompanyName || null) : null,
         customerTaxId: customerType === "organization" ? (customerTaxId || null) : null,
         customerAddress: customerType === "organization" ? (customerAddress || null) : null,
@@ -487,1081 +505,1177 @@ export default function CreateJobPage() {
   // === 3. RENDER / JSX ===
   // ==================================
   return (
-    <div className="p-4 md:p-8 space-y-8">
-      <div className="items-center">
-        <Badge variant="secondary">pending</Badge>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-        {/* ✅ 9. เพิ่ม onSubmit ที่นี่ */}
-        <form id="create-job-form" className="md:col-span-3 space-y-6" onSubmit={handleSubmit}>
-          {/* Job Title */}
-          <div>
-            <Label htmlFor="jobTitle">Job Title</Label>
-            {/* ✅ 10. เพิ่ม name attribute */}
-            <Input id="jobTitle" name="jobTitle" placeholder="Enter job title" className="mt-2" disabled={isLeadTechnician} />
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">สร้างงานใหม่</h1>
+            <Badge variant="secondary" className="text-sm px-3 py-1 uppercase tracking-wide">
+              Draft
+            </Badge>
           </div>
+        </div>
 
-          {/* Job Discriptions */}
-          <div>
-            <Label htmlFor="jobDescription">Job Discriptions</Label>
-            {/* ✅ 10. เพิ่ม name attribute */}
-            <Textarea
-              id="jobDescription"
-              name="jobDescription"
-              placeholder="Enter job description"
-              className="mt-2 resize-none h-15 overflow-y-auto"
-              disabled={isLeadTechnician}
-            />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* ✅ 9. เพิ่ม onSubmit ที่นี่ */}
+          <form id="create-job-form" className="lg:col-span-2 space-y-6" onSubmit={handleSubmit}>
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="basic" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">ข้อมูลพื้นฐาน</span>
+              </TabsTrigger>
+              <TabsTrigger value="customer" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">ลูกค้า</span>
+              </TabsTrigger>
+              <TabsTrigger value="team" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">ทีมงาน</span>
+              </TabsTrigger>
+              <TabsTrigger value="media" className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                <span className="hidden sm:inline">ไฟล์ & สื่อ</span>
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Customer Information */}
-          <div className="space-y-6">
-            {/* Customer Type Selection */}
-            <div>
-              <Label>ประเภทลูกค้า</Label>
-              <div className="flex gap-6 mt-2">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="customerType-individual"
-                    name="customerType"
-                    value="individual"
-                    checked={customerType === "individual"}
-                    onChange={(e) => {
-                      setCustomerType(e.target.value as "individual" | "organization");
-                      // ล้างข้อมูลองค์กรเมื่อเปลี่ยนเป็นลูกค้าปกติ
-                      if (e.target.value === "individual") {
-                        setCustomerCompanyName("");
-                        setCustomerTaxId("");
-                        setCustomerAddress("");
-                      }
-                    }}
-                    disabled={isLeadTechnician}
-                    className="h-4 w-4"
-                  />
-                  <Label htmlFor="customerType-individual" className="font-normal cursor-pointer">
-                    ลูกค้าปกติ
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="customerType-organization"
-                    name="customerType"
-                    value="organization"
-                    checked={customerType === "organization"}
-                    onChange={(e) => {
-                      setCustomerType(e.target.value as "individual" | "organization");
-                    }}
-                    disabled={isLeadTechnician}
-                    className="h-4 w-4"
-                  />
-                  <Label htmlFor="customerType-organization" className="font-normal cursor-pointer">
-                    องค์กร/บริษัท
-                  </Label>
-                </div>
-              </div>
-            </div>
+            <TabsContent value="basic" className="space-y-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    ข้อมูลงาน
+                  </CardTitle>
+                  <CardDescription>กำหนดรายละเอียดหลักและช่วงเวลาดำเนินงาน</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTitle">Job Title</Label>
+                    <Input id="jobTitle" name="jobTitle" placeholder="Enter job title" className="mt-1.5" disabled={isLeadTechnician} />
+                  </div>
 
-            {/* Individual Customer Fields */}
-            {customerType === "individual" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="customerName">ชื่อลูกค้า</Label>
-                  <Input
-                    id="customerName"
-                    name="customerName"
-                    placeholder="กรอกชื่อลูกค้า"
-                    className="mt-2"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    disabled={isLeadTechnician}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="customerPhone">เบอร์โทรลูกค้า</Label>
-                  <Input
-                    id="customerPhone"
-                    name="customerPhone"
-                    placeholder="กรอกเบอร์โทรลูกค้า"
-                    className="mt-2"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    disabled={isLeadTechnician}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Organization Customer Fields */}
-            {customerType === "organization" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="customerCompanyName">ชื่อบริษัท/องค์กร <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="customerCompanyName"
-                      name="customerCompanyName"
-                      placeholder="กรอกชื่อบริษัท/องค์กร"
-                      className="mt-2"
-                      value={customerCompanyName}
-                      onChange={(e) => setCustomerCompanyName(e.target.value)}
+                  <div className="space-y-2">
+                    <Label htmlFor="jobDescription">Job Description</Label>
+                    <Textarea
+                      id="jobDescription"
+                      name="jobDescription"
+                      placeholder="Enter job description"
+                      className="mt-1.5 resize-none h-32 overflow-y-auto"
                       disabled={isLeadTechnician}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="customerTaxId">เลขประจำตัวผู้เสียภาษี</Label>
-                    <Input
-                      id="customerTaxId"
-                      name="customerTaxId"
-                      placeholder="กรอกเลขประจำตัวผู้เสียภาษี"
-                      className="mt-2"
-                      value={customerTaxId}
-                      onChange={(e) => setCustomerTaxId(e.target.value)}
-                      disabled={isLeadTechnician}
-                    />
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="priority" className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        Priority
+                      </Label>
+                      <Select 
+                        name="priority" 
+                        value={priority} 
+                        onValueChange={setPriority}
+                        disabled={isLeadTechnician}
+                      >
+                        <SelectTrigger id="priority" className="w-full h-11">
+                          <SelectValue placeholder="เลือกความสำคัญ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="type" className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Type
+                      </Label>
+                      <Select 
+                        name="type" 
+                        value={type} 
+                        onValueChange={setType}
+                        disabled={isLeadTechnician}
+                      >
+                        <SelectTrigger id="type" className="w-full h-11">
+                          <SelectValue placeholder="เลือกประเภท" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="บ้าน">บ้าน</SelectItem>
+                          <SelectItem value="คอนโด">คอนโด</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <Label htmlFor="customerAddress">ที่อยู่บริษัท</Label>
-                  <Textarea
-                    id="customerAddress"
-                    name="customerAddress"
-                    placeholder="กรอกที่อยู่บริษัท"
-                    className="mt-2"
-                    rows={3}
-                    value={customerAddress}
-                    onChange={(e) => setCustomerAddress(e.target.value)}
-                    disabled={isLeadTechnician}
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="customerName">ชื่อผู้ติดต่อ</Label>
-                    <Input
-                      id="customerName"
-                      name="customerName"
-                      placeholder="กรอกชื่อผู้ติดต่อ"
-                      className="mt-2"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      disabled={isLeadTechnician}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="customerPhone">เบอร์โทรติดต่อ</Label>
-                    <Input
-                      id="customerPhone"
-                      name="customerPhone"
-                      placeholder="กรอกเบอร์โทรติดต่อ"
-                      className="mt-2"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      disabled={isLeadTechnician}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
 
-          {/* Signature */}
-          <div className="space-y-2">
-            <Label>ลายเซ็นลูกค้า</Label>
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/20">
-              <div className="w-full" style={{ maxWidth: "100%" }}>
-                <SignatureCanvas
-                  ref={signatureRef}
-                  onEnd={handleSignatureEnd}
-                  canvasProps={{
-                    className: "signature-canvas w-full h-[200px]",
-                    style: { width: "100%", height: "200px" },
-                  }}
-                  backgroundColor="white"
-                  penColor="#000000"
-                />
-              </div>
-            </div>
-            {signatureData && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span>ลายเซ็นพร้อมแล้ว</span>
-              </div>
-            )}
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleClearSignature}
-              >
-                <X className="h-4 w-4 mr-2" />
-                ลบลายเซ็น
-              </Button>
-            </div>
-          </div>
+                  <Separator />
 
-          {/* Lead Technician - เลือกก่อน */}
-          <div>
-            <Label htmlFor="leadTechnician">Lead technician <span className="text-destructive">*</span></Label>
-            <Select 
-              name="leadTechnician" 
-              value={leadTechnician} 
-              onValueChange={(value) => {
-                setLeadTechnician(value);
-                setDepartments([]); // ล้าง departments เมื่อเปลี่ยน lead technician
-                setSelectedEmployees([]); // ล้างค่าพนักงานเมื่อเปลี่ยน lead technician
-              }}
-              disabled={isLeadTechnician}
-            >
-              <SelectTrigger id="leadTechnician" className="w-full mt-2">
-                <SelectValue placeholder="เลือกหัวหน้าช่างก่อน" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableLeadTechnicians.map((lead) => (
-                  <SelectItem key={lead.value} value={lead.value}>
-                    {lead.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Departments - เลือกได้หลายตัว หลังจากเลือก lead technician */}
-          <div>
-            <Label>Select Departments</Label>
-            <Popover open={departmentsPopoverOpen} onOpenChange={setDepartmentsPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={departmentsPopoverOpen}
-                  className="w-full justify-between mt-2 h-auto min-h-10"
-                  disabled={!leadTechnician || !isLeadTechnician}
-                >
-                  <div className="flex gap-1 flex-wrap">
-                    {departments.length > 0 ? (
-                      departments.map((dept) => {
-                        const deptLabel = allDepartments.find(d => d.value === dept)?.label || dept;
-                        return (
-                          <Badge key={dept} variant="secondary" className="gap-1.5">
-                            {deptLabel}
-                            <div
-                              role="button"
-                              tabIndex={0}
-                              aria-label={`Remove ${deptLabel}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (isLeadTechnician) {
-                                  setDepartments(departments.filter(d => d !== dept));
-                                  // ล้าง employees ที่อยู่ใน department ที่ถูกลบ
-                                  const deptEmployees = MOCK_USERS
-                                    .filter(u => u.role === 'employee' && u.department === dept)
-                                    .map(u => u.id);
-                                  setSelectedEmployees(selectedEmployees.filter(emp => !deptEmployees.includes(emp.value)));
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.stopPropagation();
-                                  if (isLeadTechnician) {
-                                    setDepartments(departments.filter(d => d !== dept));
-                                    const deptEmployees = MOCK_USERS
-                                      .filter(u => u.role === 'employee' && u.department === dept)
-                                      .map(u => u.id);
-                                    setSelectedEmployees(selectedEmployees.filter(emp => !deptEmployees.includes(emp.value)));
-                                  }
-                                }
-                              }}
-                              className={cn(
-                                "rounded-full hover:bg-muted-foreground/20",
-                                !isLeadTechnician && "opacity-50 cursor-not-allowed"
-                              )}
-                            >
-                              <X className="h-3 w-3" />
-                            </div>
-                          </Badge>
-                        );
-                      })
-                    ) : (
-                      <span className="text-muted-foreground font-normal">
-                        {!leadTechnician ? "เลือกหัวหน้าช่างก่อน" : "เลือกแผนก"}
-                      </span>
-                    )}
-                  </div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search departments..." />
-                  <CommandList>
-                    <CommandEmpty>No department found.</CommandEmpty>
-                    <CommandGroup>
-                      {allDepartments.map((dept) => {
-                        const isSelected = departments.includes(dept.value);
-                        return (
-                          <CommandItem
-                            key={dept.value}
-                            onSelect={() => {
-                              if (isLeadTechnician) {
-                                if (isSelected) {
-                                  setDepartments(departments.filter(d => d !== dept.value));
-                                  // ล้าง employees ที่อยู่ใน department ที่ถูกลบ
-                                  const deptEmployees = MOCK_USERS
-                                    .filter(u => u.role === 'employee' && u.department === dept.value)
-                                    .map(u => u.id);
-                                  setSelectedEmployees(selectedEmployees.filter(emp => !deptEmployees.includes(emp.value)));
-                                } else {
-                                  setDepartments([...departments, dept.value]);
-                                }
-                              }
-                            }}
-                            disabled={!isLeadTechnician}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                isSelected ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {dept.label}
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Priority */}
-          <div>
-            <Label htmlFor="priority">Priority</Label>
-            <Select 
-              name="priority" 
-              value={priority} 
-              onValueChange={setPriority}
-              disabled={isLeadTechnician}
-            >
-              <SelectTrigger id="priority" className="w-full mt-2">
-                <SelectValue placeholder="เลือกความสำคัญ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Type */}
-          <div>
-            <Label htmlFor="type">Type</Label>
-            <Select 
-              name="type" 
-              value={type} 
-              onValueChange={setType}
-              disabled={isLeadTechnician}
-            >
-              <SelectTrigger id="type" className="w-full mt-2">
-                <SelectValue placeholder="เลือกประเภท" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="บ้าน">บ้าน</SelectItem>
-                <SelectItem value="คอนโด">คอนโด</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Assign Employee */}
-          <div>
-            <Label>Assign employee</Label>
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={popoverOpen}
-                  className="w-full justify-between mt-2 h-auto min-h-10"
-                  disabled={departments.length === 0 || isAdmin}
-                >
-                  <div className="flex gap-1 flex-wrap">
-                    {selectedEmployees.length > 0 ? (
-                      selectedEmployees.map((emp) => (
-                        <Badge
-                          key={emp.value}
-                          variant="secondary"
-                          className="gap-1.5"
-                        >
-                          {emp.label}
-                          {/* ✅ 12. แก้ปัญหาปุ่มซ้อนปุ่ม (เปลี่ยนเป็น <div>) */}
-                          <div
-                            role="button" tabIndex={0}
-                            aria-label={`Remove ${emp.label}`}
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              if (!isAdmin) handleRemoveEmployee(emp.value); 
-                            }}
-                            onKeyDown={(e) => { 
-                              if (e.key === 'Enter' || e.key === ' ') { 
-                                e.stopPropagation(); 
-                                if (!isAdmin) handleRemoveEmployee(emp.value); 
-                              } 
-                            }}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate" className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        Start date
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
                             className={cn(
-                              "rounded-full hover:bg-muted-foreground/20",
-                              isAdmin && "opacity-50 cursor-not-allowed"
+                              "w-full justify-start text-left font-normal h-11",
+                              !startDate && "text-muted-foreground"
                             )}
+                            disabled={isLeadTechnician}
                           >
-                            <X className="h-3 w-3" />
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="endDate" className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        End date
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal h-11",
+                              !endDate && "text-muted-foreground"
+                            )}
+                            disabled={isLeadTechnician}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="customer" className="space-y-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    ข้อมูลลูกค้า
+                  </CardTitle>
+                  <CardDescription>กำหนดประเภทลูกค้าและข้อมูลติดต่อ</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label>ประเภทลูกค้า</Label>
+                    <div className="flex gap-6 mt-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="customerType-individual"
+                          name="customerType"
+                          value="individual"
+                          checked={customerType === "individual"}
+                          onChange={(e) => {
+                            setCustomerType(e.target.value as "individual" | "organization");
+                            if (e.target.value === "individual") {
+                              setCustomerCompanyName("");
+                              setCustomerTaxId("");
+                              setCustomerAddress("");
+                            }
+                          }}
+                          disabled={isLeadTechnician}
+                          className="h-4 w-4"
+                        />
+                        <Label htmlFor="customerType-individual" className="font-normal cursor-pointer">
+                          ลูกค้าปกติ
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="customerType-organization"
+                          name="customerType"
+                          value="organization"
+                          checked={customerType === "organization"}
+                          onChange={(e) => setCustomerType(e.target.value as "individual" | "organization")}
+                          disabled={isLeadTechnician}
+                          className="h-4 w-4"
+                        />
+                        <Label htmlFor="customerType-organization" className="font-normal cursor-pointer">
+                          องค์กร/บริษัท
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {customerType === "individual" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <Label htmlFor="customerName">ชื่อลูกค้า</Label>
+                        <Input
+                          id="customerName"
+                          name="customerName"
+                          placeholder="กรอกชื่อลูกค้า"
+                          className="mt-2"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          disabled={isLeadTechnician}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="customerPhone">เบอร์โทรลูกค้า</Label>
+                        <Input
+                          id="customerPhone"
+                          name="customerPhone"
+                          placeholder="กรอกเบอร์โทรลูกค้า"
+                          className="mt-2"
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          disabled={isLeadTechnician}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {customerType === "organization" && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <Label htmlFor="customerCompanyName">ชื่อบริษัท/องค์กร <span className="text-destructive">*</span></Label>
+                          <Input
+                            id="customerCompanyName"
+                            name="customerCompanyName"
+                            placeholder="กรอกชื่อบริษัท/องค์กร"
+                            className="mt-2"
+                            value={customerCompanyName}
+                            onChange={(e) => setCustomerCompanyName(e.target.value)}
+                            disabled={isLeadTechnician}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="customerTaxId">เลขประจำตัวผู้เสียภาษี</Label>
+                          <Input
+                            id="customerTaxId"
+                            name="customerTaxId"
+                            placeholder="กรอกเลขประจำตัวผู้เสียภาษี"
+                            className="mt-2"
+                            value={customerTaxId}
+                            onChange={(e) => setCustomerTaxId(e.target.value)}
+                            disabled={isLeadTechnician}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="customerAddress">ที่อยู่บริษัท</Label>
+                        <Textarea
+                          id="customerAddress"
+                          name="customerAddress"
+                          placeholder="กรอกที่อยู่บริษัท"
+                          className="mt-2"
+                          rows={3}
+                          value={customerAddress}
+                          onChange={(e) => setCustomerAddress(e.target.value)}
+                          disabled={isLeadTechnician}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <Label htmlFor="customerName">ชื่อผู้ติดต่อ</Label>
+                          <Input
+                            id="customerName"
+                            name="customerName"
+                            placeholder="กรอกชื่อผู้ติดต่อ"
+                            className="mt-2"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            disabled={isLeadTechnician}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="customerPhone">เบอร์โทรติดต่อ</Label>
+                          <Input
+                            id="customerPhone"
+                            name="customerPhone"
+                            placeholder="กรอกเบอร์โทรติดต่อ"
+                            className="mt-2"
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                            disabled={isLeadTechnician}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <PenTool className="h-4 w-4" />
+                      ลายเซ็นลูกค้า
+                    </Label>
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/20">
+                      <div className="w-full" style={{ maxWidth: "100%" }}>
+                        <SignatureCanvas
+                          ref={signatureRef}
+                          onEnd={handleSignatureEnd}
+                          canvasProps={{
+                            className: "signature-canvas w-full h-[200px]",
+                            style: { width: "100%", height: "200px" },
+                          }}
+                          backgroundColor="white"
+                          penColor="#000000"
+                        />
+                      </div>
+                    </div>
+                    {signatureData && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        <span>ลายเซ็นพร้อมแล้ว</span>
+                      </div>
+                    )}
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearSignature}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        ลบลายเซ็น
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="team" className="space-y-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    ทีมงานและทรัพยากร
+                  </CardTitle>
+                  <CardDescription>เลือกหัวหน้าช่าง แผนก ทีมงาน และวัสดุที่ใช้</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="leadTechnician">Lead technician <span className="text-destructive">*</span></Label>
+                    <Select 
+                      name="leadTechnician" 
+                      value={leadTechnician} 
+                      onValueChange={(value) => {
+                        setLeadTechnician(value);
+                        setDepartments([]);
+                        setSelectedEmployees([]);
+                      }}
+                      disabled={isLeadTechnician}
+                    >
+                      <SelectTrigger id="leadTechnician" className="w-full h-11">
+                        <SelectValue placeholder="เลือกหัวหน้าช่างก่อน" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableLeadTechnicians.map((lead) => (
+                          <SelectItem key={lead.value} value={lead.value}>
+                            {lead.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>เลือกแผนก</Label>
+                    <Popover open={departmentsPopoverOpen} onOpenChange={setDepartmentsPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={departmentsPopoverOpen}
+                          className="w-full justify-between h-auto min-h-11"
+                          disabled={!leadTechnician || !isLeadTechnician}
+                        >
+                          <div className="flex gap-1 flex-wrap">
+                            {departments.length > 0 ? (
+                              departments.map((dept) => {
+                                const deptLabel = allDepartments.find(d => d.value === dept)?.label || dept;
+                                return (
+                                  <Badge key={dept} variant="secondary" className="gap-1.5">
+                                    {deptLabel}
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-label={`Remove ${deptLabel}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isLeadTechnician) {
+                                          setDepartments(departments.filter(d => d !== dept));
+                                          const deptEmployees = MOCK_USERS
+                                            .filter(u => u.role === 'employee' && u.department === dept)
+                                            .map(u => u.id);
+                                          setSelectedEmployees(selectedEmployees.filter(emp => !deptEmployees.includes(emp.value)));
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.stopPropagation();
+                                          if (isLeadTechnician) {
+                                            setDepartments(departments.filter(d => d !== dept));
+                                            const deptEmployees = MOCK_USERS
+                                              .filter(u => u.role === 'employee' && u.department === dept)
+                                              .map(u => u.id);
+                                            setSelectedEmployees(selectedEmployees.filter(emp => !deptEmployees.includes(emp.value)));
+                                          }
+                                        }
+                                      }}
+                                      className={cn(
+                                        "rounded-full hover:bg-muted-foreground/20",
+                                        !isLeadTechnician && "opacity-50 cursor-not-allowed"
+                                      )}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </div>
+                                  </Badge>
+                                );
+                              })
+                            ) : (
+                              <span className="text-muted-foreground font-normal">
+                                {!leadTechnician ? "เลือกหัวหน้าช่างก่อน" : "เลือกแผนก"}
+                              </span>
+                            )}
                           </div>
-                        </Badge>
-                      ))
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search departments..." />
+                          <CommandList>
+                            <CommandEmpty>No department found.</CommandEmpty>
+                            <CommandGroup>
+                              {allDepartments.map((dept) => {
+                                const isSelected = departments.includes(dept.value);
+                                return (
+                                  <CommandItem
+                                    key={dept.value}
+                                    onSelect={() => {
+                                      if (isLeadTechnician) {
+                                        if (isSelected) {
+                                          setDepartments(departments.filter(d => d !== dept.value));
+                                          const deptEmployees = MOCK_USERS
+                                            .filter(u => u.role === 'employee' && u.department === dept.value)
+                                            .map(u => u.id);
+                                          setSelectedEmployees(selectedEmployees.filter(emp => !deptEmployees.includes(emp.value)));
+                                        } else {
+                                          setDepartments([...departments, dept.value]);
+                                        }
+                                      }
+                                    }}
+                                    disabled={!isLeadTechnician}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        isSelected ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {dept.label}
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Assign employee</Label>
+                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={popoverOpen}
+                          className="w-full justify-between h-auto min-h-11"
+                          disabled={departments.length === 0 || isAdmin}
+                        >
+                          <div className="flex gap-1 flex-wrap">
+                            {selectedEmployees.length > 0 ? (
+                              selectedEmployees.map((emp) => (
+                                <Badge
+                                  key={emp.value}
+                                  variant="secondary"
+                                  className="gap-1.5"
+                                >
+                                  {emp.label}
+                                  <div
+                                    role="button" tabIndex={0}
+                                    aria-label={`Remove ${emp.label}`}
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      if (!isAdmin) handleRemoveEmployee(emp.value); 
+                                    }}
+                                    onKeyDown={(e) => { 
+                                      if (e.key === 'Enter' || e.key === ' ') { 
+                                        e.stopPropagation(); 
+                                        if (!isAdmin) handleRemoveEmployee(emp.value); 
+                                      } 
+                                    }}
+                                    className={cn(
+                                      "rounded-full hover:bg-muted-foreground/20",
+                                      isAdmin && "opacity-50 cursor-not-allowed"
+                                    )}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </div>
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground font-normal">
+                                Employee name
+                              </span>
+                            )}
+                          </div>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-[--radix-popover-trigger-width] p-0"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput placeholder="Search employee..." />
+                          <CommandList>
+                            <CommandEmpty>No employee found in selected departments.</CommandEmpty>
+                            <CommandGroup>
+                              {availableEmployees.map((emp) => {
+                                const isSelected = selectedEmployees.some(
+                                  (s) => s.value === emp.value
+                                );
+                                return (
+                                  <CommandItem
+                                    key={emp.value}
+                                    onSelect={() => {
+                                      if (!isAdmin) {
+                                        if (isSelected) {
+                                          handleRemoveEmployee(emp.value);
+                                        } else {
+                                          setSelectedEmployees([...selectedEmployees, emp]);
+                                        }
+                                      }
+                                    }}
+                                    disabled={isAdmin}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        isSelected ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {emp.label}
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Label>Used inventory <span className="text-xs text-muted-foreground">(select items used on site)</span></Label>
+                    <Popover open={invPopoverOpen} onOpenChange={setInvPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={invPopoverOpen} className="w-full justify-between h-11">
+                          <div className="flex items-center gap-2">
+                            <ToolCase className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground font-normal">
+                              {selectedInventory.length > 0 ? `เพิ่มวัสดุ (${selectedInventory.length})` : "เลือกวัสดุ"}
+                            </span>
+                          </div>
+                          <Plus className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search inventory..." />
+                          <CommandList>
+                            <CommandEmpty>No inventory found.</CommandEmpty>
+                            <CommandGroup>
+                              {availableInventories.map((inv) => {
+                                const isSelected = selectedInventory.some((s) => s.value === inv.value);
+                                return (
+                                  <CommandItem key={inv.value} onSelect={() => {
+                                    if (isSelected) {
+                                      handleRemoveInventory(inv.value);
+                                    } else {
+                                      setSelectedInventory([...selectedInventory, { ...inv, qty: 1 }]);
+                                    }
+                                  }}>
+                                    <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
+                                    <div className="flex items-center justify-between w-full">
+                                      <div className="truncate">{inv.label}</div>
+                                      <div className="text-xs text-muted-foreground">{inv.qty ?? 0} pcs</div>
+                                    </div>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    
+                    {selectedInventory.length > 0 ? (
+                      <div className="mt-3 border rounded-md overflow-hidden">
+                        <ScrollArea className="h-[300px] w-full">
+                          <div className="p-3 space-y-2">
+                            {selectedInventory.map((inv) => (
+                              <div key={inv.value} className="flex items-center gap-3 p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{inv.label}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Stock: {inv.qty ?? 0} pcs</p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <div className="flex items-center gap-1">
+                                    <Label htmlFor={`qty-${inv.value}`} className="text-xs text-muted-foreground whitespace-nowrap">
+                                      จำนวน:
+                                    </Label>
+                                    <Input 
+                                      id={`qty-${inv.value}`}
+                                      type="number" 
+                                      min={1} 
+                                      value={String(inv.qty ?? 1)} 
+                                      onChange={(e) => handleChangeInventoryQty(inv.value, Math.max(1, Number(e.target.value || 1)))} 
+                                      className="w-20 h-8 text-sm"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap">pcs</span>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleRemoveInventory(inv.value)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
                     ) : (
-                      <span className="text-muted-foreground font-normal">
-                        Employee name
-                      </span>
+                      <div className="mt-3 p-6 border rounded-md border-dashed text-center">
+                        <ToolCase className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+                        <p className="text-sm text-muted-foreground">ยังไม่มีวัสดุที่เลือก</p>
+                        <p className="text-xs text-muted-foreground mt-1">คลิกปุ่มด้านบนเพื่อเลือกวัสดุ</p>
+                      </div>
                     )}
                   </div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[--radix-popover-trigger-width] p-0"
-                align="start"
-              >
-                <Command>
-                  <CommandInput placeholder="Search employee..." />
-                  <CommandList>
-                    <CommandEmpty>No employee found in selected departments.</CommandEmpty>
-                    <CommandGroup>
-                      {/* ✅ 13. ใช้ 'availableEmployees' ที่กรองแล้ว */}
-                      {availableEmployees.map((emp) => {
-                        const isSelected = selectedEmployees.some(
-                          (s) => s.value === emp.value
-                        );
-                        return (
-                          <CommandItem
-                            key={emp.value}
-                            onSelect={() => {
-                              if (!isAdmin) {
-                                if (isSelected) {
-                                  handleRemoveEmployee(emp.value);
-                                } else {
-                                  setSelectedEmployees([...selectedEmployees, emp]);
-                                }
-                              }
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="media" className="space-y-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5" />
+                    ไฟล์แนบ
+                  </CardTitle>
+                  <CardDescription>อัปโหลดไฟล์หรือเอกสารที่เกี่ยวข้องกับงาน</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className={cn(
+                      "mt-2 rounded-lg border border-dashed border-input transition-colors",
+                      "flex flex-col",
+                      "min-h-[200px]",
+                      isDragging && "border-primary bg-muted/50",
+                      isAdmin && "opacity-50 pointer-events-none"
+                    )}
+                    onDragOver={!isAdmin ? handleDragOver : undefined}
+                    onDragLeave={!isAdmin ? handleDragLeave : undefined}
+                    onDrop={!isAdmin ? handleDrop : undefined}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      disabled={isAdmin}
+                    />
+
+                    {attachments.length === 0 ? (
+                      <div
+                        className={cn(
+                          "flex-1 flex flex-col items-center justify-center text-center p-6",
+                          !isAdmin && "cursor-pointer"
+                        )}
+                        onClick={!isAdmin ? openFileDialog : undefined}
+                      >
+                        <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-4 text-sm text-muted-foreground">
+                          <span className="font-semibold text-primary">
+                            Drag 'n' drop
+                          </span>{" "}
+                          files here, or{" "}
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="p-0 h-auto font-semibold text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isAdmin) openFileDialog();
                             }}
                             disabled={isAdmin}
                           >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                isSelected ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {emp.label}
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Used Inventory */}
-          <div className="space-y-2">
-            <Label>Used inventory <span className="text-xs text-muted-foreground">(select items used on site)</span></Label>
-            <Popover open={invPopoverOpen} onOpenChange={setInvPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={invPopoverOpen} className="w-full justify-between mt-2">
-                  <div className="flex items-center gap-2">
-                    <ToolCase className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground font-normal">
-                      {selectedInventory.length > 0 ? `เพิ่มวัสดุ (${selectedInventory.length})` : "เลือกวัสดุ"}
-                    </span>
-                  </div>
-                  <Plus className="h-4 w-4 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search inventory..." />
-                  <CommandList>
-                    <CommandEmpty>No inventory found.</CommandEmpty>
-                    <CommandGroup>
-                      {availableInventories.map((inv) => {
-                        const isSelected = selectedInventory.some((s) => s.value === inv.value);
-                        return (
-                          <CommandItem key={inv.value} onSelect={() => {
-                            if (isSelected) {
-                              handleRemoveInventory(inv.value);
-                            } else {
-                              setSelectedInventory([...selectedInventory, { ...inv, qty: 1 }]);
-                            }
-                          }}>
-                            <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
-                            <div className="flex items-center justify-between w-full">
-                              <div className="truncate">{inv.label}</div>
-                              <div className="text-xs text-muted-foreground">{inv.qty ?? 0} pcs</div>
-                            </div>
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            
-            {/* Selected Inventory List */}
-            {selectedInventory.length > 0 ? (
-              <div className="mt-3 border rounded-md overflow-hidden">
-                <ScrollArea className="h-[300px] w-full">
-                  <div className="p-3 space-y-2">
-                    {selectedInventory.map((inv) => (
-                      <div key={inv.value} className="flex items-center gap-3 p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{inv.label}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Stock: {inv.qty ?? 0} pcs</p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <div className="flex items-center gap-1">
-                            <Label htmlFor={`qty-${inv.value}`} className="text-xs text-muted-foreground whitespace-nowrap">
-                              จำนวน:
-                            </Label>
-                            <Input 
-                              id={`qty-${inv.value}`}
-                              type="number" 
-                              min={1} 
-                              value={String(inv.qty ?? 1)} 
-                              onChange={(e) => handleChangeInventoryQty(inv.value, Math.max(1, Number(e.target.value || 1)))} 
-                              className="w-20 h-8 text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">pcs</span>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleRemoveInventory(inv.value)}
-                          >
-                            <X className="h-4 w-4" />
+                            click to browse
                           </Button>
-                        </div>
+                          .
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Max file size: 5MB
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            ) : (
-              <div className="mt-3 p-6 border rounded-md border-dashed text-center">
-                <ToolCase className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground">ยังไม่มีวัสดุที่เลือก</p>
-                <p className="text-xs text-muted-foreground mt-1">คลิกปุ่มด้านบนเพื่อเลือกวัสดุ</p>
-              </div>
-            )}
-          </div>
-
-          {/* Grid ย่อยสำหรับ Date Pickers (Responsive อยู่แล้ว) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="startDate">Start date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal mt-2",
-                      !startDate && "text-muted-foreground"
-                    )}
-                    disabled={isLeadTechnician}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? (
-                      format(startDate, "PPP")
                     ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div>
-              <Label htmlFor="endDate">End date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal mt-2",
-                      !endDate && "text-muted-foreground"
-                    )}
-                    disabled={isLeadTechnician}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          {/* Attachments (FIXED) */}
-          <div>
-            <Label>Attachments</Label>
-            {/* Dropzone Area (Main Container) */}
-            <div
-              className={cn(
-                "mt-2 rounded-lg border border-dashed border-input transition-colors",
-                "flex flex-col",
-                "h-45.5",
-                isDragging && "border-primary bg-muted/50"
-              )}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {/* Hidden File Input */}
-              {/* ✅ 14. แก้ไข Typo 'handlerFileSelect' -> 'handleFileSelect' */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-
-              {/* Conditional Content */}
-              {attachments.length === 0 ? (
-                // STATE 1: Empty. Show big prompt.
-                <div
-                  className="flex-1 flex flex-col items-center justify-center text-center p-6 cursor-pointer"
-                  onClick={openFileDialog} // Click anywhere in the empty box
-                >
-                  <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    <span className="font-semibold text-primary">
-                      Drag 'n' drop
-                    </span>{" "}
-                    files here, or{" "}
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="p-0 h-auto font-semibold text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Don't trigger parent onClick
-                        openFileDialog();
-                      }}
-                    >
-                      click to browse
-                    </Button>
-                    .
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Max file size: 5MB
-                  </p>
-                </div>
-              ) : (
-                // STATE 2: Files exist. Show list + small prompt.
-                <>
-                  {/* Small prompt at the top */}
-                  <div className="p-4 border-b border-dashed">
-                    <p className="text-sm text-muted-foreground text-center">
-                      <span className="font-semibold text-primary">
-                        Drag 'n' drop
-                      </span>{" "}
-                      more files, or{" "}
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="p-0 h-auto font-semibold text-primary"
-                        onClick={openFileDialog}
-                      >
-                        click to browse
-                      </Button>
-                      .
-                    </p>
-                  </div>
-
-                  {/* Scrollable File List */}
-                  <ScrollArea className="flex-1 min-h-0">
-                    <div className="space-y-2 p-4">
-                      {attachments.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-2.5 rounded-md border bg-muted/50"
-                        >
-                          <div className="flex items-center gap-2 overflow-hidden">
-                            <FileIcon className="h-4 w-4 flex-shrink-0" />
-                            <span
-                              className="text-sm truncate"
-                              title={file.name}
+                      <>
+                        <div className="p-4 border-b border-dashed">
+                          <p className="text-sm text-muted-foreground text-center">
+                            <span className="font-semibold text-primary">
+                              Drag 'n' drop
+                            </span>{" "}
+                            more files, or{" "}
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="p-0 h-auto font-semibold text-primary"
+                              onClick={openFileDialog}
+                              disabled={isAdmin}
                             >
-                              {file.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">
-                              ({(file.size / 1024).toFixed(1)} KB)
-                            </span>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 flex-shrink-0"
-                            onClick={() => deleteAttachment(file.name)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                              click to browse
+                            </Button>
+                            .
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </>
-              )}
-            </div>
-          </div>
+                        <ScrollArea className="flex-1 min-h-0">
+                          <div className="space-y-2 p-4">
+                            {attachments.map((file, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-2.5 rounded-md border bg-muted/50"
+                              >
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                  <FileIcon className="h-4 w-4 flex-shrink-0" />
+                                  <span
+                                    className="text-sm truncate"
+                                    title={file.name}
+                                  >
+                                    {file.name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground flex-shrink-0">
+                                    ({(file.size / 1024).toFixed(1)} KB)
+                                  </span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 flex-shrink-0"
+                                  onClick={() => deleteAttachment(file.name)}
+                                  disabled={isAdmin}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </form>
 
-        <div className="md:col-span-2 space-y-8">
-          {/* Map Picker */}
-          <div className="space-y-2">
-            <Label htmlFor="location">Map Picker</Label>
-            <div className="mt-2">
-              <MapPicker 
-                initialPosition={location} 
-                onPositionChange={setLocation}
-                disabled={isLeadTechnician}
-              />
-            </div>
-          </div>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                ตำแหน่งงาน
+              </CardTitle>
+              <CardDescription>เลือกพิกัดที่ตั้งเพื่อแนบไปกับใบงาน</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border overflow-hidden">
+                <MapPicker 
+                  initialPosition={location} 
+                  onPositionChange={setLocation}
+                  disabled={isLeadTechnician}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Location Images */}
-          <div className="space-y-2">
-            <Label>รูปภาพสถานที่</Label>
-            <div
-              className={cn(
-                "mt-2 rounded-lg border border-dashed border-input transition-colors",
-                "flex flex-col",
-                "min-h-[120px]",
-                isDraggingImages && "border-primary bg-muted/50",
-                isLeadTechnician && "opacity-50 pointer-events-none"
-              )}
-              onDragOver={!isLeadTechnician ? handleLocationImageDragOver : undefined}
-              onDragLeave={!isLeadTechnician ? handleLocationImageDragLeave : undefined}
-              onDrop={!isLeadTechnician ? handleLocationImageDrop : undefined}
-            >
-              <input
-                ref={locationImageInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={handleLocationImageSelect}
-                disabled={isLeadTechnician}
-              />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                รูปภาพสถานที่
+              </CardTitle>
+              <CardDescription>อัปโหลดภาพหน้างานก่อนเริ่มดำเนินการ</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div
+                className={cn(
+                  "rounded-lg border border-dashed border-input transition-colors",
+                  "flex flex-col",
+                  "min-h-[120px]",
+                  isDraggingImages && "border-primary bg-muted/50",
+                  isLeadTechnician && "opacity-50 pointer-events-none"
+                )}
+                onDragOver={!isLeadTechnician ? handleLocationImageDragOver : undefined}
+                onDragLeave={!isLeadTechnician ? handleLocationImageDragLeave : undefined}
+                onDrop={!isLeadTechnician ? handleLocationImageDrop : undefined}
+              >
+                <input
+                  ref={locationImageInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLocationImageSelect}
+                  disabled={isLeadTechnician}
+                />
 
-              {locationImages.length === 0 ? (
-                <div
-                  className={cn(
-                    "flex-1 flex flex-col items-center justify-center text-center p-6",
-                    !isLeadTechnician && "cursor-pointer"
-                  )}
-                  onClick={!isLeadTechnician ? openLocationImageDialog : undefined}
-                >
-                  <ImageIcon className="mx-auto h-10 w-10 text-gray-400" />
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="p-0 h-auto font-semibold text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isLeadTechnician) openLocationImageDialog();
-                      }}
-                      disabled={isLeadTechnician}
-                    >
-                      click to browse
-                    </Button>
-                    .
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">รองรับไฟล์รูปภาพเท่านั้น</p>
-                </div>
-              ) : (
-                <>
-                  <div className="p-4 border-b border-dashed">
-                    <p className="text-sm text-muted-foreground text-center">
-                      <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
+                {locationImages.length === 0 ? (
+                  <div
+                    className={cn(
+                      "flex-1 flex flex-col items-center justify-center text-center p-6",
+                      !isLeadTechnician && "cursor-pointer"
+                    )}
+                    onClick={!isLeadTechnician ? openLocationImageDialog : undefined}
+                  >
+                    <ImageIcon className="mx-auto h-10 w-10 text-gray-400" />
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
                       <Button
                         type="button"
                         variant="link"
                         className="p-0 h-auto font-semibold text-primary"
-                        onClick={openLocationImageDialog}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isLeadTechnician) openLocationImageDialog();
+                        }}
                         disabled={isLeadTechnician}
                       >
                         click to browse
                       </Button>
                       .
                     </p>
+                    <p className="text-xs text-muted-foreground mt-1">รองรับไฟล์รูปภาพเท่านั้น</p>
                   </div>
-                  <ScrollArea className="flex-1 min-h-0">
-                    <div className="grid grid-cols-2 gap-3 p-4">
-                      {locationImages.map((file, index) => (
-                        <div key={index} className="relative group">
-                          <div className="aspect-video rounded-md border overflow-hidden bg-muted">
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt={file.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => deleteLocationImage(file.name)}
-                            disabled={isLeadTechnician}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
-                            {file.name}
-                          </p>
-                        </div>
-                      ))}
+                ) : (
+                  <>
+                    <div className="p-4 border-b border-dashed">
+                      <p className="text-sm text-muted-foreground text-center">
+                        <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="p-0 h-auto font-semibold text-primary"
+                          onClick={openLocationImageDialog}
+                          disabled={isLeadTechnician}
+                        >
+                          click to browse
+                        </Button>
+                        .
+                      </p>
                     </div>
-                  </ScrollArea>
-                </>
-              )}
-            </div>
-          </div>
+                    <ScrollArea className="flex-1 min-h-0">
+                      <div className="grid grid-cols-2 gap-3 p-4">
+                        {locationImages.map((file, index) => (
+                          <div key={index} className="relative group">
+                            <div className="aspect-video rounded-md border overflow-hidden bg-muted">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={file.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => deleteLocationImage(file.name)}
+                              disabled={isLeadTechnician}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
+                              {file.name}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Before Images */}
-          <div className="space-y-2">
-            <Label>รูปภาพก่อนซ่อม (Before)</Label>
-            <div
-              className={cn(
-                "mt-2 rounded-lg border border-dashed border-input transition-colors",
-                "flex flex-col",
-                "min-h-[120px]",
-                isDraggingBefore && "border-primary bg-muted/50",
-                !canEditBeforeAfterImages && "opacity-50 pointer-events-none"
-              )}
-              onDragOver={canEditBeforeAfterImages ? handleBeforeImageDragOver : undefined}
-              onDragLeave={canEditBeforeAfterImages ? handleBeforeImageDragLeave : undefined}
-              onDrop={canEditBeforeAfterImages ? handleBeforeImageDrop : undefined}
-            >
-              <input
-                ref={beforeImageInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={handleBeforeImageSelect}
-                disabled={!canEditBeforeAfterImages}
-              />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                รูปภาพก่อนซ่อม (Before)
+              </CardTitle>
+              <CardDescription>อัปโหลดภาพก่อนดำเนินงานเพื่อใช้อ้างอิง</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div
+                className={cn(
+                  "rounded-lg border border-dashed border-input transition-colors",
+                  "flex flex-col",
+                  "min-h-[120px]",
+                  isDraggingBefore && "border-primary bg-muted/50",
+                  !canEditBeforeAfterImages && "opacity-50 pointer-events-none"
+                )}
+                onDragOver={canEditBeforeAfterImages ? handleBeforeImageDragOver : undefined}
+                onDragLeave={canEditBeforeAfterImages ? handleBeforeImageDragLeave : undefined}
+                onDrop={canEditBeforeAfterImages ? handleBeforeImageDrop : undefined}
+              >
+                <input
+                  ref={beforeImageInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleBeforeImageSelect}
+                  disabled={!canEditBeforeAfterImages}
+                />
 
-              {beforeImages.length === 0 ? (
-                <div
-                  className={cn(
-                    "flex-1 flex flex-col items-center justify-center text-center p-6",
-                    canEditBeforeAfterImages && "cursor-pointer"
-                  )}
-                  onClick={canEditBeforeAfterImages ? openBeforeImageDialog : undefined}
-                >
-                  <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="p-0 h-auto font-semibold text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openBeforeImageDialog();
-                      }}
-                    >
-                      click to browse
-                    </Button>
-                    .
-                  </p>
-                  <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
-                </div>
-              ) : (
-                <>
-                  <div className="p-4 border-b border-dashed">
-                    <p className="text-sm text-muted-foreground text-center">
-                      <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
+                {beforeImages.length === 0 ? (
+                  <div
+                    className={cn(
+                      "flex-1 flex flex-col items-center justify-center text-center p-6",
+                      canEditBeforeAfterImages && "cursor-pointer"
+                    )}
+                    onClick={canEditBeforeAfterImages ? openBeforeImageDialog : undefined}
+                  >
+                    <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
                       <Button
                         type="button"
                         variant="link"
                         className="p-0 h-auto font-semibold text-primary"
-                        onClick={openBeforeImageDialog}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openBeforeImageDialog();
+                        }}
                       >
                         click to browse
                       </Button>
                       .
                     </p>
+                    <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
                   </div>
-                  <ScrollArea className="flex-1 min-h-0">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
-                      {beforeImages.map((file, index) => (
-                        <div key={index} className="group relative">
-                          <div className="aspect-square rounded-md overflow-hidden border bg-muted">
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt={file.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => deleteBeforeImage(file.name)}
-                            disabled={!canEditBeforeAfterImages}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
-                            {file.name}
-                          </p>
-                        </div>
-                      ))}
+                ) : (
+                  <>
+                    <div className="p-4 border-b border-dashed">
+                      <p className="text-sm text-muted-foreground text-center">
+                        <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="p-0 h-auto font-semibold text-primary"
+                          onClick={openBeforeImageDialog}
+                        >
+                          click to browse
+                        </Button>
+                        .
+                      </p>
                     </div>
-                  </ScrollArea>
-                </>
-              )}
-            </div>
-          </div>
+                    <ScrollArea className="flex-1 min-h-0">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
+                        {beforeImages.map((file, index) => (
+                          <div key={index} className="group relative">
+                            <div className="aspect-square rounded-md overflow-hidden border bg-muted">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={file.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => deleteBeforeImage(file.name)}
+                              disabled={!canEditBeforeAfterImages}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
+                              {file.name}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* After Images */}
-          <div className="space-y-2">
-            <Label>รูปภาพหลังซ่อม (After)</Label>
-            <div
-              className={cn(
-                "mt-2 rounded-lg border border-dashed border-input transition-colors",
-                "flex flex-col",
-                "min-h-[120px]",
-                isDraggingAfter && "border-primary bg-muted/50",
-                !canEditBeforeAfterImages && "opacity-50 pointer-events-none"
-              )}
-              onDragOver={canEditBeforeAfterImages ? handleAfterImageDragOver : undefined}
-              onDragLeave={canEditBeforeAfterImages ? handleAfterImageDragLeave : undefined}
-              onDrop={canEditBeforeAfterImages ? handleAfterImageDrop : undefined}
-            >
-              <input
-                ref={afterImageInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={handleAfterImageSelect}
-                disabled={!canEditBeforeAfterImages}
-              />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                รูปภาพหลังซ่อม (After)
+              </CardTitle>
+              <CardDescription>เก็บหลักฐานผลงานหลังดำเนินการเสร็จ</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div
+                className={cn(
+                  "rounded-lg border border-dashed border-input transition-colors",
+                  "flex flex-col",
+                  "min-h-[120px]",
+                  isDraggingAfter && "border-primary bg-muted/50",
+                  !canEditBeforeAfterImages && "opacity-50 pointer-events-none"
+                )}
+                onDragOver={canEditBeforeAfterImages ? handleAfterImageDragOver : undefined}
+                onDragLeave={canEditBeforeAfterImages ? handleAfterImageDragLeave : undefined}
+                onDrop={canEditBeforeAfterImages ? handleAfterImageDrop : undefined}
+              >
+                <input
+                  ref={afterImageInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAfterImageSelect}
+                  disabled={!canEditBeforeAfterImages}
+                />
 
-              {afterImages.length === 0 ? (
-                <div
-                  className={cn(
-                    "flex-1 flex flex-col items-center justify-center text-center p-6",
-                    canEditBeforeAfterImages && "cursor-pointer"
-                  )}
-                  onClick={canEditBeforeAfterImages ? openAfterImageDialog : undefined}
-                >
-                  <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="p-0 h-auto font-semibold text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openAfterImageDialog();
-                      }}
-                    >
-                      click to browse
-                    </Button>
-                    .
-                  </p>
-                  <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
-                </div>
-              ) : (
-                <>
-                  <div className="p-4 border-b border-dashed">
-                    <p className="text-sm text-muted-foreground text-center">
-                      <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
+                {afterImages.length === 0 ? (
+                  <div
+                    className={cn(
+                      "flex-1 flex flex-col items-center justify-center text-center p-6",
+                      canEditBeforeAfterImages && "cursor-pointer"
+                    )}
+                    onClick={canEditBeforeAfterImages ? openAfterImageDialog : undefined}
+                  >
+                    <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-semibold text-primary">Drag 'n' drop</span> images here, or{" "}
                       <Button
                         type="button"
                         variant="link"
                         className="p-0 h-auto font-semibold text-primary"
-                        onClick={openAfterImageDialog}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAfterImageDialog();
+                        }}
                       >
                         click to browse
                       </Button>
                       .
                     </p>
+                    <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
                   </div>
-                  <ScrollArea className="flex-1 min-h-0">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
-                      {afterImages.map((file, index) => (
-                        <div key={index} className="group relative">
-                          <div className="aspect-square rounded-md overflow-hidden border bg-muted">
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt={file.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => deleteAfterImage(file.name)}
-                            disabled={!canEditBeforeAfterImages}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
-                            {file.name}
-                          </p>
-                        </div>
-                      ))}
+                ) : (
+                  <>
+                    <div className="p-4 border-b border-dashed">
+                      <p className="text-sm text-muted-foreground text-center">
+                        <span className="font-semibold text-primary">Drag 'n' drop</span> more images, or{" "}
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="p-0 h-auto font-semibold text-primary"
+                          onClick={openAfterImageDialog}
+                        >
+                          click to browse
+                        </Button>
+                        .
+                      </p>
                     </div>
-                  </ScrollArea>
-                </>
-              )}
-            </div>
-          </div>
+                    <ScrollArea className="flex-1 min-h-0">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
+                        {afterImages.map((file, index) => (
+                          <div key={index} className="group relative">
+                            <div className="aspect-square rounded-md overflow-hidden border bg-muted">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={file.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => deleteAfterImage(file.name)}
+                              disabled={!canEditBeforeAfterImages}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1 truncate" title={file.name}>
+                              {file.name}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
 
       <div className="flex justify-end gap-4 pt-6 border-t">
         <Button variant="ghost" type="button" onClick={() => router.back()}>cancel</Button>
@@ -1592,5 +1706,6 @@ export default function CreateJobPage() {
       </AlertDialog>
 
     </div>
+  </div>
   );
 }

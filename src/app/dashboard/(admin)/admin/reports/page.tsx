@@ -147,16 +147,16 @@ const priorityConfig: Record<Priority, {
   color: string,
   bg: string
 }> = {
-  high: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/10" },
+  high: { icon: AlertCircle, color: "text-orange-500", bg: "bg-orange-500/10" },
   medium: { icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10" },
   low: { icon: CheckCircle2, color: "text-green-500", bg: "bg-green-500/10" }
 }
 
 const statusConfig: Record<Status, { label: string, color: string }> = {
-  open: { label: "รอดำเนินการ", color: "bg-blue-500" },
-  "in-progress": { label: "กำลังดำเนินการ", color: "bg-yellow-500" },
-  resolved: { label: "แก้ไขแล้ว", color: "bg-green-500" },
-  closed: { label: "ปิด", color: "bg-gray-500" }
+  open: { label: "รอดำเนินการ", color: "bg-blue-400" },
+  "in-progress": { label: "กำลังดำเนินการ", color: "bg-yellow-400" },
+  resolved: { label: "แก้ไขแล้ว", color: "bg-green-400" },
+  closed: { label: "ปิด", color: "bg-gray-400" }
 }
 
 export default function ReportPage() {
@@ -199,7 +199,7 @@ export default function ReportPage() {
       <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">รายงานปัญหา</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">Reports</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             ติดตามและจัดการปัญหาที่รายงานจากทุกฝ่าย
           </p>
@@ -332,9 +332,6 @@ export default function ReportPage() {
                 <CardHeader>
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <Badge variant="outline" className="font-mono text-[10px] sm:text-xs px-1.5 sm:px-2">
-                        {report.id}
-                      </Badge>
                       <Badge className={`${statusConfig[report.status].color} text-[10px] sm:text-xs`}>
                         {statusConfig[report.status].label}
                       </Badge>
@@ -442,12 +439,10 @@ export default function ReportPage() {
                 {/* Reporter Info */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${departmentColors[selectedReport.reporter.department].bg}`}>
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={selectedReport.reporter.avatar} />
-                        <AvatarFallback>{selectedReport.reporter.name[0]}</AvatarFallback>
-                      </Avatar>
-                    </div>
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={selectedReport.reporter.avatar} />
+                      <AvatarFallback>{selectedReport.reporter.name[0]}</AvatarFallback>
+                    </Avatar>
                     <div>
                       <p className="font-medium">{selectedReport.reporter.name}</p>
                       <p className={`text-sm ${departmentColors[selectedReport.reporter.department].text} font-semibold capitalize`}>

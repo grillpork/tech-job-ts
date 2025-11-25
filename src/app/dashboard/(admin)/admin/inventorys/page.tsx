@@ -65,6 +65,16 @@ import { useRouter } from "next/navigation";
 // ===========================
 // MAIN COMPONENT
 // ===========================
+const getJobDepartments = (job: any) => {
+  if (job.departments && job.departments.length > 0) {
+    return job.departments;
+  }
+  if (job.department) {
+    return [job.department];
+  }
+  return [];
+};
+
 const InventoryManagement = () => {
   const router = useRouter();
   const {
@@ -180,17 +190,17 @@ const InventoryManagement = () => {
   };
 
   // อัปเดตสถานะของอุปกรณ์ที่มีอยู่แล้วเมื่อโหลดหน้า
-useEffect(() => {
-  inventories.forEach((item) => {
-    const newStatus = calculateInventoryStatus(item.quantity);
-    if (item.status !== newStatus) {
-      updateInventory({
-        ...item,
-        status: newStatus,
-      });
-    }
-  });
-}, [inventories, updateInventory]); // รันครั้งเดียวตอนโหลดหน้า
+  useEffect(() => {
+    inventories.forEach((item) => {
+      const newStatus = calculateInventoryStatus(item.quantity);
+      if (item.status !== newStatus) {
+        updateInventory({
+          ...item,
+          status: newStatus,
+        });
+      }
+    });
+  }, [inventories, updateInventory]); // รันครั้งเดียวตอนโหลดหน้า
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -289,7 +299,7 @@ useEffect(() => {
     const jobsWithInv = jobs.filter(
       (job) => job.usedInventory && job.usedInventory.length > 0
     );
-    
+
     jobsWithInv.forEach((job) => {
       const existingRequest = getInventoryRequestByJobId(job.id);
       if (!existingRequest && job.usedInventory && job.usedInventory.length > 0) {
@@ -433,7 +443,14 @@ useEffect(() => {
       <Tabs defaultValue="inventory" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="inventory">การจัดการอุปกรณ์</TabsTrigger>
-          <TabsTrigger value="requests">คำขอเบิกวัสดุจากใบงาน</TabsTrigger>
+          <TabsTrigger value="requests" className="relative">
+            คำขอเบิกวัสดุจากใบงาน
+            {jobsWithInventory.filter(j => getInventoryRequestStatusForJob(j.id) === 'pending').length > 0 && (
+              <span className=" h-5 w-5 items-center justify-center rounded-full bg-yellow-400 text-[12px] text-white">
+                {jobsWithInventory.filter(j => getInventoryRequestStatusForJob(j.id) === 'pending').length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: Inventory Management */}
@@ -597,7 +614,7 @@ useEffect(() => {
                             key={job.id}
                             className="hover:bg-gray-50 dark:hover:bg-[#0f1117]"
                           >
-                            <TableCell 
+                            <TableCell
                               className="font-medium text-gray-900 dark:text-white cursor-pointer"
                               onClick={() => router.push(`/dashboard/admin/jobs/${job.id}`)}
                             >
@@ -613,7 +630,7 @@ useEffect(() => {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-400">
-                              {job.department || "-"}
+                              {getJobDepartments(job).join(", ") || "-"}
                             </TableCell>
                             <TableCell className="text-gray-900 dark:text-white font-semibold">
                               {job.usedInventory?.length || 0} รายการ
@@ -710,7 +727,7 @@ useEffect(() => {
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 
+                          <h3
                             className="text-gray-900 dark:text-white font-medium mb-2 cursor-pointer"
                             onClick={() => router.push(`/dashboard/(admin)/admin/jobs/${job.id}`)}
                           >
@@ -731,9 +748,9 @@ useEffect(() => {
                             >
                               {getApprovalStatusLabel(approvalStatus)}
                             </Badge>
-                            {job.department && (
+                            {getJobDepartments(job).length > 0 && (
                               <span className="text-xs text-gray-600 dark:text-gray-400">
-                                {job.department}
+                                {getJobDepartments(job).join(", ")}
                               </span>
                             )}
                           </div>
@@ -765,7 +782,7 @@ useEffect(() => {
                             );
                           })}
                         </div>
-                        
+
                         {/* Action Buttons for Mobile */}
                         {approvalStatus === 'pending' && (
                           <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -791,11 +808,10 @@ useEffect(() => {
                         )}
                         {(approvalStatus === 'approved' || approvalStatus === 'rejected') && (
                           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                            <p className={`text-sm text-center ${
-                              approvalStatus === 'approved' 
-                                ? 'text-green-600 dark:text-green-400' 
+                            <p className={`text-sm text-center ${approvalStatus === 'approved'
+                                ? 'text-green-600 dark:text-green-400'
                                 : 'text-red-600 dark:text-red-400'
-                            }`}>
+                              }`}>
                               {approvalStatus === 'approved' ? '✓ อนุมัติแล้ว' : '✗ ปฏิเสธแล้ว'}
                             </p>
                           </div>

@@ -521,13 +521,15 @@ const JobsList = () => {
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Job
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => handleDeleteJob(e, row.id)}
-                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Job
-              </DropdownMenuItem>
+              {currentUser?.role !== 'lead_technician' && (
+                <DropdownMenuItem
+                  onClick={(e) => handleDeleteJob(e, row.id)}
+                  className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Job
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -596,20 +598,22 @@ const JobsList = () => {
         <div className="mb-4 sm:mb-4 flex items-center justify-between">
           <div />
           <div>
-            <Button
-              onClick={handleCreateNewJob} // 15. เปลี่ยน handler
-              className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Job {/* 16. เปลี่ยนข้อความปุ่ม */}
-            </Button>
+            {currentUser?.role !== 'lead_technician' && (
+              <Button
+                onClick={handleCreateNewJob} // 15. เปลี่ยน handler
+                className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Job {/* 16. เปลี่ยนข้อความปุ่ม */}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {/* TABS SECTION */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "jobs" | "completion-requests")} className="mb-4">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-fit max-w-md grid-cols-2">
           <TabsTrigger value="jobs">รายการงาน</TabsTrigger>
           <TabsTrigger value="completion-requests">
             คำขอจบงาน
@@ -803,13 +807,15 @@ const JobsList = () => {
                           <Pencil className="h-4 w-4 mr-2" />
                           Edit Job
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => handleDeleteJob(e, item.id)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Job
-                        </DropdownMenuItem>
+                        {currentUser?.role !== 'lead_technician' && (
+                          <DropdownMenuItem
+                            onClick={(e) => handleDeleteJob(e, item.id)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Job
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

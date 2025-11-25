@@ -25,7 +25,7 @@ type Priority = "high" | "medium" | "low"
 export default function CreateReportPage() {
   const { addReport } = useReportStore()
   const { currentUser } = useUserStore()
-  
+
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [priority, setPriority] = useState<Priority | "">("")
@@ -36,7 +36,7 @@ export default function CreateReportPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!title || !description || !priority) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน")
       return
@@ -53,10 +53,10 @@ export default function CreateReportPage() {
     }
 
     setIsSubmitting(true)
-    
+
     // จำลองการส่งข้อมูล
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
+    await new Promise(resolve => setTimeout(resolve, 1400))
+
     // Map priority from form to store format
     const priorityMap: Record<Priority, "low" | "medium" | "high" | "urgent"> = {
       low: "low",
@@ -91,17 +91,17 @@ export default function CreateReportPage() {
     }
 
     addReport(newReport)
-    
+
     // ✅ สร้าง notification เมื่อส่ง report สำเร็จ
     notificationHelpers.reportSubmitted(
       newReport.title,
       newReport.reporter.name,
       newReport.id
     )
-    
+
     toast.success("ส่งรายงานสำเร็จ!")
     setIsSubmitting(false)
-    
+
     // รีเซ็ตฟอร์ม
     setTitle("")
     setDescription("")
@@ -149,7 +149,7 @@ export default function CreateReportPage() {
                   {/* หัวเรื่อง */}
                   <div className="space-y-2">
                     <Label htmlFor="title" className="text-sm font-medium">
-                      หัวเรื่อง <span className="text-red-500">*</span>
+                      หัวเรื่อง <span className="text-orange-400">*</span>
                     </Label>
                     <Input
                       id="title"
@@ -164,7 +164,7 @@ export default function CreateReportPage() {
                   {/* คำอธิบาย */}
                   <div className="space-y-2">
                     <Label htmlFor="description" className="text-sm font-medium">
-                      คำอธิบายปัญหา <span className="text-red-500">*</span>
+                      คำอธิบายปัญหา <span className="text-orange-400">*</span>
                     </Label>
                     <Textarea
                       id="description"
@@ -203,7 +203,7 @@ export default function CreateReportPage() {
                     {/* Priority */}
                     <div className="space-y-2">
                       <Label htmlFor="priority" className="text-sm font-medium">
-                        ระดับความสำคัญ <span className="text-red-500">*</span>
+                        ระดับความสำคัญ <span className="text-orange-400">*</span>
                       </Label>
                       <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
                         <SelectTrigger id="priority" className="w-full">
@@ -212,19 +212,19 @@ export default function CreateReportPage() {
                         <SelectContent>
                           <SelectItem value="high">
                             <div className="flex items-center gap-2">
-                              <Badge className="bg-red-500">สูง</Badge>
+                              <Badge className="bg-orange-400">สูง</Badge>
                               <span className="text-xs text-muted-foreground">- ปัญหาร้ายแรง</span>
                             </div>
                           </SelectItem>
                           <SelectItem value="medium">
                             <div className="flex items-center gap-2">
-                              <Badge className="bg-yellow-500">ปานกลาง</Badge>
+                              <Badge className="bg-yellow-400">ปานกลาง</Badge>
                               <span className="text-xs text-muted-foreground">- ปานกลาง</span>
                             </div>
                           </SelectItem>
                           <SelectItem value="low">
                             <div className="flex items-center gap-2">
-                              <Badge className="bg-green-500">ต่ำ</Badge>
+                              <Badge className="bg-green-400">ต่ำ</Badge>
                               <span className="text-xs text-muted-foreground">- ไม่เร่งด่วน</span>
                             </div>
                           </SelectItem>
@@ -235,9 +235,9 @@ export default function CreateReportPage() {
 
                   {/* Submit Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       className="w-full sm:w-auto"
                       onClick={() => {
                         setTitle("")
@@ -247,8 +247,8 @@ export default function CreateReportPage() {
                     >
                       ล้างฟอร์ม
                     </Button>
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full sm:flex-1"
                       disabled={isSubmitting || !title || !description || !priority || !userDepartment}
                     >
@@ -289,9 +289,9 @@ export default function CreateReportPage() {
                           <div className="flex flex-wrap gap-2">
                             {priority && (
                               <Badge className={
-                                priority === "high" ? "bg-red-500" : 
-                                priority === "medium" ? "bg-yellow-500" : 
-                                "bg-green-500"
+                                priority === "high" ? "bg-orange-400" :
+                                  priority === "medium" ? "bg-yellow-400" :
+                                    "bg-green-400"
                               }>
                                 {priority === "high" ? "สูง" : priority === "medium" ? "ปานกลาง" : "ต่ำ"}
                               </Badge>
@@ -355,9 +355,12 @@ export default function CreateReportPage() {
                       <div>
                         <strong className="text-foreground">ระดับความสำคัญ:</strong>
                         <p className="mt-1">
-                          <span className="block mt-1"><strong className="text-red-500">สูง:</strong> ระบบใช้งานไม่ได้, ส่งผลกระทบต่อลูกค้าโดยตรง</span>
-                          <span className="block mt-1"><strong className="text-yellow-600">ปานกลาง:</strong> มีวิธีแก้ชั่วคราว, ส่งผลกระทบบางส่วน</span>
-                          <span className="block mt-1"><strong className="text-green-600">ต่ำ:</strong> ปัญหาเล็กน้อย, ไม่ส่งผลกระทบต่อการทำงาน</span>
+                          <span className="gap-2  flex items-center "><strong className="text-orange-400"><div>
+                            <div className="bg-orange-400 w-2 rounded-full h-2"></div></div></strong> ระบบใช้งานไม่ได้, ส่งผลกระทบต่อลูกค้าโดยตรง</span>
+                          <span className="gap-2 flex  items-center "><strong className="text-yellow-600"><div>
+                            <div className="bg-yellow-400 w-2 rounded-full h-2"></div></div></strong> มีวิธีแก้ชั่วคราว, ส่งผลกระทบบางส่วน</span>
+                           <span className="gap-2 flex items-center "><strong className="text-green-600"><div>
+                            <div className="bg-green-400 w-2 rounded-full h-2"></div></div></strong> ปัญหาเล็กน้อย, ไม่ส่งผลกระทบต่อการทำงาน</span>
                         </p>
                       </div>
                     </li>

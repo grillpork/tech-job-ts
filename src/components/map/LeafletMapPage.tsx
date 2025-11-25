@@ -99,9 +99,9 @@ const mapJobToLocationData = (job: Job, index: number): LocationData => {
 };
 
 const statusColors: Record<LocationStatus, string> = {
-  pending: "bg-orange-500",
-  progress: "bg-blue-500",
-  completed: "bg-green-500",
+  pending: "bg-amber-400",
+  progress: "bg-blue-400",
+  completed: "bg-green-400",
 };
 const statusIcons: Record<LocationStatus, any> = {
   pending: <CircleDotDashed />,

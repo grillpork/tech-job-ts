@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: "Professional job and team management platform",
   icons: {
     icon: "/Logo_Stella_6.png",
-  }
+  },
 };
 
 export default function RootLayout({

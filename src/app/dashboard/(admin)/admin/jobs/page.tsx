@@ -56,6 +56,16 @@ import { toast } from "sonner";
 // ===========================
 // MAIN COMPONENT
 // ===========================
+const getJobDepartments = (job: Job & { department?: string }) => {
+  if (job.departments && job.departments.length > 0) {
+    return job.departments;
+  }
+  if (job.department) {
+    return [job.department];
+  }
+  return [];
+};
+
 const JobsList = () => {
   const router = useRouter(); // 5. khởi tạo router
   const { 
@@ -186,7 +196,10 @@ const JobsList = () => {
 
     // Filter by department
     if (selectedDepartment !== "all") {
-      filtered = filtered.filter((job) => job.department === selectedDepartment);
+      filtered = filtered.filter((job) => {
+        const jobDepartments = getJobDepartments(job);
+        return jobDepartments.includes(selectedDepartment);
+      });
     }
 
     // Filter by priority
@@ -201,7 +214,8 @@ const JobsList = () => {
   const departments = useMemo(() => {
     const depts = new Set<string>();
     jobs.forEach((job) => {
-      if (job.department) depts.add(job.department);
+      const jobDepartments = getJobDepartments(job);
+      jobDepartments.forEach((dept) => depts.add(dept));
     });
     return Array.from(depts).sort();
   }, [jobs]);
@@ -360,6 +374,10 @@ const JobsList = () => {
     {
       key: "department",
       label: "Department",
+      render: (row: Job) => {
+        const jobDepartments = getJobDepartments(row);
+        return jobDepartments.length > 0 ? jobDepartments.join(", ") : "-";
+      },
     },
     {
       key: "createdBy",

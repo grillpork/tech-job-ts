@@ -217,7 +217,7 @@ const SearchAI = () => {
                 <Avatar className="w-8 h-8 mt-1 border shadow-sm">
                   {msg.sender === "user" ? (
                     <>
-                      <AvatarImage src={currentUser?.imageUrl} />
+                      <AvatarImage src={currentUser?.imageUrl || ""} />
                       <AvatarFallback><UserIcon className="w-4 h-4" /></AvatarFallback>
                     </>
                   ) : (

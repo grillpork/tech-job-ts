@@ -9,7 +9,6 @@ import useEmblaCarousel from 'embla-carousel-react';
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
-import { useUserStore } from "@/stores/features/userStore";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -212,6 +211,7 @@ export default function JobViewPage() {
   }
 
   dayjs.locale('th');
+  const jobCreatorName = job.creatorName || job.creator?.name || "-";
 
   return (
     <div className="max-w-[1600px] mx-auto p-6 space-y-8">
@@ -239,8 +239,12 @@ export default function JobViewPage() {
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-primary/70" />
-                <span>หัวหน้าช่าง : <span className="font-medium text-foreground">{job.creator.name}</span></span>
+                <span>ผู้สร้างใบงาน : <span className="font-medium text-foreground">{jobCreatorName}</span></span>
               </div>
+              {/* <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-primary/70" />
+                <span>หัวหน้าช่าง : <span className="font-medium text-foreground">{job.leadTechnician?.name ?? "ยังไม่ได้กำหนด"}</span></span>
+              </div> */}
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary/70" />
                 <span>วันที่สร้าง : {dayjs(job.createdAt).format('DD MMM YYYY')}</span>

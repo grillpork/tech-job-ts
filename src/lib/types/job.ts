@@ -33,6 +33,7 @@ export interface Job {
   type?: "บ้าน" | "คอนโด" | null;
   priority?: "low" | "medium" | "high" | "urgent" | null;
   creator: { id: string; name: string; role: User['role'] };
+  creatorName?: string;
   assignedEmployees: User[];
   leadTechnician: User | null;
   tasks: Task[];

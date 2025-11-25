@@ -4,17 +4,9 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { MOCK_REPORTS } from "@/lib/mocks/report";
 
-export type ReportStatus =
-  | "open"
-  | "in_progress"
-  | "resolved"
-  | "closed";
+export type ReportStatus = "open" | "in_progress" | "resolved" | "closed";
 
-export type ReportType =
-  | "bug"
-  | "request"
-  | "incident"
-  | "improvement";
+export type ReportType = "bug" | "request" | "incident" | "improvement";
 
 export interface Report {
   id: string;
@@ -24,8 +16,8 @@ export interface Report {
   status: ReportStatus;
   createdAt: string;
   updatedAt?: string | null;
-  reporter: { id: string; name: string };
-  assignee?: { id: string; name: string } | null;
+  reporter: { id: string; name: string; imageUrl?: string | null };
+  assignee?: { id: string; name: string; imageUrl?: string | null } | null;
   relatedJobId?: string | null;
   relatedInventoryId?: string | null;
   attachments?: {
@@ -106,5 +98,3 @@ export const useReportStore = create<ReportStore>()(
     }
   )
 );
-
-

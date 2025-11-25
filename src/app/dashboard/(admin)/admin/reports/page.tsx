@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
   Filter,
   Search,
   Calendar,
@@ -52,6 +52,7 @@ interface Report {
   priority: Priority
   status: Status
   createdAt: string
+  imageUrl: string
   tags: string[]
 }
 
@@ -92,7 +93,7 @@ const mapStoreReportToPageReport = (storeReport: StoreReport): Report => {
     reporter: {
       name: storeReport.reporter.name,
       department,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(storeReport.reporter.name)}`,
+      avatar: storeReport.reporter.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(storeReport.reporter.name)}`,
     },
     priority: priorityMap[storeReport.priority || "medium"],
     status: statusMap[storeReport.status],
@@ -141,10 +142,10 @@ const departmentColors: Record<Department, {
 }
 
 
-const priorityConfig: Record<Priority, { 
-  icon: React.ComponentType<{ className?: string }>, 
-  color: string, 
-  bg: string 
+const priorityConfig: Record<Priority, {
+  icon: React.ComponentType<{ className?: string }>,
+  color: string,
+  bg: string
 }> = {
   high: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/10" },
   medium: { icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10" },
@@ -175,7 +176,7 @@ export default function ReportPage() {
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
       const matchSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         report.description.toLowerCase().includes(searchQuery.toLowerCase())
+        report.description.toLowerCase().includes(searchQuery.toLowerCase())
       const matchDepartment = filterDepartment === "all" || report.reporter.department === filterDepartment
       const matchStatus = filterStatus === "all" || report.status === filterStatus
       const matchPriority = filterPriority === "all" || report.priority === filterPriority
@@ -320,8 +321,8 @@ export default function ReportPage() {
             const PriorityIcon = priorityConfig[report.priority].icon
 
             return (
-              <Card 
-                key={report.id} 
+              <Card
+                key={report.id}
                 className="hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => {
                   setSelectedReport(report)
@@ -358,12 +359,10 @@ export default function ReportPage() {
                   <Separator className="mb-3 sm:mb-6" />
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div className={`p-1.5 sm:p-2 rounded-lg ${deptColors.bg}`}>
-                        <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                          <AvatarImage src={report.reporter.avatar} />
-                          <AvatarFallback className="text-xs sm:text-sm">{report.reporter.name[0]}</AvatarFallback>
-                        </Avatar>
-                      </div>
+                      <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                        <AvatarImage src={report.reporter.avatar || ""} />
+                        <AvatarFallback className="text-xs sm:text-sm">{report.reporter.name[0]}</AvatarFallback>
+                      </Avatar>
                       <div>
                         <p className="text-xs sm:text-sm font-medium leading-tight">{report.reporter.name}</p>
                         <p className={`text-[10px] sm:text-xs ${deptColors.text} font-semibold capitalize`}>
@@ -502,14 +501,14 @@ export default function ReportPage() {
 
                   {/* Action Buttons */}
                   <div className="flex justify-end gap-2 pt-3">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setIsDialogOpen(false)}
                     >
                       ปิด
                     </Button>
                     {selectedReport.status !== "resolved" && (
-                      <Button 
+                      <Button
                         className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => {
                           // Find the original store report and update its status

@@ -17,11 +17,13 @@ import { cn } from "@/lib/utils";
 const resolveIcon = (icon: string | { src: string }) =>
   typeof icon === "string" ? icon : icon?.src ?? "";
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
+const defaultMarkerIcon = L.icon({
   iconRetinaUrl: resolveIcon(markerIcon2x),
   iconUrl: resolveIcon(markerIcon),
   shadowUrl: resolveIcon(markerShadow),
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
 });
 
 interface MapPickerProps {
@@ -134,7 +136,12 @@ export function MapPicker({ initialPosition, onPositionChange, disabled = false 
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {position && position.lat && position.lng && <Marker position={{ lat: position.lat, lng: position.lng }} />}
+          {position && position.lat && position.lng && (
+            <Marker
+              position={{ lat: position.lat, lng: position.lng }}
+              icon={defaultMarkerIcon}
+            />
+          )}
           <MapEvents />
         </MapContainer>
       </div>

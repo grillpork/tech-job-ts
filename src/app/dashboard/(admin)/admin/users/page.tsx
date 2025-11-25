@@ -93,16 +93,16 @@ export default function UsersPage() {
           .join("")
           .toUpperCase();
 
-        const hasImageUrl = row?.imageUrl && 
-          typeof row.imageUrl === 'string' && 
+        const hasImageUrl = row?.imageUrl &&
+          typeof row.imageUrl === 'string' &&
           row.imageUrl.trim().length > 0;
 
         return (
           <div className="flex items-center gap-3">
             <Avatar className="h-7 w-7">
               {hasImageUrl ? (
-                <AvatarImage 
-                  src={row.imageUrl.trim()} 
+                <AvatarImage
+                  src={row.imageUrl.trim()}
                   alt={row?.name || "User"}
                 />
               ) : null}
@@ -118,9 +118,9 @@ export default function UsersPage() {
         );
       },
     },
-    { 
-      key: "department", 
-      label: "Department", 
+    {
+      key: "department",
+      label: "Department",
       sortable: true,
       render: (row: any) => {
         const dept = row?.department || "None";
@@ -140,8 +140,8 @@ export default function UsersPage() {
       render: (row: any) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="h-8 w-8 p-0"
               onClick={(e) => e.stopPropagation()}
             >
@@ -265,73 +265,74 @@ export default function UsersPage() {
           onRowsPerPageChange={setRowsPerPage}
           onRowReorder={handleRowReorder}
           onRowClick={(row: any) => handleViewUser(row.id)}
+          showCheckbox={false}
         />
       </div>
 
       {/* MOBILE CARD VIEW */}
-<div className="md:hidden space-y-3">
-  {currentItems.length > 0 ? (
-    currentItems.map((user) => (
-      <div
-        key={user.id}
-        onClick={() => handleViewUser(user.id)}
-        className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4 cursor-pointer"
-      >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3 flex-1">
-            <Avatar className="h-10 w-10">
-              {user?.imageUrl && user.imageUrl.trim() ? (
-                <AvatarImage 
-                  src={user.imageUrl.trim()} 
-                  alt={user?.name || "User"}
-                />
-              ) : null}
-              <AvatarFallback className="bg-muted text-muted-foreground">
-                {(user?.name || "")
-                  .split(" ")
-                  .map((n: string) => n[0])
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h3 className="text-gray-900 dark:text-white font-medium mb-1">
-                {user.name}
-              </h3>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-gray-200 dark:border-gray-800 w-40">
-              <DropdownMenuItem
-                onClick={(e) => handleEditUser(e, user.id)}
-                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 cursor-pointer"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit user
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={(e) => handleDeleteUser(e, user.id)} 
-                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete user
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      <div className="md:hidden space-y-3">
+        {currentItems.length > 0 ? (
+          currentItems.map((user) => (
+            <div
+              key={user.id}
+              onClick={() => handleViewUser(user.id)}
+              className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4 cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3 flex-1">
+                  <Avatar className="h-10 w-10">
+                    {user?.imageUrl && user.imageUrl.trim() ? (
+                      <AvatarImage
+                        src={user.imageUrl.trim()}
+                        alt={user?.name || "User"}
+                      />
+                    ) : null}
+                    <AvatarFallback className="bg-muted text-muted-foreground">
+                      {(user?.name || "")
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h3 className="text-gray-900 dark:text-white font-medium mb-1">
+                      {user.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-card border-gray-200 dark:border-gray-800 w-40">
+                    <DropdownMenuItem
+                      onClick={(e) => handleEditUser(e, user.id)}
+                      className="text-gray-700 dark:text-gray-300 hover:text-blue-600 cursor-pointer"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit user
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => handleDeleteUser(e, user.id)}
+                      className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete user
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
@@ -348,13 +349,12 @@ export default function UsersPage() {
                 </div>
                 <div className="col-span-2">
                   <p className="text-gray-600 dark:text-gray-400 mb-1">Status</p>
-                  <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                    user.status === 'active' 
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                  <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${user.status === 'active'
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : user.status === 'inactive'
-                      ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                      : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                  }`}>
+                        ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                    }`}>
                     {user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Undefined'}
                   </span>
                 </div>

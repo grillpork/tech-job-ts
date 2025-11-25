@@ -201,7 +201,7 @@ export const MOCK_USERS: User[] = [
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
     imageUrl: "https://i.pravatar.cc/150?u=emp-m1",
-    email: "emp-m1@company.com",
+    email: "emp6@company.com",
     phone: "+66 86 777 8888",
     bio: "ช่างเครื่องกลชำนาญงานซ่อมบำรุงและอ่านแบบชิ้นส่วนเครื่องจักร",
     skills: ["Maintenance", "CAD"],
@@ -222,7 +222,7 @@ export const MOCK_USERS: User[] = [
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
     imageUrl: "https://i.pravatar.cc/150?u=emp-m2",
-    email: "emp-m2@company.com",
+    email: "emp7@company.com",
     status: "active",
     password: "password123",
   },
@@ -233,7 +233,7 @@ export const MOCK_USERS: User[] = [
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
     imageUrl: "https://i.pravatar.cc/150?u=emp-m3",
-    email: "emp-m3@company.com",
+    email: "emp8@company.com",
     status: "active",
     password: "password123",
   },
@@ -244,7 +244,7 @@ export const MOCK_USERS: User[] = [
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
     imageUrl: "https://i.pravatar.cc/150?u=emp-m4",
-    email: "emp-m4@company.com",
+    email: "emp9@company.com",
     status: "active",
     password: "password123",
   },
@@ -255,7 +255,7 @@ export const MOCK_USERS: User[] = [
     role: "employee",
     department: "Mechanical", // ✅ พนักงานแผนกช่างกล
     imageUrl: "https://i.pravatar.cc/150?u=emp-m5",
-    email: "emp-m5@company.com",
+    email: "emp10@company.com",
     status: "active",
     password: "password123",
   },
@@ -267,7 +267,7 @@ export const MOCK_USERS: User[] = [
     role: "employee",
     department: "Civil", // ✅ พนักงานแผนกช่างโยธา
     imageUrl: "https://i.pravatar.cc/150?u=emp-civil",
-    email: "emp4@company.com",
+    email: "emp11@company.com",
     status: "active",
     password: "password123",
   },
@@ -279,7 +279,7 @@ export const MOCK_USERS: User[] = [
     role: "employee",
     department: "Technical", // ✅ พนักงานแผนกช่างเทคนิค
     imageUrl: "https://i.pravatar.cc/150?u=emp-tech",
-    email: "emp5@company.com",
+    email: "emp12@company.com",
     status: "active",
     password: "password123",
   },

@@ -59,6 +59,7 @@ export interface Job {
   type?: "บ้าน" | "คอนโด" | null;
   priority?: "low" | "medium" | "high" | "urgent" | null;
   creator: { id: string; name: string; role: JobUser["role"] };
+  creatorName?: string;
   assignedEmployees: JobUser[];
   leadTechnician: JobUser | null;
   tasks: Task[];
@@ -199,6 +200,7 @@ export const useJobStore = create<JobStoreState>()(
             name: creatorUser.name,
             role: creatorUser.role,
           },
+          creatorName: creatorUser.name,
           assignedEmployees: assignedEmployees,
           leadTechnician: leadTechnician,
           tasks:
@@ -290,13 +292,14 @@ export const useJobStore = create<JobStoreState>()(
             const newCreator = availableJobUsers.find(
               (u) => u.id === updatedData.creatorId
             );
-            currentJob.creator = newCreator
-              ? {
-                  id: newCreator.id,
-                  name: newCreator.name,
-                  role: newCreator.role,
-                }
-              : currentJob.creator;
+            if (newCreator) {
+              currentJob.creator = {
+                id: newCreator.id,
+                name: newCreator.name,
+                role: newCreator.role,
+              };
+              currentJob.creatorName = newCreator.name;
+            }
           }
       
           if (updatedData.assignedEmployeeIds !== undefined) {
@@ -649,6 +652,9 @@ export const useJobStore = create<JobStoreState>()(
             // ถ้าไม่มีทั้งสองอย่าง ให้ตั้งเป็น array ว่าง
             if (!job.departments) {
               job.departments = [];
+            }
+            if (!job.creatorName && job.creator?.name) {
+              job.creatorName = job.creator.name;
             }
           });
         }

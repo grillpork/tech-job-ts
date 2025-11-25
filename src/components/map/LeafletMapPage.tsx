@@ -99,9 +99,9 @@ const mapJobToLocationData = (job: Job, index: number): LocationData => {
 };
 
 const statusColors: Record<LocationStatus, string> = {
-  pending: "orange",
-  progress: "blue",
-  completed: "green",
+  pending: "bg-orange-500",
+  progress: "bg-blue-500",
+  completed: "bg-green-500",
 };
 const statusIcons: Record<LocationStatus, any> = {
   pending: <CircleDotDashed />,
@@ -225,7 +225,7 @@ export default function LeafletMapPage() {
     // ซูมไปที่ตำแหน่งด้วย flyTo
     map.flyTo(loc.position, 15, {
       animate: true,
-      duration: 1.5,
+      duration: 4,
     });
 
     // เปิด Popup ของ Marker
@@ -270,7 +270,7 @@ export default function LeafletMapPage() {
 
       {/* Floating Sidebar */}
       <aside className="absolute bottom-0 sm:top-0 left-0 sm:right-0 max-w-full sm:max-h-full sm:max-w-sm overflow-y-scroll sm:overflow-x-auto max-h-[calc(100vh-2rem)] z-[1000]">
-        <div className="sticky left-0 top-0 flex flex-col gap-1.5 bg-background px-4 py-2">
+        <div className="sticky left-0 top-0 flex flex-col gap-1.5 bg-gradient-to-r from-background to-background/50 px-4 backdrop-blur-sm  py-2">
           <InputGroup>
             <InputGroupInput
               type="text"
@@ -301,7 +301,7 @@ export default function LeafletMapPage() {
           </Select>
         </div>
 
-        <div className="flex flex-row h-full sm:flex-col w-full gap-2 p-2 bg-background">
+        <div className="flex flex-row h-full sm:flex-col w-full gap-2 p-2 bg-gradient-to-r from-background to-background/50 ">
           {filteredLocations.map((loc) => (
             <Card
               key={loc.id}
@@ -319,11 +319,8 @@ export default function LeafletMapPage() {
 
               <div className="flex flex-col w-full gap-2">
                 <Badge
-                  style={{
-                    color: statusColors[loc.status],
-                    fontSize: "8px",
-                  }}
-                  className="bg-transparent outline"
+                 
+                  className={`bg-transparent outline ${statusColors[loc.status]}`}
                 >
                   {statusIcons[loc.status]}
 

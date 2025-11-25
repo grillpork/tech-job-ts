@@ -114,12 +114,23 @@ export default function Sidebar() {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 ">
-          {!collapsed && (
-            <h1 className="text-xl font-bold text-primary truncate">
-              {currentUser
-                ? currentUser.role.toUpperCase() + " PANEL"
-                : "DASHBOARD"}
-            </h1>
+          {!collapsed ? (
+            <div className="flex items-center gap-3">
+              <img 
+                src="/Logo_Stella_6.png" 
+                alt="Logo" 
+                className="h-13 w-13 mx-auto flex-shrink-0 object-contain"
+              />
+              <h1 className="text-2xl  font-bold text-primary truncate ml-1.5">
+                STELLAR 
+              </h1>
+            </div>
+          ) : (
+            <img 
+              src="/Logo_Stella_6.png" 
+              alt="Logo" 
+              className="h-8 w-8 flex-shrink-0 mx-auto object-contain"
+            />
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}

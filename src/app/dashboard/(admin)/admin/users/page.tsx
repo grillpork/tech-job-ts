@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useState, useMemo, useCallback } from "react";
+import React, { use, useState, useMemo, useCallback, useEffect } from "react";
 import { DataTable } from "@/components/global/DataTable";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -48,10 +48,10 @@ export default function UsersPage() {
 
   // Department mapping for Thai labels
   const departmentLabels: Record<string, string> = {
-    "Electrical": "แผนกช่างไฟ",
-    "Mechanical": "แผนกช่างกล",
-    "Technical": "แผนกช่างเทคนิค",
-    "Civil": "แผนกช่างโยธา",
+    "Electrical": "Electrical",
+    "Mechanical": "Mechanical",
+    "Technical": "Technical",
+    "Civil": "Civil",
   };
 
   const handleEditUser = (e: React.MouseEvent, userId: string) => {
@@ -78,6 +78,16 @@ export default function UsersPage() {
       setUserToDelete(null);
     }
   };
+
+  // Keep viewUser in sync with latest user data from store
+  useEffect(() => {
+    if (viewUser) {
+      const updatedUser = users.find(u => u.id === viewUser.id);
+      if (updatedUser) {
+        setViewUser(updatedUser);
+      }
+    }
+  }, [users, viewUser?.id]);
 
   const columns: any = [
     {
@@ -204,7 +214,7 @@ export default function UsersPage() {
         {/* HEADER SECTION */}
         <div className="mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-            จัดการผู้ใช้
+            Manage Users
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             จัดการบัญชีผู้ใช้ทั้งหมดในระบบ
@@ -216,7 +226,7 @@ export default function UsersPage() {
           <Link href="/dashboard/admin/users/create">
             <Button className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto">
               <User className="h-4 w-4 mr-2" />
-              เพิ่มผู้ใช้ใหม่
+              Add New User
             </Button>
           </Link>
         </div>
@@ -254,10 +264,10 @@ export default function UsersPage() {
               key: "department",
               placeholder: "Filter Department",
               options: [
-                { label: "แผนกช่างไฟ (Electrical)", value: "Electrical" },
-                { label: "แผนกช่างกล (Mechanical)", value: "Mechanical" },
-                { label: "แผนกช่างเทคนิค (Technical)", value: "Technical" },
-                { label: "แผนกช่างโยธา (Civil)", value: "Civil" },
+                { label: "Electrical", value: "Electrical" },
+                { label: "Mechanical", value: "Mechanical" },
+                { label: "Technical", value: "Technical" },
+                { label: "Civil", value: "Civil" },
               ],
             },
           ]}
@@ -338,7 +348,7 @@ export default function UsersPage() {
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 mb-1">Department</p>
                   <p className="text-gray-900 dark:text-white">
-                    {departmentLabels[user.department] || user.department || 'None'}
+                    {user.department && departmentLabels[user.department] ? departmentLabels[user.department] : (user.department || 'None')}
                   </p>
                 </div>
                 <div>

@@ -74,9 +74,13 @@ export default function LoginPage() {
           className="space-y-6"
         >
           <div className="w-full grid place-content-center">
-            <div className=" rounded-full border border-neutral-300 px-2 max-w-fit text-black flex items-center gap-2 ">
-              <div className="w-2 h-2 bg-purple-500 rounded-2xl"></div>
-              <span>Tech Job | co</span>
+            <div className="flex items-center gap-3 justify-center">
+              <img 
+                src="/Logo_Stella_6.png" 
+                alt="Logo" 
+                className="h-30 w-30 object-contain drop-shadow-xl shadow-gray-300 "
+              />
+              
             </div>
           </div>
 

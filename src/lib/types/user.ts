@@ -7,6 +7,7 @@ export interface User {
   email?: string;
   status? : string
   password?: string;
+  coverImageUrl?: string | null;
   phone?: string | null;
   bio?: string | null;
   skills?: string[];

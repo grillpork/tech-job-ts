@@ -984,7 +984,7 @@ export function EventManager({
                 </Button>
                 <Button
                   onClick={() => {
-                    router.push(`/dashboard/(admin)/admin/jobs/${selectedEvent.id}`)
+                    router.push(`/dashboard/admin/jobs/${selectedEvent.id}`)
                     setIsDialogOpen(false)
                     setSelectedEvent(null)
                   }}

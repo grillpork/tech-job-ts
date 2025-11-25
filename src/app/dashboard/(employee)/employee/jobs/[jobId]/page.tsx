@@ -5,10 +5,12 @@ import { useEffect, useState, useCallback } from "react";
 import dayjs from "dayjs";
 import 'dayjs/locale/th';
 import useEmblaCarousel from 'embla-carousel-react';
+import { toast } from "sonner";
 
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
+import { useSignatureStore } from "@/stores/features/signatureStore";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -49,7 +51,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Building2,
-  Receipt
+  Receipt,
+  PenIcon,
+  Trash2
 } from "lucide-react";
 
 import dynamic from 'next/dynamic';
@@ -87,7 +91,7 @@ const getStatusVariant = (status: string) => {
 };
 
 const getStatusColor = (status: string) => {
-   switch (status) {
+  switch (status) {
     case 'completed': return 'bg-emerald-500/15 text-emerald-700 border-emerald-200';
     case 'in_progress': return 'bg-blue-500/15 text-blue-700 border-blue-200';
     case 'pending_approval': return 'bg-amber-500/15 text-amber-700 border-amber-200';
@@ -112,6 +116,7 @@ function LocationImagesCarousel({ images }: { images: string[] }) {
   const [prevBtnDisabled, setPrevBtnDisabled] = useState(true);
   const [nextBtnDisabled, setNextBtnDisabled] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -178,11 +183,10 @@ function LocationImagesCarousel({ images }: { images: string[] }) {
             {images.map((_, index) => (
               <button
                 key={index}
-                className={`h-1.5 rounded-full transition-all ${
-                  selectedIndex === index
-                    ? 'w-4 bg-white'
-                    : 'w-1.5 bg-white/50'
-                }`}
+                className={`h-1.5 rounded-full transition-all ${selectedIndex === index
+                  ? 'w-4 bg-white'
+                  : 'w-1.5 bg-white/50'
+                  }`}
                 onClick={() => emblaApi?.scrollTo(index)}
               />
             ))}
@@ -199,7 +203,34 @@ export default function JobViewPage() {
 
   const getJobById = useJobStore((state) => state.getJobById);
   const { inventories } = useInventoryStore();
+  const { getSignature, removeSignature } = useSignatureStore();
   const job = getJobById(jobId);
+
+  // State เพื่อ force re-render เมื่อลบ signature
+  const [signatureDeleted, setSignatureDeleted] = useState(false);
+
+  // ดึง signature ที่ถูกต้องตาม jobId
+  const savedSignature = job && !signatureDeleted ? getSignature(`job-signature-${job.id}`) : undefined;
+  const displaySignature = job?.signature || savedSignature;
+
+  // Handler สำหรับลบ signature
+  const handleRemoveSignature = () => {
+    if (!job) return;
+
+    // ตรวจสอบว่ามี signature ที่บันทึกไว้หรือไม่
+    if (!savedSignature) {
+      toast.error("ไม่พบลายเซ็นที่บันทึกไว้");
+      return;
+    }
+
+    // ลบ signature จาก localStorage
+    removeSignature(`job-signature-${job.id}`);
+
+    // Update state เพื่อ force re-render
+    setSignatureDeleted(true);
+
+    toast.success("ลบลายเซ็นเรียบร้อยแล้ว");
+  };
 
   if (!job) {
     return (
@@ -215,7 +246,8 @@ export default function JobViewPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto p-6 space-y-8">
-      
+
+
       {/* --- Header Section --- */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 border-b pb-6">
         <div className="space-y-4">
@@ -233,7 +265,7 @@ export default function JobViewPage() {
               {job.id.substring(0, 8)}
             </span>
           </div>
-          
+
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{job.title}</h1>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-muted-foreground">
@@ -261,10 +293,10 @@ export default function JobViewPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* --- Left Column (Main Info) --- */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* 1. Customer & Location (High Priority) */}
           <Card className="shadow-sm border-none ring-1 ring-border/50">
             <CardHeader>
@@ -349,7 +381,7 @@ export default function JobViewPage() {
                     </Badge>
                   )}
                 </div>
-                
+
                 {job.location && job.location.lat != null && job.location.lng != null ? (
                   <MapRouting
                     companyLocation={{
@@ -370,7 +402,7 @@ export default function JobViewPage() {
                     <span>No location data available</span>
                   </div>
                 )}
-                
+
                 {job.locationImages && job.locationImages.length > 0 && (
                   <div className="mt-4">
                     <p className="text-sm font-medium mb-3 flex items-center gap-2">
@@ -406,14 +438,14 @@ export default function JobViewPage() {
                   <div className="flex items-center gap-2">
                     <CalendarRange className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">
-                      {job.startDate ? dayjs(job.startDate).format('DD/MM/YY') : 'TBD'} 
-                      {' - '} 
+                      {job.startDate ? dayjs(job.startDate).format('DD/MM/YY') : 'TBD'}
+                      {' - '}
                       {job.endDate ? dayjs(job.endDate).format('DD/MM/YY') : 'TBD'}
                     </span>
                   </div>
                 </div>
               </div>
-              
+
               {job.description && (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase">Description</p>
@@ -459,6 +491,8 @@ export default function JobViewPage() {
             </CardContent>
           </Card>
 
+
+
           {/* 3. Execution Evidence (Before/After) */}
           {(job.beforeImages && job.beforeImages.length > 0 || job.afterImages && job.afterImages.length > 0) && (
             <Card className="shadow-sm border-none ring-1 ring-border/50">
@@ -489,7 +523,7 @@ export default function JobViewPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {job.beforeImages && job.beforeImages.length > 0 && job.afterImages && job.afterImages.length > 0 && <Separator />}
 
                 {job.afterImages && job.afterImages.length > 0 && (
@@ -513,18 +547,47 @@ export default function JobViewPage() {
                   </div>
                 )}
 
-                {job.signature && (
-                  <div className="pt-4 border-t">
-                    <p className="text-sm font-medium mb-3">Customer Signature</p>
-                    <div className="inline-block border rounded-lg p-4 bg-white">
-                      <img
-                        src={job.signature}
-                        alt="Customer Signature"
-                        className="h-24 object-contain"
-                      />
+                {(() => {
+                  // Check for signature in job data (submitted) or localStorage (saved but not submitted)
+                  const submittedSignature = job.signature;
+                  const savedSignature = getSignature(`job-signature-${job.id}`);
+                  const displaySignature = submittedSignature || savedSignature;
+
+                  if (!displaySignature) return null;
+
+                  return (
+                    <div className="pt-4 border-t">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                          Customer Signature
+                        </p>
+                        {submittedSignature ? (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                            Submitted
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            Saved (Not Submitted)
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="inline-block border rounded-lg p-4 bg-white shadow-sm">
+                        <img
+                          src={displaySignature}
+                          alt="Customer Signature"
+                          className="h-24 object-contain"
+                        />
+                      </div>
+                      {!submittedSignature && savedSignature && (
+                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          This signature is saved locally but hasn't been submitted yet. Complete the job to submit it.
+                        </p>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </CardContent>
             </Card>
           )}
@@ -532,10 +595,10 @@ export default function JobViewPage() {
 
         {/* --- Right Column (Sidebar) --- */}
         <div className="space-y-6">
-          
+
           {/* Team Card */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50">
-            <CardHeader className="pb-3">
+          <Card className="shadow-sm border-none ring-1 ring-border/50 gap-0">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Users className="h-4 w-4 text-primary" />
                 Assigned Team
@@ -558,9 +621,9 @@ export default function JobViewPage() {
                   <span className="text-sm text-muted-foreground italic pl-2">Not assigned</span>
                 )}
               </div>
-              
+
               <Separator />
-              
+
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">Team Members</p>
                 {job.assignedEmployees.length > 0 ? (
@@ -581,10 +644,63 @@ export default function JobViewPage() {
               </div>
             </CardContent>
           </Card>
+          <Card className="p-4">
+            {
+              displaySignature && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <PenIcon size={16} />
+                      ลายเซ็นต์ลูกค้า
+                    </p>
+                    {/* แสดงปุ่มลบเฉพาะเมื่อมี savedSignature (ยังไม่ได้ submit) */}
+                    {job.signature && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRemoveSignature}
+                        className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                        ลบลายเซ็น
+                      </Button>
+                    )}
+                  </div>
+                  <div className="p-0 overflow-clip border rounded-lg bg-muted/30">
+                    <img
+                      src={displaySignature}
+                      alt="signature"
+                      className="w-full object-cover"
+                    />
+                  </div>
+                  {/* แสดงสถานะ */}
+                  {savedSignature && !job.signature && (
+                    <div className="flex items-center gap-1.5 text-xs text-amber-600">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>บันทึกไว้แล้ว แต่ยังไม่ได้ส่งคำขอจบงาน</span>
+                    </div>
+                  )}
+                  {job.signature && (
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span>ส่งคำขอจบงานแล้ว</span>
+                    </div>
+                  )}
+
+                </div>
+
+              )
+            }
+            {
+              !displaySignature && (
+                <p className="text-xs text-muted-foreground italic pl-2">No signature saved</p>
+              )
+            }
+          </Card>
 
           {/* Inventory Card */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50">
-            <CardHeader className="pb-3">
+          <Card className="shadow-sm border-none ring-1 ring-border/50 gap-0">
+            <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Package className="h-4 w-4 text-primary" />
@@ -624,8 +740,8 @@ export default function JobViewPage() {
           </Card>
 
           {/* History Log Card */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50">
-            <CardHeader className="pb-3">
+          <Card className="shadow-sm border-none ring-1 ring-border/50 gap-0">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <History className="h-4 w-4 text-primary" />
                 Activity Log

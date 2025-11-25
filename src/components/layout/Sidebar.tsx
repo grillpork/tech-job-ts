@@ -77,12 +77,11 @@ export default function Sidebar() {
         icon: LayoutDashboard,
       },
       {
-        name: "Assigned Jobs",
+        name: "Jobs",
         href: "/dashboard/admin/jobs",
         icon: Briefcase,
       },
       { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
-      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
     ],
     employee: [
       { name: "Dashboard", href: "/dashboard/employee/dashboard", icon: LayoutDashboard },

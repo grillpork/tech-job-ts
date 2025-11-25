@@ -402,37 +402,6 @@ export default function EmployeeDashboardPage() {
           </Card>
         </div>
 
-        {/* Bar Chart - งานตามแผนก */}
-        {departmentData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>งานตามแผนก</CardTitle>
-              <CardDescription>
-                แสดงจำนวนงานที่ทำในแต่ละแผนก
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <BarChart data={departmentData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis tickLine={false} axisLine={false} tickMargin={8} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="value" fill={COLORS.in_progress} radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Recent Jobs */}
         <Card>
           <CardHeader>

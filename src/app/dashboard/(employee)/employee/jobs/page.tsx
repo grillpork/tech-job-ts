@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { MoreHorizontal, Search, User, Calendar, X } from "lucide-react";
 import { toast } from "sonner";
-import SignatureCanvas from "react-signature-canvas";
+import SignaturePad, { SignaturePadRef } from "@/components/signature/SignaturePad";
 
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
 import { useUserStore } from "@/stores/features/userStore";
+import { useSignatureStore } from "@/stores/features/signatureStore";
 
 // UI Components
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,11 +57,12 @@ export default function JobManagementPage() {
   const updateJob = useJobStore((state) => state.updateJob);
   const requestJobCompletion = useJobStore((state) => state.requestJobCompletion);
   const { currentUser } = useUserStore();
+  const { saveSignature, removeSignature } = useSignatureStore();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
-  const signatureRef = useRef<SignatureCanvas>(null);
+  const signatureRef = useRef<SignaturePadRef>(null);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
 
@@ -76,19 +78,13 @@ export default function JobManagementPage() {
     const ref = signatureRef.current;
     if (!ref) return null;
 
-    // react-signature-canvas มี method toDataURL() โดยตรง
+    // Check if signature pad is empty
     if (ref.isEmpty()) return null;
 
     const dataURL = ref.toDataURL("image/png");
 
-    // ตรวจสอบว่าไม่ใช่ empty image
+    // Validate data URL
     if (!dataURL || dataURL.length < 50) return null;
-
-    // รูป transparent 1px = ไม่มีลายเซ็น
-    const emptyPNG =
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-
-    if (dataURL === emptyPNG) return null;
 
     return dataURL;
   };
@@ -116,14 +112,37 @@ export default function JobManagementPage() {
     if (signatureRef.current) {
       signatureRef.current.clear();
       setSignatureData(null);
+      // Clear from localStorage
+      if (jobToDelete) {
+        removeSignature(`job-signature-${jobToDelete.id}`);
+      }
     }
   };
 
-  const confirmComplete = async () => {
+  // ฟังก์ชันบันทึกลายเซ็นลง localStorage
+  const handleSaveSignature = () => {
     const latest = getSignatureImage();
 
     if (!latest) {
-      toast.error("กรุณาลงลายเซ็นก่อนทำการ Complete");
+      toast.error("กรุณาลงลายเซ็นก่อนบันทึก");
+      return;
+    }
+
+    if (!jobToDelete) {
+      toast.error("ไม่พบข้อมูลงาน");
+      return;
+    }
+
+    // บันทึกลายเซ็นลง localStorage
+    saveSignature(`job-signature-${jobToDelete.id}`, latest);
+    setSignatureData(latest);
+    toast.success("บันทึกลายเซ็นเรียบร้อยแล้ว");
+  };
+
+  // ฟังก์ชันยืนยันการ Complete งาน
+  const confirmComplete = async () => {
+    if (!signatureData) {
+      toast.error("กรุณาบันทึกลายเซ็นก่อนทำการ Complete");
       return;
     }
 
@@ -132,17 +151,16 @@ export default function JobManagementPage() {
       return;
     }
 
-    setSignatureData(latest);
-
     if (jobToDelete) {
       setIsCompleting(true);
       try {
-        // ส่งคำขอจบงานแทนการ complete โดยตรง
+        // ส่งคำขอจบงาน
         requestJobCompletion(
           jobToDelete.id,
           { id: currentUser.id, name: currentUser.name },
-          latest
+          signatureData
         );
+
         toast.success("ส่งคำขอจบงานแล้ว รอการอนุมัติจากหัวหน้าช่าง");
 
         setIsCompleteDialogOpen(false);
@@ -151,6 +169,7 @@ export default function JobManagementPage() {
         if (signatureRef.current) {
           signatureRef.current.clear();
         }
+
       } catch (error) {
         toast.error("เกิดข้อผิดพลาดในการส่งคำขอจบงาน");
       } finally {
@@ -158,6 +177,7 @@ export default function JobManagementPage() {
       }
     }
   };
+
 
   const handleEditJob = (e: React.MouseEvent, jobId: string) => {
     e.stopPropagation(); // 10. หยุด event click ไม่ให้ลามไปถึง row
@@ -285,15 +305,14 @@ export default function JobManagementPage() {
             <Label className="text-sm font-medium">ลายเซ็น</Label>
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/20">
               <div className="w-full" style={{ maxWidth: "100%" }}>
-                <SignatureCanvas
+                <SignaturePad
                   ref={signatureRef}
                   onEnd={handleSignatureEnd}
-                  canvasProps={{
-                    className: "signature-canvas w-full h-[200px]",
-                    style: { width: "100%", height: "200px" },
-                  }}
-                  backgroundColor="white"
+                  storageKey={jobToDelete ? `job-signature-${jobToDelete.id}` : undefined}
                   penColor="#000000"
+                  backgroundColor="white"
+                  height={200}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -307,7 +326,7 @@ export default function JobManagementPage() {
           </div>
 
           {/* Signature Actions */}
-          <div className="flex justify-end">
+          <div className="flex justify-between gap-2">
             <Button
               type="button"
               variant="outline"
@@ -316,6 +335,17 @@ export default function JobManagementPage() {
             >
               <X className="h-4 w-4 mr-2" />
               ลบลายเซ็น
+            </Button>
+
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={handleSaveSignature}
+              disabled={!getSignatureImage()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              บันทึกลายเซ็น
             </Button>
           </div>
 
@@ -327,6 +357,10 @@ export default function JobManagementPage() {
                 setSignatureData(null);
                 if (signatureRef.current) {
                   signatureRef.current.clear();
+                }
+                // Clear from localStorage
+                if (jobToDelete) {
+                  removeSignature(`job-signature-${jobToDelete.id}`);
                 }
               }}
               disabled={isCompleting}
@@ -401,9 +435,6 @@ function JobCard({ job, onView, onEdit, onDelete, showCompleteButton = true }: J
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onView(job.id)}>
                 View
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => handleEditJob(e, job.id)}>
-                Edit Job
               </DropdownMenuItem>
               {showCompleteButton && (
                 <DropdownMenuItem onClick={() => onDelete(job)}>

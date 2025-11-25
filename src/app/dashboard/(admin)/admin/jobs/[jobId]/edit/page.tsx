@@ -262,15 +262,7 @@ export default function EditJobPage() {
     }
   }, [params.jobId, getJobById, router, inventories, loadSignatureFromLocalStorage]);
 
-  // ✅ ตรวจสอบว่า lead technician ที่เลือกไว้ยังอยู่ใน availableLeadTechnicians หรือไม่
-  useEffect(() => {
-    if (leadTechnician && availableLeadTechnicians.length > 0) {
-      const isLeadTechnicianValid = availableLeadTechnicians.some(lead => lead.value === leadTechnician);
-      if (!isLeadTechnicianValid) {
-        setLeadTechnician(""); // ล้างค่า lead technician ถ้าไม่อยู่ในรายการ
-      }
-    }
-  }, [availableLeadTechnicians, leadTechnician]);
+
 
   // --- (ฟังก์ชันเดิมทั้งหมด) ---
   const deleteAttachment = (fileName: string) => setAttachments(attachments.filter((file) => file.name !== fileName));
@@ -359,7 +351,7 @@ export default function EditJobPage() {
       // Check if isEmpty method exists and canvas is ready
       if (typeof ref.isEmpty !== 'function') return null;
       if (ref.isEmpty()) return null;
-      
+
       // Check if toDataURL method exists
       if (typeof ref.toDataURL !== 'function') return null;
       const dataURL = ref.toDataURL("image/png");
@@ -377,7 +369,7 @@ export default function EditJobPage() {
     const result = getSignatureImage();
     const finalSignature = result || jobToEdit?.signature || null;
     setSignatureData(finalSignature);
-    
+
     // Save to localStorage when signature changes
     if (jobToEdit?.id && finalSignature) {
       saveSignatureToLocalStorage(jobToEdit.id, finalSignature);
@@ -391,18 +383,18 @@ export default function EditJobPage() {
     const loadSignatureToCanvas = () => {
       const ref = signatureRef.current;
       if (!ref || !signatureData) return;
-      
+
       try {
         // Check if clear method exists
         if (typeof ref.clear !== 'function') return;
-        
+
         // Clear first
         ref.clear();
-        
+
         // Wait a bit before loading image to ensure clear is complete
         setTimeout(() => {
           if (!signatureRef.current || !signatureData) return;
-          
+
           // Load image from data URL
           const img = new Image();
           img.crossOrigin = 'anonymous';
@@ -410,7 +402,7 @@ export default function EditJobPage() {
           img.onload = () => {
             const ref = signatureRef.current;
             if (!ref) return;
-            
+
             try {
               const canvas = ref.getCanvas();
               if (!canvas) return;
@@ -435,7 +427,7 @@ export default function EditJobPage() {
     const timer = setTimeout(() => {
       const ref = signatureRef.current;
       if (!ref) return;
-      
+
       // Check if getCanvas method exists
       if (typeof ref.getCanvas !== 'function') {
         // Retry after a bit more time if not ready
@@ -503,7 +495,7 @@ export default function EditJobPage() {
     // Fallback to querySelector if FormData doesn't work
     const titleInput = e.currentTarget.querySelector<HTMLInputElement>('[name="jobTitle"]');
     const descriptionTextarea = e.currentTarget.querySelector<HTMLTextAreaElement>('[name="jobDescription"]');
-    
+
     const finalTitle = title || titleInput?.value || '';
     const description = (formData.get('jobDescription') as string) || descriptionTextarea?.value || '';
 
@@ -644,7 +636,7 @@ export default function EditJobPage() {
                 </TabsList>
 
                 {/* Basic Information Tab */}
-                <TabsContent value="basic" className="space-y-6 mt-6">
+                <TabsContent value="basic" forceMount={true} className="space-y-6 mt-6 data-[state=inactive]:hidden">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -697,7 +689,7 @@ export default function EditJobPage() {
                             value={priority}
                             onValueChange={setPriority}
                             disabled={isLeadTechnician}
-                            
+
                           >
                             <SelectTrigger id="priority" className="h-11 w-full">
                               <SelectValue placeholder="เลือกความสำคัญ" />
@@ -784,7 +776,7 @@ export default function EditJobPage() {
                 </TabsContent>
 
                 {/* Customer Information Tab */}
-                <TabsContent value="customer" className="space-y-6 mt-6">
+                <TabsContent value="customer" forceMount={true} className="space-y-6 mt-6 data-[state=inactive]:hidden">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -989,7 +981,7 @@ export default function EditJobPage() {
                 </TabsContent>
 
                 {/* Team & Resources Tab */}
-                <TabsContent value="team" className="space-y-6 mt-6">
+                <TabsContent value="team" forceMount={true} className="space-y-6 mt-6 data-[state=inactive]:hidden" >
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1322,7 +1314,7 @@ export default function EditJobPage() {
                 </TabsContent>
 
                 {/* Media & Attachments Tab */}
-                <TabsContent value="media" className="space-y-6 mt-6">
+                <TabsContent value="media" forceMount={true} className="space-y-6 mt-6 data-[state=inactive]:hidden">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1521,8 +1513,8 @@ export default function EditJobPage() {
                       <div className="space-y-3">
                         <Label className="text-sm font-medium">ตำแหน่งงาน</Label>
                         <div className="rounded-lg border overflow-hidden">
-                          <MapPicker 
-                            initialPosition={location} 
+                          <MapPicker
+                            initialPosition={location}
                             onPositionChange={setLocation}
                             disabled={isLeadTechnician}
                           />

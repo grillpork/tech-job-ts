@@ -68,9 +68,9 @@ const getJobDepartments = (job: Job & { department?: string }) => {
 
 const JobsList = () => {
   const router = useRouter(); // 5. khởi tạo router
-  const { 
-    jobs, 
-    reorderJobs, 
+  const {
+    jobs,
+    reorderJobs,
     deleteJob,
     completionRequests,
     approveCompletionRequest,
@@ -171,17 +171,17 @@ const JobsList = () => {
       filtered = filtered.filter((job) => {
         if (!job.startDate) return false;
         const jobDate = parseISO(job.startDate);
-        
+
         // ถ้ามีแค่ from date ให้กรองงานที่ startDate >= from
         if (dateRange.from && !dateRange.to) {
           return jobDate >= dateRange.from;
         }
-        
+
         // ถ้ามีแค่ to date ให้กรองงานที่ startDate <= to
         if (!dateRange.from && dateRange.to) {
           return jobDate <= dateRange.to;
         }
-        
+
         // ถ้ามีทั้ง from และ to ให้กรองงานที่ startDate อยู่ในช่วง
         if (dateRange.from && dateRange.to) {
           return isWithinInterval(jobDate, {
@@ -189,7 +189,7 @@ const JobsList = () => {
             end: dateRange.to,
           });
         }
-        
+
         return true;
       });
     }
@@ -296,7 +296,7 @@ const JobsList = () => {
           // เพิ่ม quantity กลับเข้าไป
           const newQuantity = inventoryItem.quantity + usedInv.qty;
           const calculatedStatus = calculateInventoryStatus(newQuantity);
-          
+
           updateInventory({
             ...inventoryItem,
             quantity: newQuantity,
@@ -335,9 +335,13 @@ const JobsList = () => {
     setRejectionReason("");
   };
 
-  // Filter completion requests for current lead technician
+  // Filter completion requests
   const pendingCompletionRequests = completionRequests.filter(req => {
     if (req.status !== "pending") return false;
+
+    // Admin sees all requests
+    if (currentUser?.role === 'admin') return true;
+
     const job = jobs.find(j => j.id === req.jobId);
     // Lead technician can only see requests for jobs where they are the lead technician
     return job?.leadTechnician?.id === currentUser?.id;
@@ -381,7 +385,7 @@ const JobsList = () => {
     },
     {
       key: "createdBy",
-      label: "Leader Technical",
+      label: "Creator",
       render: (row: Job) => {
         const creatorId = row.creator?.id;
         // Prefer live user data from user store so profile updates (imageUrl) reflect here
@@ -400,6 +404,32 @@ const JobsList = () => {
                 </Avatar>
               </TooltipTrigger>
               <TooltipContent>{user?.name ?? row.creator?.name ?? '-'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+    },
+    {
+      key: "leadTechnician",
+      label: "Leader",
+      render: (row: Job) => {
+        const leadTechnicianId = row.leadTechnician?.id;
+        // Prefer live user data from user store so profile updates (imageUrl) reflect here
+        const user = users.find((u: any) => u.id === leadTechnicianId) || MOCK_USERS.find((u: any) => u.id === leadTechnicianId);
+        const initials = (user?.name || row.leadTechnician?.name || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+        return (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Avatar className="h-7 w-7 border border-white/40 dark:border-white/20">
+                  {user?.imageUrl && user.imageUrl.trim() ? (
+                    <AvatarImage src={user.imageUrl.trim()} alt={user?.name || "lead technician"} />
+                  ) : (
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  )}
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent>{user?.name ?? row.leadTechnician?.name ?? '-'}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         );
@@ -491,8 +521,8 @@ const JobsList = () => {
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Job
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={(e) => handleDeleteJob(e, row.id)} 
+              <DropdownMenuItem
+                onClick={(e) => handleDeleteJob(e, row.id)}
                 className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -526,24 +556,24 @@ const JobsList = () => {
   const handleRowReorder = useCallback((newOrder: Job[]) => {
     // สร้าง map ของ filtered job IDs
     const filteredJobIds = new Set(filteredJobs.map((job) => job.id));
-    
+
     // แยก jobs ที่อยู่ใน filteredJobs และไม่ได้อยู่ใน filteredJobs
     const filteredJobsInStore = jobs.filter((job) => filteredJobIds.has(job.id));
     const nonFilteredJobs = jobs.filter((job) => !filteredJobIds.has(job.id));
-    
+
     // สร้าง map ของ newOrder เพื่อใช้ในการเรียงลำดับ
     const newOrderMap = new Map(newOrder.map((job, index) => [job.id, index]));
-    
+
     // เรียงลำดับ filteredJobsInStore ตาม newOrder
     const reorderedFilteredJobs = [...filteredJobsInStore].sort((a, b) => {
       const indexA = newOrderMap.get(a.id) ?? Infinity;
       const indexB = newOrderMap.get(b.id) ?? Infinity;
       return indexA - indexB;
     });
-    
+
     // รวม jobs ใหม่: filtered jobs ที่ reorder แล้ว + non-filtered jobs
     const finalOrder = [...reorderedFilteredJobs, ...nonFilteredJobs];
-    
+
     // อัปเดต store
     reorderJobs(finalOrder);
   }, [filteredJobs, jobs, reorderJobs]);
@@ -560,8 +590,8 @@ const JobsList = () => {
             หน้าติดตามรายการงาน
           </p>
         </div>
-  
-  
+
+
         {/* ACTION BAR */}
         <div className="mb-4 sm:mb-4 flex items-center justify-between">
           <div />
@@ -593,263 +623,263 @@ const JobsList = () => {
 
         <TabsContent value="jobs" className="mt-4">
           {/* FILTERS SECTION */}
-      <Card className="mb-4 sm:mb-6 p-4 gap-0 rounded-lg border">
-        <div className="flex flex-wrap items-center gap-3 mb-3">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
-          </div>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="h-7 text-xs"
-            >
-              <X className="h-3 w-3 mr-1" />
-              Clear All
-            </Button>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Search Input */}
-          <div className="w-full sm:w-[240px]">
-            <Input
-              placeholder="Search by title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
+          <Card className="mb-4 sm:mb-6 p-4 gap-0 rounded-lg border">
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
+              </div>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-7 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="w-full sm:w-[240px]">
+                <Input
+                  placeholder="Search by title..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Date Range Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full sm:w-[280px] justify-start text-left font-normal",
+                      !dateRange.from && !dateRange.to && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from && dateRange.to ? (
+                      `${format(dateRange.from, "M / d / yyyy")} - ${format(dateRange.to, "M / d / yyyy")}`
+                    ) : dateRange.from ? (
+                      `From ${format(dateRange.from, "M / d / yyyy")}`
+                    ) : dateRange.to ? (
+                      `Until ${format(dateRange.to, "M / d / yyyy")}`
+                    ) : (
+                      "Select Date Range"
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={(range) => {
+                      if (range) {
+                        setDateRange({
+                          from: range.from,
+                          to: range.to ?? undefined,
+                        });
+                      } else {
+                        setDateRange({ from: undefined, to: undefined });
+                      }
+                    }}
+                    numberOfMonths={2}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Department Filter */}
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Priority Filter */}
+              <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+
+
+          {/* DESKTOP: DataTable */}
+          <div className="hidden md:block">
+            <DataTable
+              columns={columns}
+              data={filteredJobs} // 17. ใช้ข้อมูล filteredJobs
+              totalRows={filteredJobs.length}
+              currentPage={currentPage}
+              rowsPerPage={itemsPerPage}
+              onPageChange={(p) => setCurrentPage(p)}
+              onRowsPerPageChange={(n) => {
+                setItemsPerPage(n);
+              }}
+              showCheckbox={false}
+              onRowClick={(row: Job) => handleViewJob(row.id)}
+              onRowReorder={handleRowReorder}
             />
           </div>
 
-          {/* Status Filter */}
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-full sm:w-[150px]">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="pending_approval">Pending Approval</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* MOBILE CARD VIEW */}
+          <div className="md:hidden space-y-3">
+            {currentItems.length > 0 ? (
+              currentItems.map((item) => (
+                // 21. เพิ่ม onClick และ cursor-pointer ให้ card
+                <div
+                  key={item.id}
+                  onClick={() => handleViewJob(item.id)}
+                  className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-gray-900 dark:text-white font-medium mb-1">
+                        {item.title} {/* 22. เปลี่ยนเป็น item.title */}
+                      </h3>
+                      <span
+                        className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                          item.status
+                        )}`}
+                      >
+                        {formatStatusLabel(item.status)}
+                      </span>
+                    </div>
+                    {/* 23. อัปเดต Action Menu (เหมือน desktop) */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => e.stopPropagation()} // 24. หยุด event click
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-card border-gray-200 dark:border-gray-800 w-40">
+                        <DropdownMenuItem
+                          onClick={(e) => handleEditJob(e, item.id)}
+                          className="text-gray-700 dark:text-gray-300 hover:text-blue-600 cursor-pointer"
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit Job
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => handleDeleteJob(e, item.id)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Job
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
 
-          {/* Date Range Filter */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full sm:w-[280px] justify-start text-left font-normal",
-                  !dateRange.from && !dateRange.to && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange.from && dateRange.to ? (
-                  `${format(dateRange.from, "M / d / yyyy")} - ${format(dateRange.to, "M / d / yyyy")}`
-                ) : dateRange.from ? (
-                  `From ${format(dateRange.from, "M / d / yyyy")}`
-                ) : dateRange.to ? (
-                  `Until ${format(dateRange.to, "M / d / yyyy")}`
-                ) : (
-                  "Select Date Range"
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="range"
-                selected={dateRange}
-                onSelect={(range) => {
-                  if (range) {
-                    setDateRange({
-                      from: range.from,
-                      to: range.to ?? undefined,
-                    });
-                  } else {
-                    setDateRange({ from: undefined, to: undefined });
-                  }
-                }}
-                numberOfMonths={2}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-
-          {/* Department Filter */}
-          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="All Departments" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.map((dept) => (
-                <SelectItem key={dept} value={dept}>
-                  {dept}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Priority Filter */}
-          <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-            <SelectTrigger className="w-full sm:w-[150px]">
-              <SelectValue placeholder="All Priorities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
-
-
-      {/* DESKTOP: DataTable */}
-      <div className="hidden md:block">
-        <DataTable
-          columns={columns}
-          data={filteredJobs} // 17. ใช้ข้อมูล filteredJobs
-          totalRows={filteredJobs.length}
-          currentPage={currentPage}
-          rowsPerPage={itemsPerPage}
-          onPageChange={(p) => setCurrentPage(p)}
-          onRowsPerPageChange={(n) => {
-            setItemsPerPage(n);
-          }}
-          showCheckbox={false}
-          onRowClick={(row: Job) => handleViewJob(row.id)}
-          onRowReorder={handleRowReorder}
-        />
-      </div>
-
-      {/* MOBILE CARD VIEW */}
-      <div className="md:hidden space-y-3">
-        {currentItems.length > 0 ? (
-          currentItems.map((item) => (
-            // 21. เพิ่ม onClick และ cursor-pointer ให้ card
-            <div
-              key={item.id}
-              onClick={() => handleViewJob(item.id)}
-              className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4 cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="text-gray-900 dark:text-white font-medium mb-1">
-                    {item.title} {/* 22. เปลี่ยนเป็น item.title */}
-                  </h3>
-                  <span
-                    className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                      item.status
-                    )}`}
-                  >
-                    {formatStatusLabel(item.status)}
-                  </span>
-                </div>
-                {/* 23. อัปเดต Action Menu (เหมือน desktop) */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={(e) => e.stopPropagation()} // 24. หยุด event click
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-card border-gray-200 dark:border-gray-800 w-40">
-                    <DropdownMenuItem
-                      onClick={(e) => handleEditJob(e, item.id)}
-                      className="text-gray-700 dark:text-gray-300 hover:text-blue-600 cursor-pointer"
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit Job
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => handleDeleteJob(e, item.id)} 
-                      className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Job
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              {/* 25. อัปเดต field ข้อมูล Job */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Priority</p>
-                  <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(item.priority)}`}>
-                    {formatPriorityLabel(item.priority)}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Department</p>
-                  <p className="text-gray-900 dark:text-white">{item.department || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Assigned To</p>
-                  <div className="flex items-center gap-2">
-                    {item.assignedEmployees && item.assignedEmployees.length > 0 ? (
-                      item.assignedEmployees.map((u) => {
-                        const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
-                        const displayName = live?.name ?? u.name;
-                        const img = live?.imageUrl ?? u.imageUrl;
-                        const initials = (displayName || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-                        return (
-                          <TooltipProvider key={u.id} delayDuration={200}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="border-2 border-white rounded-full dark:border-gray-800">
-                                  <Avatar className="h-7 w-7">
-                                    {img && img.trim() ? (
-                                      <AvatarImage src={img.trim()} alt={displayName} />
-                                    ) : (
-                                      <AvatarFallback>{initials}</AvatarFallback>
-                                    )}
-                                  </Avatar>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>{displayName}</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })
-                    ) : (
-                      <span className="text-gray-900 dark:text-white">-</span>
-                    )}
+                  {/* 25. อัปเดต field ข้อมูล Job */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-1">Priority</p>
+                      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(item.priority)}`}>
+                        {formatPriorityLabel(item.priority)}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-1">Department</p>
+                      <p className="text-gray-900 dark:text-white">{item.department || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-1">Assigned To</p>
+                      <div className="flex items-center gap-2">
+                        {item.assignedEmployees && item.assignedEmployees.length > 0 ? (
+                          item.assignedEmployees.map((u) => {
+                            const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
+                            const displayName = live?.name ?? u.name;
+                            const img = live?.imageUrl ?? u.imageUrl;
+                            const initials = (displayName || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                            return (
+                              <TooltipProvider key={u.id} delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="border-2 border-white rounded-full dark:border-gray-800">
+                                      <Avatar className="h-7 w-7">
+                                        {img && img.trim() ? (
+                                          <AvatarImage src={img.trim()} alt={displayName} />
+                                        ) : (
+                                          <AvatarFallback>{initials}</AvatarFallback>
+                                        )}
+                                      </Avatar>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{displayName}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })
+                        ) : (
+                          <span className="text-gray-900 dark:text-white">-</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-1">Start Date</p>
+                      <p className="text-gray-900 dark:text-white">
+                        {item.startDate ? new Date(item.startDate).toLocaleDateString() : '-'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Start Date</p>
-                  <p className="text-gray-900 dark:text-white">
-                    {item.startDate ? new Date(item.startDate).toLocaleDateString() : '-'}
-                  </p>
-                </div>
+              ))
+            ) : (
+              <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-gray-200 dark:border-gray-800 p-8 text-center">
+                <Search className="h-12 w-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  ไม่พบข้อมูลงาน
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">
+                  ลองค้นหาด้วยคำอื่นหรือสร้างงานใหม่
+                </p>
               </div>
-            </div>
-          ))
-        ) : (
-          <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-gray-200 dark:border-gray-800 p-8 text-center">
-            <Search className="h-12 w-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-            <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-1">
-              ไม่พบข้อมูลงาน
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              ลองค้นหาด้วยคำอื่นหรือสร้างงานใหม่
-            </p>
+            )}
           </div>
-        )}
-      </div>
 
         </TabsContent>
 
@@ -863,28 +893,29 @@ const JobsList = () => {
                   if (!job) return null;
                   return (
                     <Card key={request.id} className="p-4">
-                      <div className="flex justify-between items-start mb-4">
+                      <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <h3 className="font-semibold text-lg mb-2">{job.title}</h3>
                           <div className="space-y-1 text-sm text-muted-foreground">
                             <p>ผู้ส่งคำขอ: {request.requestedBy.name}</p>
                             <p>วันที่ส่งคำขอ: {new Date(request.requestedAt).toLocaleString('th-TH')}</p>
-                            <p>แผนก: {job.department || '-'}</p>
+                            <p>แผนก: {getJobDepartments(job).join(", ") || '-'}</p>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <Button
-                            variant="default"
+                            variant="outline"
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 h-8 px-3"
                             onClick={() => handleApproveRequest(request.id)}
                           >
                             <CheckCircle2 className="h-4 w-4 mr-2" />
                             อนุมัติ
                           </Button>
                           <Button
-                            variant="destructive"
+                            variant="outline"
                             size="sm"
+                            className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800 h-8 px-3"
                             onClick={() => handleRejectRequest(request.id)}
                           >
                             <XCircle className="h-4 w-4 mr-2" />
@@ -892,7 +923,7 @@ const JobsList = () => {
                           </Button>
                         </div>
                       </div>
-                      <div className="mt-4">
+                      <div>
                         <Button
                           variant="outline"
                           size="sm"
@@ -960,7 +991,7 @@ const JobsList = () => {
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setIsRejectDialogOpen(false);
                 setRejectingRequestId(null);

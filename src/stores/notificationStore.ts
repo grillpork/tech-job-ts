@@ -3,14 +3,14 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-export type NotificationType = 
-  | "job_created" 
-  | "job_updated" 
-  | "job_completed" 
+export type NotificationType =
+  | "job_created"
+  | "job_updated"
+  | "job_completed"
   | "job_assigned"
   | "job_status_changed"
-  | "report_submitted" 
-  | "report_assigned" 
+  | "report_submitted"
+  | "report_assigned"
   | "report_resolved"
   | "user_created"
   | "inventory_low"
@@ -32,19 +32,25 @@ export interface Notification {
   read: boolean;
   link?: string; // Optional link to related page
   createdAt: string;
+  targetRoles?: string[]; // Roles that should see this notification (admin, manager, lead_technician, employee)
+  targetUserIds?: string[]; // Specific user IDs that should see this notification
 }
 
 interface NotificationStore {
   notifications: Notification[];
   unreadCount: number;
   isHydrated: boolean;
-  
-  addNotification: (notification: Omit<Notification, "id" | "read" | "timestamp" | "createdAt">) => void;
+
+  addNotification: (
+    notification: Omit<Notification, "id" | "read" | "timestamp" | "createdAt">
+  ) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   deleteNotification: (id: string) => void;
   clearAll: () => void;
   getUnreadCount: () => number;
+  getNotificationsForUser: (userId: string, userRole: string) => Notification[];
+  getUnreadCountForUser: (userId: string, userRole: string) => number;
 }
 
 export const useNotificationStore = create<NotificationStore>()(
@@ -69,9 +75,9 @@ export const useNotificationStore = create<NotificationStore>()(
           createdAt: new Date().toISOString(),
         };
         const updated = [newNotification, ...get().notifications];
-        set({ 
-          notifications: updated, 
-          unreadCount: updated.filter(n => !n.read).length 
+        set({
+          notifications: updated,
+          unreadCount: updated.filter((n) => !n.read).length,
         });
       },
 
@@ -79,32 +85,67 @@ export const useNotificationStore = create<NotificationStore>()(
         const updated = get().notifications.map((n) =>
           n.id === id ? { ...n, read: true } : n
         );
-        set({ 
-          notifications: updated, 
-          unreadCount: updated.filter(n => !n.read).length 
+        set({
+          notifications: updated,
+          unreadCount: updated.filter((n) => !n.read).length,
         });
       },
 
       markAllAsRead: () => {
         const updated = get().notifications.map((n) => ({ ...n, read: true }));
-        set({ 
-          notifications: updated, 
-          unreadCount: 0 
+        set({
+          notifications: updated,
+          unreadCount: 0,
         });
       },
 
       deleteNotification: (id) => {
         const updated = get().notifications.filter((n) => n.id !== id);
-        set({ 
-          notifications: updated, 
-          unreadCount: updated.filter(n => !n.read).length 
+        set({
+          notifications: updated,
+          unreadCount: updated.filter((n) => !n.read).length,
         });
       },
 
       clearAll: () => set({ notifications: [], unreadCount: 0 }),
 
       getUnreadCount: () => {
-        return get().notifications.filter(n => !n.read).length;
+        return get().notifications.filter((n) => !n.read).length;
+      },
+
+      getNotificationsForUser: (userId, userRole) => {
+        return get().notifications.filter((notification) => {
+          // If no target specified, show to everyone (backward compatibility)
+          if (!notification.targetRoles && !notification.targetUserIds) {
+            return true;
+          }
+
+          // Check if user's role is in target roles
+          if (
+            notification.targetRoles &&
+            notification.targetRoles.includes(userRole)
+          ) {
+            return true;
+          }
+
+          // Check if user's ID is in target user IDs
+          if (
+            notification.targetUserIds &&
+            notification.targetUserIds.includes(userId)
+          ) {
+            return true;
+          }
+
+          return false;
+        });
+      },
+
+      getUnreadCountForUser: (userId, userRole) => {
+        const userNotifications = get().getNotificationsForUser(
+          userId,
+          userRole
+        );
+        return userNotifications.filter((n) => !n.read).length;
       },
     }),
     {
@@ -113,7 +154,9 @@ export const useNotificationStore = create<NotificationStore>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         (state as NotificationStore).isHydrated = true;
-        (state as NotificationStore).unreadCount = state.notifications.filter(n => !n.read).length;
+        (state as NotificationStore).unreadCount = state.notifications.filter(
+          (n) => !n.read
+        ).length;
       },
       version: 1,
     }
@@ -152,7 +195,11 @@ export const notificationHelpers = {
     });
   },
 
-  reportSubmitted: (reportTitle: string, reporterName: string, reportId: string) => {
+  reportSubmitted: (
+    reportTitle: string,
+    reporterName: string,
+    reportId: string
+  ) => {
     useNotificationStore.getState().addNotification({
       type: "report_submitted",
       title: `รายงานใหม่: ${reportTitle}`,
@@ -162,7 +209,11 @@ export const notificationHelpers = {
     });
   },
 
-  reportAssigned: (reportTitle: string, assigneeName: string, reportId: string) => {
+  reportAssigned: (
+    reportTitle: string,
+    assigneeName: string,
+    reportId: string
+  ) => {
     useNotificationStore.getState().addNotification({
       type: "report_assigned",
       title: `มอบหมายรายงาน: ${reportTitle}`,
@@ -172,7 +223,11 @@ export const notificationHelpers = {
     });
   },
 
-  reportResolved: (reportTitle: string, resolverName: string, reportId: string) => {
+  reportResolved: (
+    reportTitle: string,
+    resolverName: string,
+    reportId: string
+  ) => {
     useNotificationStore.getState().addNotification({
       type: "report_resolved",
       title: `แก้ไขรายงาน: ${reportTitle}`,
@@ -220,7 +275,7 @@ export const notificationHelpers = {
       cancelled: "ยกเลิก",
       rejected: "ปฏิเสธ",
     };
-    
+
     useNotificationStore.getState().addNotification({
       type: "job_status_changed",
       title: `สถานะงานเปลี่ยน: ${jobTitle}`,
@@ -229,7 +284,12 @@ export const notificationHelpers = {
     });
   },
 
-  inventoryRequestCreated: (jobTitle: string, requesterName: string, requestId: string, jobId: string) => {
+  inventoryRequestCreated: (
+    jobTitle: string,
+    requesterName: string,
+    requestId: string,
+    jobId: string
+  ) => {
     useNotificationStore.getState().addNotification({
       type: "inventory_request_created",
       title: `คำขอเบิกวัสดุ: ${jobTitle}`,
@@ -239,7 +299,12 @@ export const notificationHelpers = {
     });
   },
 
-  inventoryRequestApproved: (jobTitle: string, approverName: string, requestId: string, jobId: string) => {
+  inventoryRequestApproved: (
+    jobTitle: string,
+    approverName: string,
+    requestId: string,
+    jobId: string
+  ) => {
     useNotificationStore.getState().addNotification({
       type: "inventory_request_approved",
       title: `อนุมัติเบิกวัสดุ: ${jobTitle}`,
@@ -249,11 +314,17 @@ export const notificationHelpers = {
     });
   },
 
-  inventoryRequestRejected: (jobTitle: string, rejecterName: string, requestId: string, jobId: string, reason?: string) => {
+  inventoryRequestRejected: (
+    jobTitle: string,
+    rejecterName: string,
+    requestId: string,
+    jobId: string,
+    reason?: string
+  ) => {
     useNotificationStore.getState().addNotification({
       type: "inventory_request_rejected",
       title: `ปฏิเสธเบิกวัสดุ: ${jobTitle}`,
-      description: reason 
+      description: reason
         ? `${rejecterName} ปฏิเสธคำขอ: ${reason}`
         : `${rejecterName} ปฏิเสธคำขอเบิกวัสดุ`,
       user: rejecterName,

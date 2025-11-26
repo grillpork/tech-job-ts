@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { motion } from "framer-motion";
+import { Separator } from "@radix-ui/react-dropdown-menu";
 
 export default function Sidebar() {
   const { currentUser, logout } = useUserStore();
@@ -113,7 +114,7 @@ export default function Sidebar() {
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 ">
+        <div className={!collapsed ? "flex items-center justify-between p-4" : "flex flex-col items-center justify-between p-4"}>
           {!collapsed ? (
             <div className="flex items-center gap-3">
               <img 
@@ -143,6 +144,8 @@ export default function Sidebar() {
             )}
           </button>
         </div>
+
+       <hr />
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1">

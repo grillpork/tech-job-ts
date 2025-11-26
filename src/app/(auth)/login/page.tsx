@@ -29,8 +29,8 @@ export default function LoginPage() {
       const path = ["admin", "manager", "lead_technician"].includes(
         currentUser.role
       )
-        ? "/dashboard/admin/dashboard"
-        : "/dashboard/employee/dashboard";
+        ? "/dashboard/admin/"
+        : "/dashboard/employee/";
       router.replace(path);
     }
   }, [isAuthenticated, currentUser, router]);
@@ -52,8 +52,8 @@ export default function LoginPage() {
       const user = useUserStore.getState().currentUser;
       if (user) {
         const path = ["admin", "manager", "lead_technician"].includes(user.role)
-          ? "/dashboard/admin/dashboard"
-          : "/dashboard/employee/dashboard";
+          ? "/dashboard/admin/"
+          : "/dashboard/employee/";
         router.replace(path);
       }
     } else {

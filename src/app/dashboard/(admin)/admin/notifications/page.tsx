@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Bell, X, Clock, User, MessageSquare, UserPlus, Briefcase, FileText, Package, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useNotificationStore, type NotificationType } from '@/stores/notificationStore';
+import { useUserStore } from '@/stores/features/userStore';
 import { useRouter } from 'next/navigation';
 
 interface TypeConfig {
@@ -14,13 +15,25 @@ interface TypeConfig {
 
 const NotificationsPage: React.FC = () => {
   const router = useRouter();
-  const { 
-    notifications, 
-    unreadCount, 
-    markAsRead, 
-    markAllAsRead, 
-    deleteNotification 
+  const { currentUser } = useUserStore();
+  const {
+    getNotificationsForUser,
+    getUnreadCountForUser,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification
   } = useNotificationStore();
+
+  // Get notifications filtered for current user
+  const notifications = useMemo(() => {
+    if (!currentUser) return [];
+    return getNotificationsForUser(currentUser.id, currentUser.role);
+  }, [currentUser, getNotificationsForUser]);
+
+  const unreadCount = useMemo(() => {
+    if (!currentUser) return 0;
+    return getUnreadCountForUser(currentUser.id, currentUser.role);
+  }, [currentUser, getUnreadCountForUser]);
 
   const getTypeConfig = (type: NotificationType): TypeConfig => {
     const configs: Record<NotificationType, TypeConfig> = {
@@ -90,6 +103,36 @@ const NotificationsPage: React.FC = () => {
         textColor: 'text-purple-400 dark:text-purple-400',
         icon: MessageSquare
       },
+      job_assigned: {
+        label: 'มอบหมายงาน',
+        bgColor: 'bg-blue-500/10 dark:bg-blue-500/10',
+        textColor: 'text-blue-400 dark:text-blue-400',
+        icon: Briefcase
+      },
+      job_status_changed: {
+        label: 'สถานะงานเปลี่ยน',
+        bgColor: 'bg-indigo-500/10 dark:bg-indigo-500/10',
+        textColor: 'text-indigo-400 dark:text-indigo-400',
+        icon: Briefcase
+      },
+      inventory_request_created: {
+        label: 'คำขอเบิกวัสดุ',
+        bgColor: 'bg-orange-500/10 dark:bg-orange-500/10',
+        textColor: 'text-orange-400 dark:text-orange-400',
+        icon: Package
+      },
+      inventory_request_approved: {
+        label: 'อนุมัติเบิกวัสดุ',
+        bgColor: 'bg-green-500/10 dark:bg-green-500/10',
+        textColor: 'text-green-400 dark:text-green-400',
+        icon: CheckCircle2
+      },
+      inventory_request_rejected: {
+        label: 'ปฏิเสธเบิกวัสดุ',
+        bgColor: 'bg-red-500/10 dark:bg-red-500/10',
+        textColor: 'text-red-400 dark:text-red-400',
+        icon: AlertCircle
+      },
       system: {
         label: 'ระบบ',
         bgColor: 'bg-gray-500/10 dark:bg-gray-500/10',
@@ -151,11 +194,10 @@ const NotificationsPage: React.FC = () => {
               <div
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`group relative bg-white dark:bg-[#1a1a1a] rounded-xl border transition-all duration-200 hover:shadow-lg dark:hover:bg-[#1f1f1f] cursor-pointer ${
-                  notification.read 
-                    ? 'border-gray-200 dark:border-gray-800' 
-                    : 'border-blue-200 dark:border-blue-900/30 shadow-sm'
-                }`}
+                className={`group relative bg-white dark:bg-[#1a1a1a] rounded-xl border transition-all duration-200 hover:shadow-lg dark:hover:bg-[#1f1f1f] cursor-pointer ${notification.read
+                  ? 'border-gray-200 dark:border-gray-800'
+                  : 'border-blue-200 dark:border-blue-900/30 shadow-sm'
+                  }`}
               >
                 <div className="p-5">
                   <div className="flex items-start gap-4">
@@ -199,7 +241,7 @@ const NotificationsPage: React.FC = () => {
                       <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
                         {notification.title}
                       </h3>
-                      
+
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
                         {notification.description}
                       </p>

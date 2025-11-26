@@ -355,11 +355,11 @@ export default function CreateReportPage() {
                       <div>
                         <strong className="text-foreground">ระดับความสำคัญ:</strong>
                         <p className="mt-1">
-                          <span className="gap-2  flex items-center "><strong className="text-orange-400"><div>
+                          <span className="gap-2 flex items-center "><strong className="text-orange-400"><div>
                             <div className="bg-orange-400 w-2 rounded-full h-2"></div></div></strong> ระบบใช้งานไม่ได้, ส่งผลกระทบต่อลูกค้าโดยตรง</span>
-                          <span className="gap-2 flex  items-center "><strong className="text-yellow-600"><div>
+                          <span className="gap-2 flex items-center "><strong className="text-yellow-600"><div>
                             <div className="bg-yellow-400 w-2 rounded-full h-2"></div></div></strong> มีวิธีแก้ชั่วคราว, ส่งผลกระทบบางส่วน</span>
-                           <span className="gap-2 flex items-center "><strong className="text-green-600"><div>
+                          <span className="gap-2 flex items-center "><strong className="text-green-600"><div>
                             <div className="bg-green-400 w-2 rounded-full h-2"></div></div></strong> ปัญหาเล็กน้อย, ไม่ส่งผลกระทบต่อการทำงาน</span>
                         </p>
                       </div>

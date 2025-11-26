@@ -20,9 +20,14 @@ import { getHistoryPathByRole, getNotificationPathByRole, getProfilePathByRole }
 
 export function UserBox() {
   const { currentUser, logout } = useUserStore();
-  const { unreadCount } = useNotificationStore();
+  const { getUnreadCountForUser } = useNotificationStore();
   const [open, setOpen] = useState(false);
   const router = useRouter();
+
+  // Get unread count for current user
+  const unreadCount = currentUser
+    ? getUnreadCountForUser(currentUser.id, currentUser.role)
+    : 0;
 
   const handleNotification = () => {
     if (!currentUser) return;
@@ -43,6 +48,17 @@ export function UserBox() {
     <div >
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
+          <Avatar className="h-8 w-8">
+            {currentUser.imageUrl ? (
+              <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
+            ) : (
+              <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
+            )}
+          </Avatar>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="w-52 space-y-2 mt-3.5">
+          <div className="flex gap-2 items-center p-2">
             <Avatar className="h-8 w-8">
               {currentUser.imageUrl ? (
                 <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
@@ -50,39 +66,28 @@ export function UserBox() {
                 <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
               )}
             </Avatar>
-        </DropdownMenuTrigger>
-  
-        <DropdownMenuContent align="end" className="w-52 space-y-2 mt-3.5">
-          <div className="flex gap-2 items-center p-2">
-            <Avatar className="h-8 w-8">
-                {currentUser.imageUrl ? (
-                  <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
-                ) : (
-                  <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
-                )}
-              </Avatar>
-              <div className=" flex-col items-start leading-tight flex">
-                <span className="text-sm font-medium">{currentUser.name}</span>
-                <span className="text-xs text-muted-foreground capitalize">
-                  {currentUser.role.replace("_", " ")}
-                </span>
-              </div>
+            <div className=" flex-col items-start leading-tight flex">
+              <span className="text-sm font-medium">{currentUser.name}</span>
+              <span className="text-xs text-muted-foreground capitalize">
+                {currentUser.role.replace("_", " ")}
+              </span>
+            </div>
           </div>
-          <Separator/>
+          <Separator />
           <DropdownMenuItem onClick={handleProfile}>
-            <User/>
+            <User />
             My Account
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleHistory}>
-            <History/>
+            <History />
             History
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleNotification} className="relative">
-            <Bell/>
+            <Bell />
             Notifications
             {unreadCount > 0 && (
-              <Badge 
-                variant="destructive" 
+              <Badge
+                variant="destructive"
                 className="ml-auto h-5 min-w-5 flex items-center justify-center px-1.5 text-xs"
               >
                 {unreadCount > 99 ? "99+" : unreadCount}
@@ -91,12 +96,12 @@ export function UserBox() {
           </DropdownMenuItem>
           <DropdownMenuItem>
             <DropdownMenu>
-              <ModeToggle/>
+              <ModeToggle />
             </DropdownMenu>
           </DropdownMenuItem>
-          <Separator/>
+          <Separator />
           <DropdownMenuItem onClick={logout} variant="destructive">
-            <LogOut/>
+            <LogOut />
             Logout
           </DropdownMenuItem>
         </DropdownMenuContent>

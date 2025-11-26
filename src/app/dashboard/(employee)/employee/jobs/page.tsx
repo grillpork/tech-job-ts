@@ -212,7 +212,7 @@ export default function JobManagementPage() {
   );
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-4 px-4">
       {/* Header */}
       <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Job Management</h1>

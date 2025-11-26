@@ -166,7 +166,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 text-zinc-900 dark:text-white bg-gray-50 dark:bg-zinc-900 min-h-full">
+    <div className="p-4 md:p-8 min-h-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">ประวัติการกระทำ (Audit Log)</h1>
         

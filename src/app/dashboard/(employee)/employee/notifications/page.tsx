@@ -285,7 +285,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-4 px-4">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold mb-2">การแจ้งเตือน</h1>

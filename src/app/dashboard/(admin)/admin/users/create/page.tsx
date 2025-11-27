@@ -168,11 +168,12 @@ export default function CreateUserPage() {
               </Select>
             </div>
             <div>
-              <Label className="text-sm text-gray-500">รหัสพนักงาน</Label>
+              <Label className="text-sm text-gray-500">อีเมลพนักงาน</Label>
               <Input 
                 className="w-full border rounded px-3 py-2 mt-1" 
                 value={form.employeeId} 
                 onChange={(e) => handleChange("employeeId", e.target.value)} 
+                placeholder="สร้างอีเมลพนักงาน"
               />
             </div>
             <div>
@@ -182,7 +183,7 @@ export default function CreateUserPage() {
                 className="w-full border rounded px-3 py-2 mt-1" 
                 value={form.password} 
                 onChange={(e) => handleChange("password", e.target.value)}
-                placeholder="เว้นว่างไว้จะใช้รหัสผ่านเริ่มต้น: password123"
+                placeholder="สร้างรหัสผ่าน"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 หากไม่กรอกจะใช้รหัสผ่านเริ่มต้น: password123

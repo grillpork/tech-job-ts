@@ -1,0 +1,276 @@
+═══════════════════════════════════════════════════════════════════════════════
+เอกสารอธิบาย Logic ของแต่ละหน้าในระบบ TECH JOB
+═══════════════════════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────────────────────
+1. หน้า Login (/login)
+───────────────────────────────────────────────────────────────────────────────
+
+Logic หลัก:
+
+1.1 Two-step Form
+   • แบ่งเป็น 2 ขั้นตอน (Email → Password)
+   • ขั้นที่ 1: กรอก Email → ตรวจสอบรูปแบบด้วย regex → ถ้าถูกต้องแสดงปุ่ม Next (ลูกศร)
+   • ขั้นที่ 2: กรอก Password → มีปุ่มแสดง/ซ่อนรหัสผ่าน (Eye icon)
+
+1.2 Authentication Flow
+   • เรียก login({ email, password }) จาก userStore
+   • userStore ค้นหา user จาก users[] ที่ email + password ตรงกัน
+   • ถ้าพบ: ตั้ง isAuthenticated = true, currentUser = foundUser
+   • ถ้าไม่พบ: แสดง error "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+
+1.3 Auto-redirect
+   • ตรวจสอบ isAuthenticated และ currentUser ด้วย useEffect
+   • ถ้า login สำเร็จ → redirect ตาม role:
+     - admin/manager/lead_technician → /dashboard/admin/
+     - employee → /dashboard/employee/
+
+1.4 UI/UX
+   • ใช้ Framer Motion สำหรับ animation
+   • แสดงโลโก้ Logo_Stella_6.png ด้านบน
+   • Loading state เมื่อกำลัง login
+
+
+───────────────────────────────────────────────────────────────────────────────
+2. หน้า Dashboard (/dashboard/admin/dashboard)
+───────────────────────────────────────────────────────────────────────────────
+
+Logic หลัก:
+
+2.1 Data Aggregation
+   • ดึงข้อมูลจากหลาย store: userStore, jobStore, inventoryStore, reportStore
+   • คำนวณสถิติแบบ real-time:
+     - activeJobs: งานที่ status ≠ completed/cancelled
+     - openReports: รายงานที่ status ≠ resolved/closed
+     - lowInventory: สินค้าที่ quantity ≤ restockThreshold
+
+2.2 Chart Data Processing
+   • สร้าง dateMap สำหรับ 180 วันล่าสุด
+   • วน jobs แต่ละงาน → แปลง status เป็น chart key (complete/progressing/pending)
+   • นับจำนวนงานตามวันที่และสถานะ
+   • กรองตาม timeRange (7d/30d/90d)
+
+2.3 Top Departments Calculation
+   • นับจำนวนงานตาม departments[] ของแต่ละ job
+   • เรียงตามจำนวนมาก → น้อย → เอา top 5
+
+2.4 Top Inventory Calculation
+   • ถ้ามี usedInventory ใน jobs → นับการใช้งาน
+   • ถ้าไม่มี → เรียงตาม quantity จากมาก → น้อย → เอา top 5
+
+2.5 Percent Change Calculation
+   • เปรียบเทียบช่วงปัจจุบัน vs ช่วงก่อนหน้า (previousRangeData)
+   • คำนวณ % change: ((current - previous) / previous) * 100
+
+2.6 Filtered Reports
+   • กรอง reports ตาม reportFilter (week/month/year)
+   • เรียงตามวันที่ล่าสุด → เอา top 5
+
+
+───────────────────────────────────────────────────────────────────────────────
+3. หน้า Users Management (/dashboard/admin/users)
+───────────────────────────────────────────────────────────────────────────────
+
+Logic หลัก:
+
+3.1 Data Display
+   • Desktop: ใช้ DataTable component (รองรับ search, filter, sort, pagination)
+   • Mobile: แสดงเป็น Card view (grid layout)
+
+3.2 Columns Configuration
+   • Name: แสดง Avatar + ชื่อ + email (subtitle)
+   • Department: แสดง department label (ถ้ามี mapping)
+   • Role: แสดง role
+   • Status: แสดง status badge
+   • Actions: Dropdown menu (View/Edit/Delete/Activate-Deactivate)
+
+3.3 View User Dialog
+   • คลิก row หรือ "View details" → เปิด Dialog
+   • แสดง UserView component + StatsForUser (completed jobs, in progress, active days)
+   • useEffect sync viewUser state กับ users[] เพื่อให้เห็นข้อมูลล่าสุด
+
+3.4 Edit User
+   • คลิก "Edit user" → navigate ไป /dashboard/admin/users/[userId]/edit
+   • ใช้ layout เดียวกับหน้า Profile Edit (2 columns: avatar + form)
+
+3.5 Delete User
+   • คลิก "Delete" → เปิด AlertDialog ยืนยัน
+   • ยืนยัน → เรียก deleteUser(userId) → อัปเดต users[]
+
+3.6 Activate/Deactivate
+   • Toggle status ระหว่าง "active" ↔ "inactive"
+   • เรียก updateUser(userId, { status: newStatus })
+
+3.7 Department Label Mapping
+   • แปลง department code → Thai label (ถ้ามี)
+   • ใช้ departmentLabels object
+
+
+───────────────────────────────────────────────────────────────────────────────
+4. หน้า Edit User (/dashboard/admin/users/[userId]/edit)
+───────────────────────────────────────────────────────────────────────────────
+
+Logic หลัก:
+
+4.1 Initialization
+   • ดึง userId จาก URL params
+   • ค้นหา user จาก users[] ด้วย userId
+   • ถ้าไม่พบ → แสดง error message + ปุ่มกลับ
+
+4.2 Form State
+   • ใช้ useState เก็บ form data (name, email, phone, role, department, etc.)
+   • useEffect: เมื่อ user พบ → populate form จาก user data
+   • แปลง skills array → string (comma-separated) สำหรับ input
+
+4.3 File Upload (Avatar)
+   • ใช้ useRef สำหรับ hidden file input
+   • เมื่อเลือกไฟล์ → FileReader.readAsDataURL() → เก็บเป็น base64 ใน form.imageUrl
+
+4.4 Form Submission
+   • Validate: name และ email ต้องมีค่า
+   • แปลง skills string → array (split by comma, trim, filter empty)
+   • เรียก updateUser(userId, updatedData)
+   • ถ้าสำเร็จ → toast.success → router.push("/dashboard/admin/users")
+
+4.5 Read-only Fields
+   • role, department, employmentType, accountTier → disabled + readOnly
+   • ใช้ styling cursor-not-allowed + bg-gray-50
+
+
+───────────────────────────────────────────────────────────────────────────────
+5. หน้า Profile (/dashboard/admin/profile)
+───────────────────────────────────────────────────────────────────────────────
+
+Logic หลัก:
+
+5.1 Hero Section (Cover + Avatar)
+   • แสดง cover image (จาก currentUser.coverImageUrl หรือ default)
+   • แสดง avatar (จาก currentUser.imageUrl หรือ fallback initials)
+   • ปุ่ม "Change cover" (top-right) → เปิด file input → crop dialog
+   • ปุ่ม "Change avatar" → เปิด file input → crop dialog
+
+5.2 Image Cropping Logic
+   • ใช้ react-easy-crop library
+   • State: previewSrc, crop {x, y}, zoom, croppedAreaPixels, editingTarget ("avatar" | "cover")
+   • เมื่อเลือกไฟล์ → FileReader → setPreviewSrc → เปิด Dialog
+   • Crop aspect ratio: avatar = 1 (round), cover = 3.2 (rect)
+   • เมื่อยืนยัน → createCroppedImage (Canvas API) → base64 → updateUser
+
+5.3 User Jobs Calculation
+   • ใช้ useMemo: filter jobs ที่เกี่ยวข้องกับ currentUser
+   • เงื่อนไข:
+     - job.creator.id === currentUser.id OR
+     - job.leadTechnician.id === currentUser.id OR
+     - job.assignedEmployees.some(m => m.id === currentUser.id)
+   • Sort ตาม createdAt (ใหม่ → เก่า)
+   • recentJobs = userJobs.slice(0, 5)
+
+5.4 Works with Section
+   • departmentTeam: filter users ที่ department === currentUser.department
+   • Sort: lead_technician/manager → employee
+   • collaborators: ดึงจาก userJobs (assignedEmployees + leadTechnician)
+   • แสดง: Avatar + ชื่อ + department • role + status (ถ้ามี)
+   • Scrollable: max-h-72, overflow-y-auto
+
+5.5 Worked on Section
+   • แสดง recentJobs ในกล่อง scrollable
+   • Layout: 2 columns grid (Worked on ด้านซ้าย, Works with ด้านขวา)
+   • แต่ละ job card: ชื่อ + departments • creator + status badge
+
+5.6 Data Propagation
+   • เมื่อแก้ไข profile → updateUser → switchUserById → propagate ไป jobs
+   • อัปเดต jobs[] ที่เกี่ยวข้อง (creator, assignedEmployees, leadTechnician) ให้ชื่อ/รูปใหม่
+
+
+───────────────────────────────────────────────────────────────────────────────
+6. หน้า Profile Edit (/dashboard/admin/profile/edit)
+───────────────────────────────────────────────────────────────────────────────
+
+Logic หลัก:
+
+6.1 Layout
+   • 2 columns (Avatar sidebar + Form)
+
+6.2 Avatar Section
+   • แสดง Avatar preview (จาก form.imageUrl หรือ fallback)
+   • ปุ่ม "Change Photo" → เปิด file input → FileReader → base64 → setForm
+   • ปุ่ม "Remove Photo" → clear form.imageUrl + reset file input
+
+6.3 Form Fields
+   • Editable: name, email, phone, address, github, linkedin, bio, skills
+   • Read-only: role, department, employmentType, accountTier (disabled)
+
+6.4 Save Logic
+   • สร้าง updatedData object (เฉพาะ fields ที่แก้ไขได้)
+   • เรียก updateUser(currentUser.id, updatedData)
+   • เรียก switchUserById(currentUser.id) → อัปเดต currentUser state
+   • Propagate ไป jobs:
+     - วน jobs → อัปเดต creator/assignedEmployees/leadTechnician ที่ id ตรงกัน
+     - ตั้งชื่อ/รูปใหม่ → useJobStore.setState({ jobs: updatedJobs })
+   • toast.success → router.push('/dashboard/admin/profile')
+
+
+───────────────────────────────────────────────────────────────────────────────
+7. หน้า Jobs (/dashboard/admin/jobs)
+───────────────────────────────────────────────────────────────────────────────
+
+Logic หลัก:
+
+7.1 Tabs
+   • "jobs" และ "completion-requests"
+
+7.2 Jobs Tab
+   • แสดง DataTable ของ jobs
+   • Filter: searchTerm, dateRange, status, department
+   • Actions: Edit, Delete, View details
+
+7.3 Completion Requests Tab
+   • แสดงรายการคำขอปิดงาน (จาก completionRequests ใน jobStore)
+   • Actions: Approve, Reject (พร้อมเหตุผล)
+
+7.4 Delete Job
+   • เปิด AlertDialog → ยืนยัน → deleteJob(jobId)
+
+7.5 Reorder
+   • ใช้ reorderJobs(newOrder) → อัปเดตลำดับใน store
+
+
+───────────────────────────────────────────────────────────────────────────────
+8. หน้า Root (/)
+───────────────────────────────────────────────────────────────────────────────
+
+Logic หลัก:
+
+8.1 Auth Check
+   • useEffect: ตรวจสอบ localStorage.getItem("token")
+   • ถ้ามี token → router.replace("/dashboard")
+   • ถ้าไม่มี → แสดง LoginPage component
+
+8.2 Loading State
+   • แสดง loading animation 2 วินาที (setTimeout)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+สรุป Logic สำคัญที่ใช้ร่วมกัน
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Data Propagation Pattern
+   เมื่อ updateUser → อัปเดตทั้ง users[] และ currentUser (ถ้าเป็นคนเดียวกัน)
+   
+   updateUser(userId, data) → {
+     // อัปเดต users[]
+     // ถ้า userId === currentUser.id → อัปเดต currentUser
+     // Propagate ไป jobs (ถ้าจำเป็น)
+   }
+
+2. State Synchronization
+   • ใช้ useEffect เพื่อ sync local state กับ store state
+   • ตัวอย่าง: viewUser ใน Users page sync กับ users[] เมื่อมีการอัปเดต
+
+3. File Upload Pattern
+   FileReader.readAsDataURL(file) → base64 string → เก็บใน state → ส่งไป updateUser
+
+4. Role-based Routing
+   • ตรวจสอบ currentUser.role → redirect ไป path ที่เหมาะสม
+   • admin/manager/lead_technician → /dashboard/admin/*
+   • employee → /dashboard/employee/*

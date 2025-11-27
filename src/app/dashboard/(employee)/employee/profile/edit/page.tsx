@@ -83,18 +83,14 @@ const EditProfilePage: React.FC = () => {
     const updatedData: any = {
       name: form.name.trim(),
       email: form.email.trim(),
-      role: form.role || undefined,
-      department: form.department || undefined,
       phone: form.phone || undefined,
       address: form.address || undefined,
       github: form.github || undefined,
       linkedin: form.linkedin || undefined,
       bio: form.bio || undefined,
       skills: form.skills ? form.skills.split(",").map(s => s.trim()).filter(Boolean) : undefined,
-      accountTier: form.accountTier || undefined,
       referralCode: form.referralCode || undefined,
       accountProgressTier: form.accountProgressTier || undefined,
-      employmentType: form.employmentType || undefined,
     };
 
     if (form.imageUrl) updatedData.imageUrl = form.imageUrl;

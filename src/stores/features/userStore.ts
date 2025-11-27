@@ -146,6 +146,9 @@ export const useUserStore = create<UserStoreState>()(
                   ? currentUserData.password
                   : updatedData.password || currentUserData.password,
             };
+            if (state.currentUser?.id === userId) {
+              state.currentUser = state.users[userIndex];
+            }
             updatedUser = state.users[userIndex];
             console.log("✅ UserStore: User updated:", state.users[userIndex].name);
           } else {

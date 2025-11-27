@@ -26,7 +26,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: "user-manager-1",
-    name: "วิภา หัวหน้าทีม",
+    name: "วิภา มาเอาไร",
     role: "manager",
     imageUrl: "https://i.pravatar.cc/150?u=mgr1",
     email: "wipa.manager@company.com",
@@ -49,7 +49,7 @@ export const MOCK_USERS: User[] = [
   // --- Lead Technicians (หัวหน้าแผนก) ---
   {
     id: "user-lead-1",
-    name: "สมศักดิ์ ช่างใหญ่",
+    name: "สมศักดิ์ ช่างใจอยู่",
     role: "lead_technician",
     department: "Electrical",
     imageUrl: "https://i.pravatar.cc/150?u=lead1",
@@ -70,7 +70,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: "user-lead-2",
-    name: "ประยุทธ์ ช่างกล",
+    name: "ประยุก จันทะหลาลม",
     role: "lead_technician",
     department: "Mechanical",
     imageUrl: "https://i.pravatar.cc/150?u=lead2",
@@ -345,7 +345,7 @@ export const MOCK_USERS: User[] = [
   // ------------------------------------------------------
   {
     id: "user-emp-c1",
-    name: "นาง ง. (ช่างโยธา)",
+    name: "นาง งองู กอไก",
     role: "employee",
     department: "Civil",
     imageUrl: "https://i.pravatar.cc/150?u=emp-civil",

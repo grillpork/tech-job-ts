@@ -263,7 +263,7 @@ const ProfilePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => coverInputRef.current?.click()}
-                className="absolute top-4 right-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-medium text-gray-700 shadow hover:bg-white z-1000"
+                className="absolute top-4 right-4 mr-5 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-medium text-gray-700 shadow hover:bg-white z-1000"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -376,13 +376,7 @@ const ProfilePage: React.FC = () => {
                       >
                         <Edit />Manage your account
                       </Button> 
-                      <Button
-                        variant="outline"
-                        className="border-white/50 text-white hover:bg-white/10"
-                        onClick={() => logout()}
-                      >
-                        Logout
-                      </Button>
+                      
                     </div>
                   </div>
 

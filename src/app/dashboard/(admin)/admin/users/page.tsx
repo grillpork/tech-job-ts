@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { DataTable } from "@/components/global/DataTable";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -46,12 +46,30 @@ export default function UsersPage() {
   const [viewUser, setViewUser] = useState<any | null>(null);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
 
+  // Role mapping for Thai labels
+  const roleLabels: Record<string, string> = {
+    "admin": "ผู้ดูแลระบบ",
+    "manager": "ผู้จัดการ",
+    "lead_technician": "หัวหน้าช่าง",
+    "employee": "พนักงาน",
+  };
+
+  // Status mapping for Thai labels
+  const statusLabels: Record<string, string> = {
+    "active": "ใช้งาน",
+    "inactive": "ไม่ใช้งาน",
+  };
+
   // Department mapping for Thai labels
   const departmentLabels: Record<string, string> = {
-    "Electrical": "Electrical",
-    "Mechanical": "Mechanical",
-    "Technical": "Technical",
-    "Civil": "Civil",
+    "Electrical": "ไฟฟ้า",
+    "Mechanical": "เครื่องกล",
+    "Technical": "เทคนิค",
+    "Civil": "โยธา",
+    "ไฟฟ้า": "ไฟฟ้า",
+    "เครื่องกล": "เครื่องกล",
+    "เทคนิค": "เทคนิค",
+    "โยธา": "โยธา",
   };
 
   const handleEditUser = (e: React.MouseEvent, userId: string) => {
@@ -133,16 +151,26 @@ export default function UsersPage() {
       label: "Department",
       sortable: true,
       render: (row: any) => {
-        const dept = row?.department || "None";
+        const dept = row?.department;
         return (
           <span className="text-sm">
-            {departmentLabels[dept] || dept}
+            {dept ? (departmentLabels[dept] || dept) : "None"}
           </span>
         );
       },
     },
-    { key: "role", label: "Role", sortable: true },
-    { key: "status", label: "Status", sortable: true },
+    {
+      key: "role",
+      label: "Role",
+      sortable: true,
+      render: (row: any) => roleLabels[row.role] || row.role
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (row: any) => statusLabels[row.status] || row.status
+    },
     {
       key: "actions",
       label: "Actions",
@@ -210,9 +238,9 @@ export default function UsersPage() {
 
   return (
     <div className="p-3 sm:p-6">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center justify-between mb-4 sm:mb-6">
         {/* HEADER SECTION */}
-        <div className="mb-4 sm:mb-6">
+        <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
             Manage Users
           </h1>
@@ -222,7 +250,7 @@ export default function UsersPage() {
         </div>
 
         {/* ACTION BAR */}
-        <div className="mb-4 sm:mb-4">
+        <div>
           <Link href="/dashboard/admin/users/create">
             <Button className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto">
               <User className="h-4 w-4 mr-2" />
@@ -267,10 +295,10 @@ export default function UsersPage() {
               placeholder: "กรองตามแผนก",
               allLabel: "แผนกทั้งหมด",
               options: [
-                { label: "ไฟฟ้า", value: "Electrical" },
-                { label: "เครื่องกล", value: "Mechanical" },
-                { label: "เทคนิค", value: "Technical" },
-                { label: "โยธา", value: "Civil" },
+                { label: "ไฟฟ้า", value: "ไฟฟ้า" },
+                { label: "เครื่องกล", value: "เครื่องกล" },
+                { label: "เทคนิค", value: "เทคนิค" },
+                { label: "โยธา", value: "โยธา" },
               ],
             },
           ]}
@@ -351,13 +379,13 @@ export default function UsersPage() {
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 mb-1">Department</p>
                   <p className="text-gray-900 dark:text-white">
-                    {user.department && departmentLabels[user.department] ? departmentLabels[user.department] : (user.department || 'None')}
+                    {user.department || 'None'}
                   </p>
                 </div>
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 mb-1">Role</p>
                   <p className="text-gray-900 dark:text-white">
-                    {user.role || '-'}
+                    {roleLabels[user.role] || user.role || '-'}
                   </p>
                 </div>
                 <div className="col-span-2">
@@ -368,7 +396,7 @@ export default function UsersPage() {
                       ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                       : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                     }`}>
-                    {user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Undefined'}
+                    {user.status ? (statusLabels[user.status] || user.status) : 'Undefined'}
                   </span>
                 </div>
               </div>

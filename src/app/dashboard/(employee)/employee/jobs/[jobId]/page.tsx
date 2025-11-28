@@ -644,7 +644,7 @@ export default function JobViewPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="p-4">
+          {/* <Card className="p-4">
             {
               displaySignature && (
                 <div className="space-y-3">
@@ -653,7 +653,6 @@ export default function JobViewPage() {
                       <PenIcon size={16} />
                       ลายเซ็นต์ลูกค้า
                     </p>
-                    {/* แสดงปุ่มลบเฉพาะเมื่อมี savedSignature (ยังไม่ได้ submit) */}
                     {job.signature && (
                       <Button
                         variant="outline"
@@ -673,7 +672,6 @@ export default function JobViewPage() {
                       className="w-full object-cover"
                     />
                   </div>
-                  {/* แสดงสถานะ */}
                   {savedSignature && !job.signature && (
                     <div className="flex items-center gap-1.5 text-xs text-amber-600">
                       <AlertCircle className="h-3 w-3" />
@@ -696,7 +694,7 @@ export default function JobViewPage() {
                 <p className="text-xs text-muted-foreground italic pl-2">ไม่มีลายเซ็นที่บันทึกไว้</p>
               )
             }
-          </Card>
+          </Card> */}
 
           {/* Inventory Card */}
           <Card className="shadow-sm border-none ring-1 ring-border/50 gap-0">

@@ -56,7 +56,7 @@ export interface Job {
     | "cancelled"
     | "rejected";
   departments: string[]; // เปลี่ยนเป็น array สำหรับหลาย departments
-  type?: "บ้าน" | "คอนโด" | null;
+  type?: "บ้าน" | "คอนโด" | "อาคาร" | null;
   priority?: "low" | "medium" | "high" | "urgent" | null;
   creator: { id: string; name: string; role: JobUser["role"] };
   creatorName?: string;

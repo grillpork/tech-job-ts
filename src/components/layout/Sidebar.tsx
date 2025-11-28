@@ -41,58 +41,55 @@ export default function Sidebar() {
   {
     admin: [
       {
-        name: "Dashboard",
+        name: "แดชบอร์ด",
         href: "/dashboard/admin/dashboard",
         icon: LayoutDashboard,
       },
-      { name: "Users", href: "/dashboard/admin/users", icon: Users },
-      { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
+      { name: "จัดการผู้ใช้", href: "/dashboard/admin/users", icon: Users },
+      { name: "จัดการงาน", href: "/dashboard/admin/jobs", icon: Briefcase },
       // {
       //   name: "Notifications",
       //   href: "/dashboard/admin/notifications",
       //   icon: Bell,
       // },
-      { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
-      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
-      { name: "Map", href: "/dashboard/admin/map", icon: Map },
-      { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
+      { name: "รายงานปัญหา", href: "/dashboard/admin/reports", icon: FileText },
       {
-        name: "Inventories",
-        href: "/dashboard/admin/inventorys",
-        icon: ToolCase,
+        name: "จัดการวัสดุ", href: "/dashboard/admin/inventorys", icon: ToolCase,
       },
+      { name: "ปฏิทิน", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "แผนที่", href: "/dashboard/admin/map", icon: Map },
+      { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
+
     ],
     manager: [
       {
-        name: "Dashboard",
+        name: "แดชบอร์ด",
         href: "/dashboard/admin/dashboard",
         icon: LayoutDashboard,
       },
     ],
     lead_technician: [
       {
-        name: "Dashboard",
+        name: "แดชบอร์ด",
         href: "/dashboard/admin/dashboard",
         icon: LayoutDashboard,
       },
       {
-        name: "Jobs",
-        href: "/dashboard/admin/jobs",
-        icon: Briefcase,
+        name: "งาน", href: "/dashboard/admin/jobs", icon: Briefcase,
       },
-      { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "ปฏิทิน", href: "/dashboard/admin/calendar", icon: Calendar },
     ],
     employee: [
-      { name: "Dashboard", href: "/dashboard/employee/dashboard", icon: LayoutDashboard },
-      { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
-      { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
+      { name: "แดชบอร์ด", href: "/dashboard/employee/dashboard", icon: LayoutDashboard },
+      { name: "งาน", href: "/dashboard/employee/jobs", icon: Briefcase },
+      { name: "รายงานปัญหา", href: "/dashboard/employee/report", icon: FileText },
       // {
       //   name: "Notifications",
       //   href: "/dashboard/employee/notifications",
       //   icon: Bell,
       // },
       {
-        name: "Calendar",
+        name: "ปฏิทิน",
         href: "/dashboard/employee/calendar",
         icon: Calendar,
       },
@@ -115,19 +112,19 @@ export default function Sidebar() {
         <div className={!collapsed ? "hidden sm:flex items-center justify-between p-4" : "flex flex-col items-center justify-between p-4"}>
           {!collapsed ? (
             <div className="flex items-center gap-3">
-              <img 
-                src="/Logo_Stella_6.png" 
-                alt="Logo" 
+              <img
+                src="/Logo_Stella_6.png"
+                alt="Logo"
                 className="h-13 w-13 mx-auto flex-shrink-0 object-contain"
               />
               <h1 className="text-2xl  font-bold text-primary truncate ml-1.5">
-                STELLAR 
+                STELLAR
               </h1>
             </div>
           ) : (
-            <img 
-              src="/Logo_Stella_6.png" 
-              alt="Logo" 
+            <img
+              src="/Logo_Stella_6.png"
+              alt="Logo"
               className="h-8 w-8 flex-shrink-0 mx-auto object-contain"
             />
           )}
@@ -143,7 +140,7 @@ export default function Sidebar() {
           </button>
         </div>
 
-       <hr />
+        <hr />
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1">

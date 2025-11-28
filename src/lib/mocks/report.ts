@@ -106,28 +106,6 @@ export const MOCK_REPORTS: Report[] = [
     tags: ["ui", "performance"],
   },
   {
-    id: "report-006",
-    title: "ขอเพิ่มการกรอง Job ตามสถานะ",
-    description:
-      "ต้องการให้สามารถกรอง Job ตามสถานะ (pending, in_progress, completed) เพื่อให้ค้นหาง่ายขึ้น",
-    type: "request",
-    status: "closed",
-    createdAt: "2025-11-21T09:15:00Z",
-    updatedAt: "2025-11-21T14:00:00Z",
-    reporter: {
-      id: "user-emp-e4",
-      name: "นาย ประยุบ อังคาร",
-      imageUrl: "https://i.pravatar.cc/150?u=emp-e4",
-    },
-    assignee: {
-      id: "user-admin-1",
-      name: "สมชาย จัดการเก่ง",
-      imageUrl: "https://i.pravatar.cc/150?u=admin1",
-    },
-    priority: "low",
-    tags: ["feature", "filter"],
-  },
-  {
     id: "report-007",
     title: "ระบบล่มชั่วคราวเมื่อมีผู้ใช้เข้าพร้อมกันมาก",
     description:

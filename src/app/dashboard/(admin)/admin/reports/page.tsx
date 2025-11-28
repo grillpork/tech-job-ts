@@ -98,6 +98,7 @@ const mapStoreReportToPageReport = (storeReport: StoreReport): Report => {
     priority: priorityMap[storeReport.priority || "medium"],
     status: statusMap[storeReport.status],
     createdAt: storeReport.createdAt,
+    imageUrl: storeReport.imageUrl || "",
     tags: storeReport.tags || [],
   }
 }
@@ -499,11 +500,31 @@ export default function ReportPage() {
                     >
                       ปิด
                     </Button>
-                    {selectedReport.status !== "resolved" && (
+                    {selectedReport.status === "open" && (
+                      <Button
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                        onClick={() => {
+                          // Find the original store report and update its status to in-progress
+                          const storeReport = storeReports.find(r => r.id === selectedReport.id)
+                          if (storeReport) {
+                            updateReport({
+                              ...storeReport,
+                              status: "in_progress",
+                              updatedAt: new Date().toISOString()
+                            })
+                          }
+                          setIsDialogOpen(false)
+                        }}
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        กำลังดำเนินการ
+                      </Button>
+                    )}
+                    {selectedReport.status === "in-progress" && (
                       <Button
                         className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => {
-                          // Find the original store report and update its status
+                          // Find the original store report and update its status to resolved
                           const storeReport = storeReports.find(r => r.id === selectedReport.id)
                           if (storeReport) {
                             updateReport({
@@ -515,7 +536,7 @@ export default function ReportPage() {
                           setIsDialogOpen(false)
                         }}
                       >
-                        <CheckCircle2 className="h-4 w-4" />
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
                         แก้ไขแล้ว
                       </Button>
                     )}

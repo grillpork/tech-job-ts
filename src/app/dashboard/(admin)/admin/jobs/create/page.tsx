@@ -804,7 +804,7 @@ export default function CreateJobPage() {
                               disabled={isLeadTechnician}
                             />
                           </div>
-                          <div>
+                          {/* <div>
                             <Label htmlFor="customerTaxId">เลขประจำตัวผู้เสียภาษี</Label>
                             <Input
                               id="customerTaxId"
@@ -815,7 +815,7 @@ export default function CreateJobPage() {
                               onChange={(e) => setCustomerTaxId(e.target.value)}
                               disabled={isLeadTechnician}
                             />
-                          </div>
+                          </div> */}
                         </div>
                         <div>
                           <Label htmlFor="customerAddress">ที่อยู่บริษัท</Label>

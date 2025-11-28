@@ -7,7 +7,9 @@ import { useUserStore } from "@/stores/features/userStore";
 import { useJobStore } from "@/stores/features/jobStore";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import  Cropper  from "react-easy-crop";
+
+import Cropper from "react-easy-crop";
+import { Briefcase, CheckCircle2, Timer, CalendarClock, Facebook, Github, MessageCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +19,6 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { MOCK_USERS } from "@/lib/mocks/user";
-import { Edit } from "lucide-react";
 
 const ProfilePage: React.FC = () => {
   const router = useRouter();
@@ -52,16 +53,16 @@ const ProfilePage: React.FC = () => {
   }, [users]);
 
   const formatRoleLabel = (role?: string | null) => {
-    if (!role) return "Team member";
+    if (!role) return "สมาชิกทีม";
     switch (role) {
       case "lead_technician":
-        return "Head of department";
+        return "หัวหน้าแผนก";
       case "manager":
-        return "Department manager";
+        return "ผู้จัดการแผนก";
       case "admin":
-        return "Administrator";
+        return "ผู้ดูแลระบบ";
       case "employee":
-        return "Team member";
+        return "สมาชิกทีม";
       default:
         return role
           .replace(/_/g, " ")
@@ -73,13 +74,13 @@ const ProfilePage: React.FC = () => {
     if (!status) return null;
     switch (status) {
       case "active":
-        return "Active";
+        return "ใช้งาน";
       case "on_site":
-        return "On site";
+        return "ปฏิบัติงานนอกสถานที่";
       case "training":
-        return "Training";
+        return "ฝึกอบรม";
       case "on_leave":
-        return "On leave";
+        return "ลางาน";
       default:
         return status
           .replace(/_/g, " ")
@@ -148,7 +149,35 @@ const ProfilePage: React.FC = () => {
     });
     if (currentUser?.department) set.add(currentUser.department);
     return Array.from(set);
+
   }, [userJobs, currentUser]);
+
+  const employmentDuration = useMemo(() => {
+    if (!currentUser?.joinedAt) return "-";
+    const start = new Date(currentUser.joinedAt);
+    const now = new Date();
+
+    let years = now.getFullYear() - start.getFullYear();
+    let months = now.getMonth() - start.getMonth();
+    let days = now.getDate() - start.getDate();
+
+    if (days < 0) {
+      months--;
+      days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    const parts = [];
+    if (years > 0) parts.push(`${years} ปี`);
+    if (months > 0) parts.push(`${months} เดือน`);
+    if (days > 0) parts.push(`${days} วัน`);
+
+    if (parts.length === 0) return "วันนี้";
+    return parts.join(" ");
+  }, [currentUser?.joinedAt]);
 
   useEffect(() => {
     // Ensure mock users are loaded into the store if empty (helps in dev)
@@ -356,7 +385,7 @@ const ProfilePage: React.FC = () => {
 
                       <div className="pb-2">
                         <p className="text-sm uppercase tracking-wide text-shadow-lg text-teal-100 dark:text-teal-200">
-                          {currentUser?.department || "Team member"}
+                          {currentUser?.department || "สมาชิกทีม"}
                         </p>
                         <h1 className="text-3xl font-semibold text-shadow-lg text-white drop-shadow-sm mt-2">
                           {currentUser?.name ?? "—"}
@@ -366,17 +395,6 @@ const ProfilePage: React.FC = () => {
                           <p className="text-sm text-shadow-lg text-white/80 mt-1">ID: {currentUser.employeeId}</p>
                         )}
                       </div>
-                    </div>
-
-                    <div className="flex flex-1 flex-wrap gap-3 justify-start sm:justify-end">
-                      <Button
-                        variant="secondary"
-                        className="bg-white text-gray-900 hover:bg-gray-100"
-                        onClick={() => router.push("/dashboard/admin/profile/edit")}
-                      >
-                        <Edit />Manage your account
-                      </Button> 
-                      
                     </div>
                   </div>
 
@@ -392,9 +410,8 @@ const ProfilePage: React.FC = () => {
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">
                   <div
-                    className={`relative w-72 ${
-                      editingTarget === "cover" ? "h-44 rounded-2xl" : "h-72 rounded-full"
-                    } overflow-hidden bg-gray-100 dark:bg-gray-800`}
+                    className={`relative w-72 ${editingTarget === "cover" ? "h-44 rounded-2xl" : "h-72 rounded-full"
+                      } overflow-hidden bg-gray-100 dark:bg-gray-800`}
                   >
                     {previewSrc && (
                       <Cropper
@@ -490,44 +507,84 @@ const ProfilePage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
               <aside className="space-y-6">
                 <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-lg">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-4 underline-offset-4 underline">About</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-4 underline-offset-4 underline">เกี่ยวกับ</h3>
                   <dl className="space-y-4 text-sm">
                     <div>
-                      <dt className="text-gray-500 ">Role</dt>
+                      <dt className="text-gray-500 ">บทบาท</dt>
                       <dd className="text-gray-900 dark:text-white mt-0.5">{currentUser?.role ?? "-"}</dd>
                     </div>
                     <div>
-                      <dt className="text-gray-500">Department</dt>
+                      <dt className="text-gray-500">แผนก</dt>
                       <dd className="text-gray-900 dark:text-white mt-0.5">{currentUser?.department ?? "-"}</dd>
                     </div>
                     <div>
-                      <dt className="text-gray-500">Organization</dt>
+                      <dt className="text-gray-500">องค์กร</dt>
                       <dd className="text-gray-900 dark:text-white mt-0.5">TechJob Platform</dd>
                     </div>
                     <div>
-                      <dt className="text-gray-500">Location</dt>
+                      <dt className="text-gray-500">ที่อยู่</dt>
                       <dd className="text-gray-900 dark:text-white mt-0.5">{currentUser?.address ?? "-"}</dd>
                     </div>
                   </dl>
                 </div>
 
-                <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-lg">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-4 underline-offset-4 underline">Contact</h3>
-                  <dl className="text-sm space-y-3">
+                <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-lg h-[calc(vh-320px)]">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-4 underline-offset-4 underline">ข้อมูลติดต่อ</h3>
+                  <dl className="text-sm space-y-4">
                     <div>
-                      <dt className="text-gray-500">Email</dt>
-                      <dd className="text-gray-900 dark:text-white break-words">{currentUser?.email ?? "-"}</dd>
+                      <dt className="text-gray-500 mb-1">อีเมล</dt>
+                      <dd className="text-gray-900 dark:text-white break-all">{currentUser?.email ?? "-"}</dd>
                     </div>
                     <div>
-                      <dt className="text-gray-500">Phone</dt>
+                      <dt className="text-gray-500 mb-1">เบอร์โทรศัพท์</dt>
                       <dd className="text-gray-900 dark:text-white">{currentUser?.phone ?? "-"}</dd>
                     </div>
                     <div>
-                      <dt className="text-gray-500">LinkedIn</dt>
+                      <dt className="text-gray-500 mb-1 flex items-center gap-2">
+                        <Facebook className="h-4 w-4 text-blue-600" /> Facebook
+                      </dt>
+                      <dd className="text-gray-900 dark:text-white">
+                        {currentUser?.facebook ? (
+                          <a href={currentUser.facebook} target="_blank" rel="noreferrer" className="text-teal-600 dark:text-teal-400 hover:underline truncate block">
+                            {currentUser.facebook}
+                          </a>
+                        ) : (
+                          "-"
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-500 mb-1 flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4 text-green-500" /> Line ID
+                      </dt>
+                      <dd className="text-gray-900 dark:text-white">
+                        {currentUser?.lineId ? (
+                          <span className="truncate block">{currentUser.lineId}</span>
+                        ) : (
+                          "-"
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-500 mb-1 flex items-center gap-2">
+                        <Github className="h-4 w-4" /> GitHub
+                      </dt>
+                      <dd className="text-gray-900 dark:text-white">
+                        {currentUser?.github ? (
+                          <a href={currentUser.github} target="_blank" rel="noreferrer" className="text-teal-600 dark:text-teal-400 hover:underline truncate block">
+                            View Profile
+                          </a>
+                        ) : (
+                          "-"
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-500 mb-1">LinkedIn</dt>
                       <dd className="text-gray-900 dark:text-white">
                         {currentUser?.linkedin ? (
-                          <a href={currentUser.linkedin} target="_blank" rel="noreferrer" className="text-teal-600 dark:text-teal-400">
-                            View profile
+                          <a href={currentUser.linkedin} target="_blank" rel="noreferrer" className="text-teal-600 dark:text-teal-400 hover:underline truncate block">
+                            ดูโปรไฟล์
                           </a>
                         ) : (
                           "-"
@@ -537,7 +594,7 @@ const ProfilePage: React.FC = () => {
                   </dl>
                 </div>
 
-               
+
               </aside>
 
               <main className="space-y-6">
@@ -545,9 +602,9 @@ const ProfilePage: React.FC = () => {
                   {/* Worked on - Left side */}
                   <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-lg">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Works Progress</h2>
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">งานที่กำลังดำเนินการ</h2>
                       <button className="text-sm text-teal-600 dark:text-teal-400 hover:underline" onClick={() => router.push("/dashboard/admin/jobs")}>
-                        View all
+                        ดูทั้งหมด
                       </button>
                     </div>
                     {recentJobs.length > 0 ? (
@@ -557,27 +614,27 @@ const ProfilePage: React.FC = () => {
                             <div>
                               <p className="text-sm font-semibold text-gray-900 dark:text-white">{job.title}</p>
                               <p className="text-xs text-gray-500">
-                                {job.departments?.join(", ") || "General"} • {job.creator?.name || "Unknown"}
+                                {job.departments?.join(", ") || "ทั่วไป"} • {job.creator?.name || "ไม่ระบุ"}
                               </p>
                             </div>
                             <span className="text-xs font-medium px-3 py-1 rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-200 capitalize shrink-0">
-                              {job.status?.replace("_", " ") || "pending"}
+                              {job.status?.replace("_", " ") || "รอดำเนินการ"}
                             </span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-sm text-gray-500">No recent projects yet.</div>
+                      <div className="text-sm text-gray-500">ยังไม่มีโครงการล่าสุด</div>
                     )}
                   </div>
 
                   {/* Works with - Right side */}
                   <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-lg">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Works with</h2>
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">ทำงานร่วมกับ</h2>
                       {(departmentTeam.length ? departmentTeam : collaborators).length > 3 && (
                         <span className="text-xs text-gray-500">
-                          {(departmentTeam.length ? departmentTeam : collaborators).length} teammates
+                          {(departmentTeam.length ? departmentTeam : collaborators).length} เพื่อนร่วมทีม
                         </span>
                       )}
                     </div>
@@ -595,7 +652,7 @@ const ProfilePage: React.FC = () => {
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{person.name}</p>
                               <p className="text-xs text-gray-500">
-                                {(person as any).department || currentUser?.department || "General team"} •{" "}
+                                {(person as any).department || currentUser?.department || "ทีมทั่วไป"} •{" "}
                                 {formatRoleLabel((person as any).role ?? undefined)}
                               </p>
                               {(() => {
@@ -612,13 +669,13 @@ const ProfilePage: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No collaborators just yet.</p>
+                      <p className="text-sm text-gray-500">ยังไม่มีผู้ร่วมงาน</p>
                     )}
                   </div>
                 </div>
 
                 <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-lg">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">About me</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">เกี่ยวกับฉัน</h2>
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{currentUser?.bio ?? "ยังไม่มีข้อมูล"}</p>
                   {currentUser?.skills?.length ? (
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -629,28 +686,67 @@ const ProfilePage: React.FC = () => {
                       ))}
                     </div>
                   ) : null}
+
+                  <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2">
+                      <div className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 shadow-sm">
+                        <Briefcase className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">งานทั้งหมด</p>
+                        <p className="text-xl font-bold text-gray-900 dark:text-white">{userJobs.length}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2">
+                      <div className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-teal-600 dark:text-teal-400 shadow-sm">
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">เสร็จสิ้น</p>
+                        <p className="text-xl font-bold text-teal-600 dark:text-teal-400">
+                          {userJobs.filter((j) => j.status === "completed").length}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2">
+                      <div className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm">
+                        <Timer className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">กำลังดำเนินการ</p>
+                        <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                          {userJobs.filter((j) => j.status === "in_progress").length}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2">
+                      <div className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-sm">
+                        <CalendarClock className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-medium">อายุงาน</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
+                          {employmentDuration}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </main>
             </div>
           </>
         ) : (
           <div className="max-w-3xl mx-auto bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-10 text-center shadow-lg">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">No user selected. Choose a user from the selector to view their profile.</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">ไม่ได้เลือกผู้ใช้ กรุณาเลือกผู้ใช้เพื่อดูโปรไฟล์</p>
           </div>
-        )}
-      </div>
-    </div>
+        )
+        }
+      </div >
+    </div >
   );
 };
 export default ProfilePage;
 
-
-// Small stat helper component
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="text-center">
-      <div className="text-lg font-semibold text-gray-900 dark:text-white">{value}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-    </div>
-  );
-}

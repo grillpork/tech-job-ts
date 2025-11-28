@@ -39,6 +39,8 @@ export default function EditProfilePage() {
     address: "",
     github: "",
     linkedin: "",
+    facebook: "",
+    lineId: "",
     bio: "",
     skills: "",
     accountTier: "",
@@ -63,6 +65,8 @@ export default function EditProfilePage() {
         address: userToEdit.address || "",
         github: userToEdit.github || "",
         linkedin: userToEdit.linkedin || "",
+        facebook: userToEdit.facebook || "",
+        lineId: userToEdit.lineId || "",
         bio: userToEdit.bio || "",
         skills: (userToEdit.skills || []).join(", "),
         accountTier: userToEdit.accountTier || "",
@@ -111,6 +115,8 @@ export default function EditProfilePage() {
       address: form.address || null,
       github: form.github || null,
       linkedin: form.linkedin || null,
+      facebook: form.facebook || null,
+      lineId: form.lineId || null,
       bio: form.bio || null,
       skills: form.skills ? form.skills.split(",").map(s => s.trim()).filter(Boolean) : [],
       referralCode: form.referralCode || null,
@@ -291,6 +297,14 @@ export default function EditProfilePage() {
                 <div>
                   <Label>LinkedIn</Label>
                   <Input value={form.linkedin} onChange={(e) => handleChange('linkedin', e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label>Facebook</Label>
+                  <Input value={form.facebook} onChange={(e) => handleChange('facebook', e.target.value)} className="mt-1" placeholder="https://facebook.com/..." />
+                </div>
+                <div>
+                  <Label>Line ID</Label>
+                  <Input value={form.lineId} onChange={(e) => handleChange('lineId', e.target.value)} className="mt-1" />
                 </div>
                 <div className="lg:col-span-2">
                   <Label>Bio</Label>

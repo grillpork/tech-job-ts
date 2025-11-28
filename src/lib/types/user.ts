@@ -20,4 +20,6 @@ export interface User {
   accountTier?: string | null; // for internal account access tiers
   referralCode?: string | null;
   accountProgressTier?: string | null;
+  facebook?: string | null;
+  lineId?: string | null;
 }

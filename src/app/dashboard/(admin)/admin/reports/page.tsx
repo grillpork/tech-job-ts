@@ -465,13 +465,13 @@ export default function ReportPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-xs text-muted-foreground">ผู้รับผิดชอบ</p>
                         <p className="text-sm font-medium">ยังไม่ได้กำหนด</p>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
 
                   {/* Tags */}

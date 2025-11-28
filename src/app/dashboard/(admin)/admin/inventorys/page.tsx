@@ -121,13 +121,13 @@ const InventoryManagement = () => {
   const columns: any[] = [
     {
       key: "name",
-      label: "Title",
-      sortable: true,
+      label: "ชื่อวัสดุ",
+      // sortable: true,
       render: (row: Inventory) => <span className="font-medium">{row.name}</span>,
     },
     {
       key: "status",
-      label: "Status",
+      label: "สถานะ",
       align: "center",
       render: (row: Inventory) => (
         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(row.status)}`}>
@@ -137,18 +137,18 @@ const InventoryManagement = () => {
     },
     {
       key: "type",
-      label: "Type",
+      label: "ประเภท",
       align: "center",
     },
     {
       key: "quantity",
-      label: "Quantity",
+      label: "จำนวน",
       align: "center",
       render: (row: Inventory) => <span className="font-semibold">{row.quantity}</span>,
     },
     {
       key: "actions",
-      label: "Actions",
+      label: "การดำเนินการ",
       align: "center",
       render: (row: Inventory) => (
         <div className="flex justify-center">

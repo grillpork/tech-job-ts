@@ -225,7 +225,7 @@ export default function LeafletMapPage() {
     // ซูมไปที่ตำแหน่งด้วย flyTo
     map.flyTo(loc.position, 15, {
       animate: true,
-      duration: 4,
+      duration: 2,
     });
 
     // เปิด Popup ของ Marker

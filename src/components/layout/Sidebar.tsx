@@ -47,11 +47,11 @@ export default function Sidebar() {
       },
       { name: "Users", href: "/dashboard/admin/users", icon: Users },
       { name: "Jobs", href: "/dashboard/admin/jobs", icon: Briefcase },
-      {
-        name: "Notifications",
-        href: "/dashboard/admin/notifications",
-        icon: Bell,
-      },
+      // {
+      //   name: "Notifications",
+      //   href: "/dashboard/admin/notifications",
+      //   icon: Bell,
+      // },
       { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
       { name: "Calendar", href: "/dashboard/admin/calendar", icon: Calendar },
       { name: "Map", href: "/dashboard/admin/map", icon: Map },
@@ -86,11 +86,11 @@ export default function Sidebar() {
       { name: "Dashboard", href: "/dashboard/employee/dashboard", icon: LayoutDashboard },
       { name: "My Jobs", href: "/dashboard/employee/jobs", icon: Briefcase },
       { name: "Reports", href: "/dashboard/employee/report", icon: FileText },
-      {
-        name: "Notifications",
-        href: "/dashboard/employee/notifications",
-        icon: Bell,
-      },
+      // {
+      //   name: "Notifications",
+      //   href: "/dashboard/employee/notifications",
+      //   icon: Bell,
+      // },
       {
         name: "Calendar",
         href: "/dashboard/employee/calendar",
@@ -107,7 +107,7 @@ export default function Sidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          "h-screen bg-white dark:bg-background flex flex-col transition-all duration-300",
+          "h-screen bg-white border-r dark:bg-background flex flex-col transition-all duration-300",
           collapsed ? "w-17" : "w-64"
         )}
       >

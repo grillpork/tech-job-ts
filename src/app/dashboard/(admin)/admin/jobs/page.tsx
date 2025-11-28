@@ -372,7 +372,7 @@ const JobsList = () => {
     {
       key: "title",
       label: "หัวเรื่อง",
-      sortable: true,
+      // sortable: true,
       render: (row: Job) => <span className="font-medium">{row.title}</span>,
     },
     {
@@ -395,7 +395,7 @@ const JobsList = () => {
     },
     {
       key: "department",
-      label: "Department",
+      label: "แผนก",
       render: (row: Job) => {
         const jobDepartments = getJobDepartments(row);
         return jobDepartments.length > 0 ? jobDepartments.join(", ") : "-";

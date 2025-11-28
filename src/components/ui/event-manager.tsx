@@ -437,10 +437,8 @@ export function EventManager({
           )}
         </div>
 
-        {/* Mobile: Horizontal scroll with full-length buttons */}
-        <div className="sm:hidden -mx-4 px-4">
+        {/* <div className="sm:hidden -mx-4 px-4">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {/* Priority Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap flex-shrink-0 bg-transparent">
@@ -499,7 +497,6 @@ export function EventManager({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Department Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap flex-shrink-0 bg-transparent">
@@ -531,7 +528,6 @@ export function EventManager({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Status Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap flex-shrink-0 bg-transparent">
@@ -622,11 +618,9 @@ export function EventManager({
               </Button>
             )}
           </div>
-        </div>
+        </div> */}
 
-        {/* Desktop: Original layout */}
-        <div className="hidden sm:flex items-center gap-2">
-          {/* Priority Filter */}
+        {/* <div className="hidden sm:flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -685,7 +679,6 @@ export function EventManager({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Department Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -717,7 +710,6 @@ export function EventManager({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Status Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -802,7 +794,7 @@ export function EventManager({
               ล้าง
             </Button>
           )}
-        </div>
+        </div> */}
       </div>
 
       {hasActiveFilters && (

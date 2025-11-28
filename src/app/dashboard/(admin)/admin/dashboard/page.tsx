@@ -60,9 +60,9 @@ dayjs.extend(relativeTime);
 export const description = "Interactive Dashboard";
 
 const chartConfig = {
-  complete: { label: "Complete", color: "#22c55e" },
-  progressing: { label: "Progressing", color: "#0ea5e9" },
-  pending: { label: "Pending", color: "#a3a3a3" },
+  complete: { label: "เสร็จสิ้น", color: "#22c55e" },
+  progressing: { label: "กำลังดำเนินการ", color: "#0ea5e9" },
+  pending: { label: "รอดำเนินการ", color: "#a3a3a3" },
 } satisfies ChartConfig;
 
 const CHART_WINDOW_DAYS = 180;
@@ -80,7 +80,7 @@ const COLORS = ['#0ea5e9', '#22c55e', '#f97316', '#a855f7', '#e11d48'];
 
 export default function Page() {
   const router = useRouter();
-  const [timeRange, setTimeRange] = React.useState("30d");
+  const [timeRange, setTimeRange] = React.useState("7d");
   const [reportFilter, setReportFilter] = React.useState("week");
   const [activeChart, setActiveChart] = React.useState<keyof typeof chartConfig>("complete");
 
@@ -106,7 +106,7 @@ export default function Page() {
           }
         });
       } else {
-        const unassigned = "Unassigned";
+        const unassigned = "ไม่ระบุแผนก";
         acc[unassigned] = (acc[unassigned] || 0) + 1;
       }
       return acc;
@@ -261,16 +261,10 @@ export default function Page() {
       onClick: () => router.push("/dashboard/admin/jobs"),
     },
     {
-      title: "อัปเดตสถานะ",
-      description: "ปรับปรุงความคืบหน้าหรือมอบหมายผู้รับผิดชอบ",
-      icon: ClipboardCheck,
-      onClick: () => router.push("/dashboard/admin/jobs/manage"),
-    },
-    {
       title: "สร้างสต็อกใหม่",
       description: "เพิ่มวัสดุหรืออุปกรณ์ที่ต้องใช้",
       icon: PlusCircle,
-      onClick: () => router.push("/dashboard/admin/inventory/create"),
+      onClick: () => router.push("/dashboard/admin/inventorys"),
     },
   ]), [router]);
 
@@ -285,7 +279,7 @@ export default function Page() {
               <span className="text-xs text-muted-foreground">Sync status • OK</span>
             </div>
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">Admin Control Center</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">ศูนย์ควบคุมผู้ดูแลระบบ</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 ภาพรวมสถานะงาน รายงาน และสต็อกแบบโต้ตอบ เพื่อช่วยตัดสินใจได้เร็วขึ้น
               </p>
@@ -379,9 +373,9 @@ export default function Page() {
               <div>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   <ChartArea className="h-5 w-5 text-primary" />
-                  Job Trends
+                  แนวโน้มงาน
                 </CardTitle>
-                <CardDescription>Daily job performance over time</CardDescription>
+                <CardDescription>ประสิทธิภาพงานรายวัน</CardDescription>
               </div>
             </CardHeader>
             <CardContent>
@@ -441,14 +435,14 @@ export default function Page() {
           <Card className="shadow-sm border-none ring-1 ring-border/50">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-lg font-semibold">System Reports</CardTitle>
-                <CardDescription>Recent issues, bugs, and requests</CardDescription>
+                <CardTitle className="text-lg font-semibold">รายงานระบบ</CardTitle>
+                <CardDescription>ปัญหา บั๊ก และคำร้องล่าสุด</CardDescription>
               </div>
               <Tabs value={reportFilter} onValueChange={setReportFilter} className="w-auto">
                 <TabsList className="h-8 bg-muted/50">
-                  <TabsTrigger value="week" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">Week</TabsTrigger>
-                  <TabsTrigger value="month" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">Month</TabsTrigger>
-                  <TabsTrigger value="year" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">Year</TabsTrigger>
+                  <TabsTrigger value="week" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">สัปดาห์</TabsTrigger>
+                  <TabsTrigger value="month" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">เดือน</TabsTrigger>
+                  <TabsTrigger value="year" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">ปี</TabsTrigger>
                 </TabsList>
               </Tabs>
             </CardHeader>
@@ -459,8 +453,8 @@ export default function Page() {
                     <div className="p-3 rounded-full bg-muted/50 mb-3">
                       <FileText className="h-6 w-6 opacity-50" />
                     </div>
-                    <p className="text-sm font-medium">No reports found for this period</p>
-                    <p className="text-xs text-muted-foreground mt-1">Check back later or adjust filters</p>
+                    <p className="text-sm font-medium">ไม่พบรายงานในช่วงเวลานี้</p>
+                    <p className="text-xs text-muted-foreground mt-1">กลับมาตรวจสอบภายหลังหรือปรับตัวกรอง</p>
                   </div>
                 ) : (
                   filteredReports.map((report) => (
@@ -482,7 +476,7 @@ export default function Page() {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          {report.description || "No description provided"}
+                          {report.description || "ไม่มีคำอธิบาย"}
                         </p>
                         <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1.5">
@@ -504,7 +498,7 @@ export default function Page() {
               </div>
               <div className="mt-6 pt-4 border-t flex justify-center">
                 <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary" onClick={() => router.push('/dashboard/admin/reports')}>
-                  View All Reports
+                  ดูรายงานทั้งหมด
                 </Button>
               </div>
             </CardContent>
@@ -517,13 +511,13 @@ export default function Page() {
           {/* Top Departments */}
           <Card className="shadow-sm border-none ring-1 ring-border/50 h-fit">
             <CardHeader className="pb-4">
-              <CardTitle className="text-base font-semibold">Top Departments</CardTitle>
-              <CardDescription>By job volume</CardDescription>
+              <CardTitle className="text-base font-semibold">อันดับแผนก</CardTitle>
+              <CardDescription>จำนวนงานสูงสุด</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
                 {topDepartments.length === 0 ? (
-                  <div className="text-xs text-muted-foreground text-center py-4">No data available</div>
+                  <div className="text-xs text-muted-foreground text-center py-4">ไม่มีข้อมูล</div>
                 ) : (
                   topDepartments.map((d, idx) => (
                     <div key={d.name} className="flex items-center justify-between gap-3 group">
@@ -554,18 +548,18 @@ export default function Page() {
           {/* Top Inventory (Horizontal Bar Chart) */}
           <Card className="shadow-sm border-none ring-1 ring-border/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">Inventory Distribution</CardTitle>
-              <CardDescription>Top items by quantity</CardDescription>
+              <CardTitle className="text-base font-semibold">อันดับการเบิกวัสดุ</CardTitle>
+              <CardDescription>รายการสูงสุดตามจำนวน</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4 mt-2">
                 <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground font-medium">
-                  <span>Item</span>
-                  <span>Units</span>
+                  <span>รายการ</span>
+                  <span>หน่วย</span>
                 </div>
                 {topInventory.length === 0 ? (
                   <div className="flex items-center justify-center h-[260px] text-xs text-muted-foreground">
-                    No inventory data
+                    ไม่มีข้อมูลวัสดุ
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={280}>
@@ -603,7 +597,7 @@ export default function Page() {
                                     className="w-2 h-2 rounded-full"
                                     style={{ backgroundColor: item.color }}
                                   />
-                                  <span className="text-muted-foreground">{item.value} units</span>
+                                  <span className="text-muted-foreground">{item.value} หน่วย</span>
                                 </div>
                               </div>
                             );

@@ -246,16 +246,10 @@ export default function EmployeeDashboardPage() {
       onClick: () => router.push("/dashboard/employee/jobs"),
     },
     {
-      title: "อัปเดตสถานะ",
-      description: "รายงานความคืบหน้าของงาน",
-      icon: ClipboardCheck,
-      onClick: () => router.push("/dashboard/employee/jobs"),
-    },
-    {
-      title: "งานที่ต้องทำ",
+      title: "ดูปฏิทินงาน",
       description: "รายการงานที่รอดำเนินการ",
       icon: ListTodo,
-      onClick: () => router.push("/dashboard/employee/jobs"),
+      onClick: () => router.push("/dashboard/employee/calendar"),
     },
   ], [router]);
 
@@ -278,7 +272,7 @@ export default function EmployeeDashboardPage() {
               <span className="text-xs text-muted-foreground">Sync status • OK</span>
             </div>
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">Employee Dashboard</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">แดชบอร์ดพนักงาน</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 ภาพรวมงานและประสิทธิภาพการทำงานของคุณ
               </p>
@@ -299,7 +293,7 @@ export default function EmployeeDashboardPage() {
               </Button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-shrink-0 w-full lg:w-auto">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-shrink-0 w-full lg:w-auto">
             {summaryStats.map((stat) => (
               <div key={stat.label} className="rounded-2xl bg-background/80 backdrop-blur border border-white/40 dark:border-white/5 p-4 shadow-sm">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{stat.label}</p>
@@ -313,7 +307,7 @@ export default function EmployeeDashboardPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -339,7 +333,7 @@ export default function EmployeeDashboardPage() {
                     <NumberFlow value={value} format={{ notation: "compact" }} />
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-xs mt-2 font-medium">
+                {/* <div className="flex items-center gap-1 text-xs mt-2 font-medium">
                   {isUp ? (
                     <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
                   ) : (
@@ -348,8 +342,8 @@ export default function EmployeeDashboardPage() {
                   <span className={isUp ? "text-emerald-500" : "text-rose-500"}>
                     {Math.abs(change).toFixed(1)}%
                   </span>
-                  <span className="text-muted-foreground ml-1 font-normal">vs previous</span>
-                </div>
+                  <span className="text-muted-foreground ml-1 font-normal">เทียบกับก่อนหน้า</span>
+                </div> */}
               </div>
               <div className="w-24 h-16 self-center opacity-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -383,7 +377,7 @@ export default function EmployeeDashboardPage() {
               <div>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   <ChartArea className="h-5 w-5 text-primary" />
-                  Job Trends
+                  แนวโน้มงาน
                 </CardTitle>
                 <CardDescription>ความคืบหน้าของงานในแต่ละวัน</CardDescription>
               </div>

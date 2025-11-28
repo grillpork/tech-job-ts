@@ -16,13 +16,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, User, Edit, Trash2, UserX, Shield, KeyRound, CheckCheck, CircleDotDashed, LogIn, Search } from "lucide-react";
+import { MoreHorizontal, User, Edit, Trash2, UserX, Shield, KeyRound, Search } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -34,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import UserView from "@/components/admin/UserView";
+
 
 export default function UsersPage() {
   const router = useRouter();
@@ -43,7 +39,6 @@ export default function UsersPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Dialog state
-  const [viewUser, setViewUser] = useState<any | null>(null);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
 
   // Role mapping for Thai labels
@@ -77,12 +72,7 @@ export default function UsersPage() {
     router.push(`/dashboard/admin/users/${userId}/edit`);
   };
 
-  const handleViewUser = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      setViewUser(user);
-    }
-  };
+
 
   const handleDeleteUser = (e: React.MouseEvent, userId: string) => {
     e.stopPropagation();
@@ -98,14 +88,7 @@ export default function UsersPage() {
   };
 
   // Keep viewUser in sync with latest user data from store
-  useEffect(() => {
-    if (viewUser) {
-      const updatedUser = users.find(u => u.id === viewUser.id);
-      if (updatedUser) {
-        setViewUser(updatedUser);
-      }
-    }
-  }, [users, viewUser?.id]);
+
 
   const columns: any = [
     {
@@ -191,10 +174,10 @@ export default function UsersPage() {
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onClick={(e) => {
               e.stopPropagation();
-              setViewUser(row);
+              router.push(`/dashboard/admin/users/${row.id}`);
             }}>
               <User className="mr-2 h-4 w-4" />
-              View details
+              View Profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => handleEditUser(e, row.id)}>
               <Edit className="mr-2 h-4 w-4" />
@@ -290,22 +273,11 @@ export default function UsersPage() {
                 { label: "ไม่ใช้งาน", value: "inactive" },
               ],
             },
-            {
-              key: "department",
-              placeholder: "กรองตามแผนก",
-              allLabel: "แผนกทั้งหมด",
-              options: [
-                { label: "ไฟฟ้า", value: "ไฟฟ้า" },
-                { label: "เครื่องกล", value: "เครื่องกล" },
-                { label: "เทคนิค", value: "เทคนิค" },
-                { label: "โยธา", value: "โยธา" },
-              ],
-            },
           ]}
           onPageChange={setPage}
           onRowsPerPageChange={setRowsPerPage}
           onRowReorder={handleRowReorder}
-          onRowClick={(row: any) => handleViewUser(row.id)}
+          onRowClick={(row: any) => router.push(`/dashboard/admin/users/${row.id}`)}
           showCheckbox={false}
         />
       </div>
@@ -316,7 +288,7 @@ export default function UsersPage() {
           currentItems.map((user) => (
             <div
               key={user.id}
-              onClick={() => handleViewUser(user.id)}
+              onClick={() => router.push(`/dashboard/admin/users/${user.id}`)}
               className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4 cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
@@ -416,33 +388,7 @@ export default function UsersPage() {
       </div>
 
       {/* View Dialog */}
-      <Dialog open={!!viewUser} onOpenChange={(open) => !open && setViewUser(null)}>
-        <DialogContent className="bg-card border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
-          <DialogHeader>
-            <DialogTitle>User details</DialogTitle>
-            <DialogDescription>Details for the selected user.</DialogDescription>
-          </DialogHeader>
 
-          {viewUser && (
-            <div className="space-y-4">
-              <UserView user={viewUser} />
-
-              <div>
-                <StatsForUser userId={viewUser.id} />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Link href={`/dashboard/admin/users/${viewUser.id}`}>
-                  <Button variant="link">Open full profile</Button>
-                </Link>
-                <Button variant="ghost" onClick={() => setViewUser(null)}>
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
@@ -466,50 +412,6 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
-
-function StatsForUser({ userId }: { userId: string }) {
-  const jobs = useJobStore((s) => s.jobs);
-
-  const userJobs = useMemo(() => {
-    if (!userId) return [] as typeof jobs;
-    return jobs.filter((job) => {
-      const isAssigned = job.assignedEmployees?.some((a: any) => a.id === userId);
-      const isCreator = job.creator?.id === userId;
-      const isLead = job.leadTechnician?.id === userId;
-      return !!(isAssigned || isCreator || isLead);
-    });
-  }, [jobs, userId]);
-
-  const completed = userJobs.filter((j) => j.status === "completed").length;
-  const inProgress = userJobs.filter((j) => j.status === "in_progress").length;
-  const attendance = Array.from(new Set(userJobs.map((j) => (j.startDate || j.createdAt || "").slice(0, 10)))).length;
-
-  return (
-    <div className="grid grid-cols-3 gap-3">
-      <div className="rounded-lg border p-3 text-center">
-        <div className="text-sm text-muted-foreground">Completed</div>
-        <div className="mt-1 text-lg font-semibold">{completed}</div>
-        <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1">
-          <CheckCheck className="h-4 w-4 text-green-500" /> Jobs
-        </div>
-      </div>
-      <div className="rounded-lg border p-3 text-center">
-        <div className="text-sm text-muted-foreground">In Progress</div>
-        <div className="mt-1 text-lg font-semibold">{inProgress}</div>
-        <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1">
-          <CircleDotDashed className="h-4 w-4 text-blue-500" /> Jobs
-        </div>
-      </div>
-      <div className="rounded-lg border p-3 text-center">
-        <div className="text-sm text-muted-foreground">Active Days</div>
-        <div className="mt-1 text-lg font-semibold">{attendance}</div>
-        <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1">
-          <LogIn className="h-4 w-4 text-gray-500" /> Days
-        </div>
-      </div>
     </div>
   );
 }

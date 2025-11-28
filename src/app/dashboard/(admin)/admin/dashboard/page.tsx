@@ -251,29 +251,7 @@ export default function Page() {
       .slice(0, 5);
   }, [reports, reportFilter]);
 
-  const activeJobs = React.useMemo(() => {
-    return jobs.filter((job: any) => job.status !== "completed" && job.status !== "cancelled").length;
-  }, [jobs]);
 
-  const openReports = React.useMemo(() => {
-    return reports.filter((report: any) => !["resolved", "closed"].includes(report.status)).length;
-  }, [reports]);
-
-  const lowInventory = React.useMemo(() => {
-    return inventories.filter((item: any) => {
-      const threshold = typeof item.restockThreshold === "number" ? item.restockThreshold : 10;
-      return item.quantity <= threshold;
-    }).length;
-  }, [inventories]);
-
-  const progressingChange = percentChange("progressing");
-  const pendingChange = percentChange("pending");
-
-  const summaryStats = React.useMemo(() => ([
-    { label: "งานที่ดำเนินการ", value: activeJobs, change: progressingChange },
-    { label: "รายงานที่เปิดอยู่", value: openReports, change: -pendingChange },
-    { label: "สินค้าใกล้หมด", value: lowInventory, change: lowInventory ? 12 : -5 },
-  ]), [activeJobs, openReports, lowInventory, progressingChange, pendingChange]);
 
   const quickActions = React.useMemo(() => ([
     {
@@ -332,20 +310,7 @@ export default function Page() {
               </Button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-shrink-0 w-full lg:w-auto">
-            {summaryStats.map((stat) => (
-              <div key={stat.label} className="rounded-2xl bg-background/80 backdrop-blur border border-white/40 dark:border-white/5 p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">{stat.label}</p>
-                <p className="text-2xl font-bold mt-1">
-                  <NumberFlow value={stat.value} format={{ notation: "compact" }} />
-                </p>
-                <div className={`flex items-center gap-1 text-xs font-medium mt-2 ${stat.change >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                  {stat.change >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                  <span>{Math.abs(stat.change).toFixed(1)}%</span>
-                </div>
-              </div>
-            ))}
-          </div>
+
         </div>
       </div>
 
@@ -501,8 +466,8 @@ export default function Page() {
                   filteredReports.map((report) => (
                     <div key={report.id} className="flex items-start gap-4 p-3 rounded-lg border border-transparent hover:border-border hover:bg-muted/30 transition-all group cursor-pointer" onClick={() => router.push(`/dashboard/admin/reports/${report.id}`)}>
                       <div className={`mt-1 p-2 rounded-full shrink-0 shadow-sm ${report.priority === 'urgent' ? 'bg-red-50 text-red-600' :
-                          report.priority === 'high' ? 'bg-orange-50 text-orange-600' :
-                            'bg-blue-50 text-blue-600'
+                        report.priority === 'high' ? 'bg-orange-50 text-orange-600' :
+                          'bg-blue-50 text-blue-600'
                         }`}>
                         {report.type === 'bug' ? <Bug className="h-4 w-4" /> :
                           report.type === 'incident' ? <AlertCircle className="h-4 w-4" /> :

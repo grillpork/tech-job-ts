@@ -81,12 +81,13 @@ export const useUserStore = create<UserStoreState>()(
       },
 
       createUser: (userData) => {
+        if (get().users.some((u) => u.email === userData.email)) {
+          console.error("❌ UserStore: Cannot create user, email already exists.");
+          throw new Error("Email already exists");
+        }
+
         let newUserId: string | null = null;
         set((state) => {
-          if (state.users.some((u) => u.email === userData.email)) {
-            console.error("❌ UserStore: Cannot create user, email already exists.");
-            return;
-          }
           const newUser: User = {
             id: crypto.randomUUID(),
             imageUrl: userData.imageUrl || null,
@@ -123,21 +124,26 @@ export const useUserStore = create<UserStoreState>()(
       },
 
       updateUser: (userId, updatedData) => {
-        let updatedUser: User | null = null;
-        let oldUserData: User | null = null;
-        
+        const currentUser = get().users.find((u) => u.id === userId);
+        if (!currentUser) {
+          console.warn(`⚠️ UserStore: User with ID ${userId} not found for update.`);
+          return;
+        }
+
+        if (
+          updatedData.email &&
+          get().users.some((u) => u.email === updatedData.email && u.id !== userId)
+        ) {
+          console.error("❌ UserStore: Cannot update user, email already exists.");
+          return;
+        }
+
+        const oldUserData = { ...currentUser };
+
         set((state) => {
           const userIndex = state.users.findIndex((user) => user.id === userId);
           if (userIndex !== -1) {
-            if (
-              updatedData.email &&
-              state.users.some((u) => u.email === updatedData.email && u.id !== userId)
-            ) {
-              console.error("❌ UserStore: Cannot update user, email already exists.");
-              return;
-            }
             const currentUserData = state.users[userIndex];
-            oldUserData = { ...currentUserData };
             state.users[userIndex] = {
               ...currentUserData,
               ...updatedData,
@@ -149,13 +155,12 @@ export const useUserStore = create<UserStoreState>()(
             if (state.currentUser?.id === userId) {
               state.currentUser = state.users[userIndex];
             }
-            updatedUser = state.users[userIndex];
             console.log("✅ UserStore: User updated:", state.users[userIndex].name);
-          } else {
-            console.warn(`⚠️ UserStore: User with ID ${userId} not found for update.`);
           }
         });
-        
+
+        const updatedUser = get().users.find((u) => u.id === userId);
+
         // ✅ บันทึก audit log
         if (updatedUser && oldUserData) {
           try {
@@ -163,15 +168,27 @@ export const useUserStore = create<UserStoreState>()(
             if (currentUser) {
               const changes: { field: string; oldValue: any; newValue: any }[] = [];
               if (updatedData.name && updatedData.name !== oldUserData.name) {
-                changes.push({ field: "name", oldValue: oldUserData.name, newValue: updatedData.name });
+                changes.push({
+                  field: "name",
+                  oldValue: oldUserData.name,
+                  newValue: updatedData.name,
+                });
               }
               if (updatedData.email && updatedData.email !== oldUserData.email) {
-                changes.push({ field: "email", oldValue: oldUserData.email, newValue: updatedData.email });
+                changes.push({
+                  field: "email",
+                  oldValue: oldUserData.email,
+                  newValue: updatedData.email,
+                });
               }
               if (updatedData.role && updatedData.role !== oldUserData.role) {
-                changes.push({ field: "role", oldValue: oldUserData.role, newValue: updatedData.role });
+                changes.push({
+                  field: "role",
+                  oldValue: oldUserData.role,
+                  newValue: updatedData.role,
+                });
               }
-              
+
               useAuditLogStore.getState().addAuditLog({
                 action: "update",
                 entityType: "user",

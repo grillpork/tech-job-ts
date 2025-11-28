@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tech Job - Job Management System",
+  title: "Stellar",
   description: "Professional job and team management platform",
   icons: {
     icon: "/Logo_Stella_6.png",

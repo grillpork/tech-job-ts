@@ -62,7 +62,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center  min-h-screen bg-gray-50">
+    <div className="flex items-center justify-center  min-h-screen bg-white">
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -78,7 +78,7 @@ export default function LoginPage() {
               <img 
                 src="/Logo_Stella_6.png" 
                 alt="Logo" 
-                className="h-30 w-30 object-contain drop-shadow-xl shadow-gray-300 "
+                className="h-50 w-50 object-contain "
               />
               
             </div>

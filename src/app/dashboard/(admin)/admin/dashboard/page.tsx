@@ -335,7 +335,7 @@ export default function Page() {
                     <NumberFlow value={total[chart]} format={{ notation: "compact" }} />
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-xs mt-2 font-medium">
+                {/* <div className="flex items-center gap-1 text-xs mt-2 font-medium">
                   {isUp ? (
                     <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
                   ) : (
@@ -345,7 +345,7 @@ export default function Page() {
                     {Math.abs(pct).toFixed(1)}%
                   </span>
                   <span className="text-muted-foreground ml-1 font-normal">vs previous</span>
-                </div>
+                </div> */}
               </div>
               <div className="w-24 h-16 self-center opacity-80">
                 <ResponsiveContainer width="100%" height="100%">

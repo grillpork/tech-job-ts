@@ -29,8 +29,8 @@ const SearchAI = () => {
   const FAQ_PRESETS = [
     "สรุปภาพรวมงานทั้งหมดให้หน่อย",
     "มีงานอะไรที่ยังค้างอยู่บ้าง (Pending/In Progress)?",
-    `งานของแผนก ${currentUser?.department || "ฉัน"} มีอะไรบ้าง?`,
-    "ช่วยวิเคราะห์การใช้วัสดุอุปกรณ์ให้หน่อย",
+    // `งานของแผนก ${currentUser?.department || "ฉัน"} มีอะไรบ้าง?`,
+    // "ช่วยวิเคราะห์การใช้วัสดุอุปกรณ์ให้หน่อย",
   ];
 
   const mutation = useMutation({

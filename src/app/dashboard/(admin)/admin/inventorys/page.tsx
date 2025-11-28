@@ -283,6 +283,10 @@ const InventoryManagement = () => {
     setIsDeleteAlertOpen(true);
   };
 
+  const handleViewInventory = (inventoryId: string) => {
+    router.push(`/dashboard/admin/inventorys/${inventoryId}`);
+  };
+
   const handleDeleteConfirm = () => {
     if (deletingItemId) deleteInventory(deletingItemId);
     setIsDeleteAlertOpen(false);
@@ -479,6 +483,7 @@ const InventoryManagement = () => {
               totalRows={inventories.length}
               currentPage={currentPage}
               rowsPerPage={rowsPerPage}
+              onRowClick={(row: Inventory) => handleViewInventory(row.id)}
               searchKey={"name"}
               filters={[
                 {
@@ -510,7 +515,8 @@ const InventoryManagement = () => {
               filteredItems.map((item: Inventory) => (
                 <div
                   key={item.id}
-                  className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4"
+                  onClick={() => handleViewInventory(item.id)}
+                  className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-700/30 p-4 cursor-pointer hover:border-blue-500/50 transition-colors"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -809,8 +815,8 @@ const InventoryManagement = () => {
                         {(approvalStatus === 'approved' || approvalStatus === 'rejected') && (
                           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                             <p className={`text-sm text-center ${approvalStatus === 'approved'
-                                ? 'text-green-600 dark:text-green-400'
-                                : 'text-red-600 dark:text-red-400'
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
                               }`}>
                               {approvalStatus === 'approved' ? '✓ อนุมัติแล้ว' : '✗ ปฏิเสธแล้ว'}
                             </p>

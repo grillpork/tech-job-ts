@@ -564,7 +564,7 @@ export default function EditJobPage() {
         leadTechnicianId: leadTechnician,
         departments: departments,
         priority: priority as "low" | "medium" | "high" | "urgent" | null,
-        type: (type || null) as "บ้าน" | "คอนโด" | null,
+        type: (type || null) as "บ้าน" | "อาคาร" | null,
         assignedEmployeeIds: selectedEmployees.map(emp => emp.value),
         usedInventory: selectedInventory.map(inv => ({ id: inv.value, qty: inv.qty ?? 1 })),
         startDate: startDate ? startDate.toISOString() : null,
@@ -695,10 +695,10 @@ export default function EditJobPage() {
                               <SelectValue placeholder="เลือกความสำคัญ" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="low">ต่ำ (Low)</SelectItem>
-                              <SelectItem value="medium">ปานกลาง (Medium)</SelectItem>
-                              <SelectItem value="high">สูง (High)</SelectItem>
-                              <SelectItem value="urgent">ด่วน (Urgent)</SelectItem>
+                              <SelectItem value="low">ต่ำ</SelectItem>
+                              <SelectItem value="medium">ปานกลาง</SelectItem>
+                              <SelectItem value="high">สูง</SelectItem>
+                              <SelectItem value="urgent">เร่งด่วนมาก</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -719,7 +719,7 @@ export default function EditJobPage() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="บ้าน">บ้าน</SelectItem>
-                              <SelectItem value="คอนโด">คอนโด</SelectItem>
+                              <SelectItem value="อาคาร">อาคาร</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -745,7 +745,13 @@ export default function EditJobPage() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
-                              <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                              <Calendar
+                                mode="single"
+                                selected={startDate}
+                                onSelect={setStartDate}
+                                initialFocus
+                                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                              />
                             </PopoverContent>
                           </Popover>
                         </div>
@@ -766,7 +772,13 @@ export default function EditJobPage() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
-                              <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
+                              <Calendar
+                                mode="single"
+                                selected={endDate}
+                                onSelect={setEndDate}
+                                initialFocus
+                                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                              />
                             </PopoverContent>
                           </Popover>
                         </div>
@@ -1087,7 +1099,7 @@ export default function EditJobPage() {
                           </PopoverTrigger>
                           <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                             <Command>
-                              <CommandInput placeholder="Search departments..." />
+                              <CommandInput placeholder="ค้นหาแผนก..." />
                               <CommandList>
                                 <CommandEmpty>No department found.</CommandEmpty>
                                 <CommandGroup>
@@ -1175,7 +1187,7 @@ export default function EditJobPage() {
                           </PopoverTrigger>
                           <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                             <Command>
-                              <CommandInput placeholder="Search employee..." />
+                              <CommandInput placeholder="ค้นหาพนักงาน..." />
                               <CommandList>
                                 <CommandEmpty>No employee found in selected departments.</CommandEmpty>
                                 <CommandGroup>
@@ -1229,7 +1241,7 @@ export default function EditJobPage() {
                           </PopoverTrigger>
                           <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                             <Command>
-                              <CommandInput placeholder="Search inventory..." />
+                              <CommandInput placeholder="ค้นหาวัสดุ..." />
                               <CommandList>
                                 <CommandEmpty>No inventory found.</CommandEmpty>
                                 <CommandGroup>

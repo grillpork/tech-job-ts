@@ -537,13 +537,7 @@ const ProfilePage: React.FC = () => {
                   </dl>
                 </div>
 
-                <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-lg">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-4 underline-offset-4 underline">Teams</h3>
-                  <Button variant="outline" className="w-full" onClick={() => router.push("/dashboard/admin/users/create")}>
-                    Create a team
-                  </Button>
-                  <p className="text-xs text-gray-500 mt-3">Need a new workspace for a project? Spin one up for free.</p>
-                </div>
+               
               </aside>
 
               <main className="space-y-6">

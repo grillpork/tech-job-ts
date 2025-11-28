@@ -152,9 +152,17 @@ export default function EmployeeDashboardPage() {
     const prevCompleted = previousRangeJobs.filter((j) => j.status === "completed").length;
     const prevInProgress = previousRangeJobs.filter((j) => j.status === "in_progress").length;
 
-    const totalChange = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
-    const completedChange = prevCompleted > 0 ? ((completed - prevCompleted) / prevCompleted) * 100 : 0;
-    const inProgressChange = prevInProgress > 0 ? ((inProgress - prevInProgress) / prevInProgress) * 100 : 0;
+    // ฟังก์ชันคำนวณเปอร์เซ็นต์ที่ถูกต้อง
+    const calculateChange = (current: number, previous: number): number => {
+      if (previous === 0 && current === 0) return 0;
+      if (previous === 0 && current > 0) return 100;
+      if (previous > 0 && current === 0) return -100;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const totalChange = calculateChange(total, prevTotal);
+    const completedChange = calculateChange(completed, prevCompleted);
+    const inProgressChange = calculateChange(inProgress, prevInProgress);
 
     return {
       total,

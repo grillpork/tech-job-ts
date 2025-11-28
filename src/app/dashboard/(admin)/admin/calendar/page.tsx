@@ -77,12 +77,16 @@ export default function EventManagerDemo() {
         description: job.description || undefined,
         startTime: start,
         endTime: end,
-        color: mapStatusToColor(job.status),
-        category: job.department || "Job",
+        color: mapStatusToColor(job.status), // ยังคงใช้สีตามสถานะเพื่อการแสดงผล
+        category: job.department || "Job", // Legacy support
         attendees: job.assignedEmployees?.map((u) => u.name) || [],
-        tags: [job.status],
+        tags: [job.status], // Legacy support
+        // New fields for filtering
+        priority: job.priority || undefined,
+        status: job.status,
+        departments: job.departments || (job.department ? [job.department] : []),
       } as Event
-  })
+    })
   }, [jobs])
 
   return (

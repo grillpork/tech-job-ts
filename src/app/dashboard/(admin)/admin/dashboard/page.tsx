@@ -32,13 +32,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  ChartArea, 
-  Bug, 
-  AlertCircle, 
-  Lightbulb, 
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  ChartArea,
+  Bug,
+  AlertCircle,
+  Lightbulb,
   FileText,
   MoreHorizontal,
   CalendarClock,
@@ -83,7 +83,7 @@ export default function Page() {
   const [timeRange, setTimeRange] = React.useState("30d");
   const [reportFilter, setReportFilter] = React.useState("week");
   const [activeChart, setActiveChart] = React.useState<keyof typeof chartConfig>("complete");
-  
+
   const { users } = useUserStore();
   const jobs = useJobStore((s) => s.jobs);
   const inventories = useInventoryStore((s) => s.inventories);
@@ -98,7 +98,7 @@ export default function Page() {
     const counts = jobs.reduce<Record<string, number>>((acc, job) => {
       // @ts-ignore - Accessing departments array which exists on Job type but might be missing in strict type def
       const departments = job.departments || [];
-      
+
       if (Array.isArray(departments) && departments.length > 0) {
         departments.forEach((dept: string) => {
           if (dept && dept.trim() !== "") {
@@ -225,7 +225,13 @@ export default function Page() {
   const percentChange = (key: keyof typeof chartConfig) => {
     const prev = previousTotals[key];
     const curr = total[key];
-    if (prev === 0) return 0;
+    // ถ้าทั้งสองเป็น 0 ให้ return 0
+    if (prev === 0 && curr === 0) return 0;
+    // ถ้า prev เป็น 0 แต่ curr > 0 ให้ return 100 (เพิ่มขึ้น 100%)
+    if (prev === 0 && curr > 0) return 100;
+    // ถ้า prev > 0 แต่ curr เป็น 0 ให้ return -100 (ลดลง 100%)
+    if (prev > 0 && curr === 0) return -100;
+    // คำนวณเปอร์เซ็นต์ปกติ
     return ((curr - prev) / prev) * 100;
   };
 
@@ -242,7 +248,7 @@ export default function Page() {
       if (reportFilter === "year") return reportDate.isAfter(now.subtract(1, 'year'));
       return true;
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+      .slice(0, 5);
   }, [reports, reportFilter]);
 
   const activeJobs = React.useMemo(() => {
@@ -398,10 +404,10 @@ export default function Page() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Left Column (2/3) */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Main Area Chart */}
           <Card className="shadow-sm border-none ring-1 ring-border/50 bg-gradient-to-b from-background via-background to-muted/20">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -434,9 +440,9 @@ export default function Page() {
                     tickFormatter={(value) => new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     className="text-xs text-muted-foreground font-medium"
                   />
-                  <YAxis 
-                    tickLine={false} 
-                    axisLine={false} 
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
                     tickMargin={10}
                     className="text-xs text-muted-foreground font-medium"
                   />
@@ -494,15 +500,14 @@ export default function Page() {
                 ) : (
                   filteredReports.map((report) => (
                     <div key={report.id} className="flex items-start gap-4 p-3 rounded-lg border border-transparent hover:border-border hover:bg-muted/30 transition-all group cursor-pointer" onClick={() => router.push(`/dashboard/admin/reports/${report.id}`)}>
-                      <div className={`mt-1 p-2 rounded-full shrink-0 shadow-sm ${
-                        report.priority === 'urgent' ? 'bg-red-50 text-red-600' : 
-                        report.priority === 'high' ? 'bg-orange-50 text-orange-600' : 
-                        'bg-blue-50 text-blue-600'
-                      }`}>
+                      <div className={`mt-1 p-2 rounded-full shrink-0 shadow-sm ${report.priority === 'urgent' ? 'bg-red-50 text-red-600' :
+                          report.priority === 'high' ? 'bg-orange-50 text-orange-600' :
+                            'bg-blue-50 text-blue-600'
+                        }`}>
                         {report.type === 'bug' ? <Bug className="h-4 w-4" /> :
-                         report.type === 'incident' ? <AlertCircle className="h-4 w-4" /> :
-                         report.type === 'improvement' ? <Lightbulb className="h-4 w-4" /> :
-                         <FileText className="h-4 w-4" />}
+                          report.type === 'incident' ? <AlertCircle className="h-4 w-4" /> :
+                            report.type === 'improvement' ? <Lightbulb className="h-4 w-4" /> :
+                              <FileText className="h-4 w-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
@@ -517,7 +522,7 @@ export default function Page() {
                         <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1.5">
                             <Avatar className="h-4 w-4 border">
-                               <AvatarFallback className="text-[8px] bg-primary/10 text-primary">{report.reporter.name.charAt(0)}</AvatarFallback>
+                              <AvatarFallback className="text-[8px] bg-primary/10 text-primary">{report.reporter.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{report.reporter.name}</span>
                           </span>
@@ -543,7 +548,7 @@ export default function Page() {
 
         {/* Right Column (1/3) */}
         <div className="space-y-6">
-          
+
           {/* Top Departments */}
           <Card className="shadow-sm border-none ring-1 ring-border/50 h-fit">
             <CardHeader className="pb-4">

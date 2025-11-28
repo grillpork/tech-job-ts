@@ -34,10 +34,14 @@ export interface Event {
   description?: string
   startTime: Date
   endTime: Date
-  color: string
-  category?: string
+  color: string // ยังคงใช้สำหรับสีแสดงผล (อาจจะ map จาก priority หรือ status)
+  category?: string // Deprecated: use departments instead
   attendees?: string[]
-  tags?: string[]
+  tags?: string[] // Deprecated: use status instead
+  // New fields for better filtering
+  priority?: "urgent" | "high" | "medium" | "low"
+  status?: "pending" | "in_progress" | "pending_approval" | "completed" | "cancelled" | "rejected"
+  departments?: string[]
 }
 
 export interface EventManagerProps {
@@ -45,7 +49,7 @@ export interface EventManagerProps {
   onEventCreate?: (event: Omit<Event, "id">) => void
   onEventUpdate?: (id: string, event: Partial<Event>) => void
   onEventDelete?: (id: string) => void
-  categories?: string[]
+  categories?: string[] // รายชื่อแผนกทั้งหมด
   colors?: { name: string; value: string; bg: string; text: string }[]
   defaultView?: "month" | "week" | "day" | "list"
   className?: string
@@ -59,6 +63,11 @@ const defaultColors = [
   { name: "Orange", value: "orange", bg: "bg-orange-500", text: "text-orange-700" },
   { name: "Pink", value: "pink", bg: "bg-pink-500", text: "text-pink-700" },
   { name: "Red", value: "red", bg: "bg-red-500", text: "text-red-700" },
+  // เพิ่มสีสำหรับ Priority
+  { name: "Urgent", value: "urgent", bg: "bg-red-600", text: "text-red-800" },
+  { name: "High", value: "high", bg: "bg-orange-500", text: "text-orange-700" },
+  { name: "Medium", value: "medium", bg: "bg-blue-500", text: "text-blue-700" },
+  { name: "Low", value: "low", bg: "bg-slate-500", text: "text-slate-700" },
 ]
 
 export function EventManager({
@@ -89,9 +98,13 @@ export function EventManager({
   })
 
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedColors, setSelectedColors] = useState<string[]>([])
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([])
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([])
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+
+  // Define available priorities and statuses
+  const availablePriorities = ["urgent", "high", "medium", "low"]
+  const availableStatuses = ["pending", "in_progress", "pending_approval", "completed", "cancelled", "rejected"]
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -102,37 +115,55 @@ export function EventManager({
           event.title.toLowerCase().includes(query) ||
           event.description?.toLowerCase().includes(query) ||
           event.category?.toLowerCase().includes(query) ||
+          event.departments?.some((dept) => dept.toLowerCase().includes(query)) ||
           event.tags?.some((tag) => tag.toLowerCase().includes(query))
 
         if (!matchesSearch) return false
       }
 
-      // Color filter
-      if (selectedColors.length > 0 && !selectedColors.includes(event.color)) {
-        return false
+      // Priority filter
+      if (selectedPriorities.length > 0) {
+        // ถ้า event ไม่มี priority ให้ข้าม หรือถือว่าไม่ตรงเงื่อนไข
+        if (!event.priority || !selectedPriorities.includes(event.priority)) {
+          return false
+        }
       }
 
-      // Tag filter
-      if (selectedTags.length > 0) {
-        const hasMatchingTag = event.tags?.some((tag) => selectedTags.includes(tag))
-        if (!hasMatchingTag) return false
+      // Department filter
+      if (selectedDepartments.length > 0) {
+        // ตรวจสอบทั้ง category (legacy) และ departments (new)
+        const eventDepts = event.departments || (event.category ? [event.category] : [])
+        const hasMatchingDept = eventDepts.some(dept => selectedDepartments.includes(dept))
+
+        if (!hasMatchingDept) {
+          return false
+        }
       }
 
-      // Category filter
-      if (selectedCategories.length > 0 && event.category && !selectedCategories.includes(event.category)) {
-        return false
+      // Status filter
+      if (selectedStatuses.length > 0) {
+        // ตรวจสอบทั้ง tags (legacy) และ status (new)
+        const eventStatus = event.status
+        const eventTags = event.tags || []
+
+        const matchesStatusField = eventStatus && selectedStatuses.includes(eventStatus)
+        const matchesTags = eventTags.some(tag => selectedStatuses.includes(tag))
+
+        if (!matchesStatusField && !matchesTags) {
+          return false
+        }
       }
 
       return true
     })
-  }, [events, searchQuery, selectedColors, selectedTags, selectedCategories])
+  }, [events, searchQuery, selectedPriorities, selectedDepartments, selectedStatuses])
 
-  const hasActiveFilters = selectedColors.length > 0 || selectedTags.length > 0 || selectedCategories.length > 0
+  const hasActiveFilters = selectedPriorities.length > 0 || selectedDepartments.length > 0 || selectedStatuses.length > 0
 
   const clearFilters = () => {
-    setSelectedColors([])
-    setSelectedTags([])
-    setSelectedCategories([])
+    setSelectedPriorities([])
+    setSelectedDepartments([])
+    setSelectedStatuses([])
     setSearchQuery("")
   }
 
@@ -250,9 +281,9 @@ export function EventManager({
       setSelectedEvent((prev) =>
         prev
           ? {
-              ...prev,
-              tags: prev.tags?.includes(tag) ? prev.tags.filter((t) => t !== tag) : [...(prev.tags || []), tag],
-            }
+            ...prev,
+            tags: prev.tags?.includes(tag) ? prev.tags.filter((t) => t !== tag) : [...(prev.tags || []), tag],
+          }
           : null,
       )
     }
@@ -265,30 +296,30 @@ export function EventManager({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <h2 className="text-xl font-semibold sm:text-2xl">
             {view === "month" &&
-              currentDate.toLocaleDateString("en-US", {
+              currentDate.toLocaleDateString("th-TH", {
                 month: "long",
                 year: "numeric",
               })}
             {view === "week" &&
-              `Week of ${currentDate.toLocaleDateString("en-US", {
+              `สัปดาห์ที่ ${currentDate.toLocaleDateString("th-TH", {
                 month: "short",
                 day: "numeric",
               })}`}
             {view === "day" &&
-              currentDate.toLocaleDateString("en-US", {
+              currentDate.toLocaleDateString("th-TH", {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
                 year: "numeric",
               })}
-            {view === "list" && "All Events"}
+            {view === "list" && "งานทั้งหมด"}
           </h2>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => navigateDate("prev")} className="h-8 w-8">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-              Today
+              วันนี้
             </Button>
             <Button variant="outline" size="icon" onClick={() => navigateDate("next")} className="h-8 w-8">
               <ChevronRight className="h-4 w-4" />
@@ -307,25 +338,25 @@ export function EventManager({
                 <SelectItem value="month">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Month View
+                    มุมมองรายเดือน
                   </div>
                 </SelectItem>
                 <SelectItem value="week">
                   <div className="flex items-center gap-2">
                     <Grid3x3 className="h-4 w-4" />
-                    Week View
+                    มุมมองรายสัปดาห์
                   </div>
                 </SelectItem>
                 <SelectItem value="day">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Day View
+                    มุมมองรายวัน
                   </div>
                 </SelectItem>
                 <SelectItem value="list">
                   <div className="flex items-center gap-2">
                     <List className="h-4 w-4" />
-                    List View
+                    มุมมองรายการ
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -341,7 +372,7 @@ export function EventManager({
               className="h-8"
             >
               <Calendar className="h-4 w-4" />
-              <span className="ml-1">Month</span>
+              <span className="ml-1">เดือน</span>
             </Button>
             <Button
               variant={view === "week" ? "secondary" : "ghost"}
@@ -350,7 +381,7 @@ export function EventManager({
               className="h-8"
             >
               <Grid3x3 className="h-4 w-4" />
-              <span className="ml-1">Week</span>
+              <span className="ml-1">สัปดาห์</span>
             </Button>
             <Button
               variant={view === "day" ? "secondary" : "ghost"}
@@ -359,7 +390,7 @@ export function EventManager({
               className="h-8"
             >
               <Clock className="h-4 w-4" />
-              <span className="ml-1">Day</span>
+              <span className="ml-1">วัน</span>
             </Button>
             <Button
               variant={view === "list" ? "secondary" : "ghost"}
@@ -368,11 +399,11 @@ export function EventManager({
               className="h-8"
             >
               <List className="h-4 w-4" />
-              <span className="ml-1">List</span>
+              <span className="ml-1">รายการ</span>
             </Button>
           </div>
 
-          <Button
+          {/* <Button
             onClick={() => {
               setIsCreating(true)
               setIsDialogOpen(true)
@@ -381,7 +412,7 @@ export function EventManager({
           >
             <Plus className="mr-2 h-4 w-4" />
             New Event
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -389,7 +420,7 @@ export function EventManager({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search events..."
+            placeholder="ค้นหางาน..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -409,93 +440,87 @@ export function EventManager({
         {/* Mobile: Horizontal scroll with full-length buttons */}
         <div className="sm:hidden -mx-4 px-4">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {/* Color Filter */}
+            {/* Priority Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap flex-shrink-0 bg-transparent">
                   <Filter className="h-4 w-4" />
-                  Colors
-                  {selectedColors.length > 0 && (
+                  ความสำคัญ
+                  {selectedPriorities.length > 0 && (
                     <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                      {selectedColors.length}
+                      {selectedPriorities.length}
                     </Badge>
                   )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuLabel>Filter by Color</DropdownMenuLabel>
+                <DropdownMenuLabel>กรองตามความสำคัญ</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {colors.map((color) => (
-                  <DropdownMenuCheckboxItem
-                    key={color.value}
-                    checked={selectedColors.includes(color.value)}
-                    onCheckedChange={(checked) => {
-                      setSelectedColors((prev) =>
-                        checked ? [...prev, color.value] : prev.filter((c) => c !== color.value),
-                      )
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={cn("h-3 w-3 rounded", color.bg)} />
-                      {color.name}
-                    </div>
-                  </DropdownMenuCheckboxItem>
-                ))}
+                <DropdownMenuCheckboxItem
+                  checked={selectedPriorities.includes("urgent")}
+                  onCheckedChange={(checked) => {
+                    setSelectedPriorities((prev) =>
+                      checked ? [...prev, "urgent"] : prev.filter((p) => p !== "urgent"),
+                    )
+                  }}
+                >
+                  เร่งด่วนมาก
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={selectedPriorities.includes("high")}
+                  onCheckedChange={(checked) => {
+                    setSelectedPriorities((prev) =>
+                      checked ? [...prev, "high"] : prev.filter((p) => p !== "high"),
+                    )
+                  }}
+                >
+                  สูง
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={selectedPriorities.includes("medium")}
+                  onCheckedChange={(checked) => {
+                    setSelectedPriorities((prev) =>
+                      checked ? [...prev, "medium"] : prev.filter((p) => p !== "medium"),
+                    )
+                  }}
+                >
+                  ปานกลาง
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={selectedPriorities.includes("low")}
+                  onCheckedChange={(checked) => {
+                    setSelectedPriorities((prev) =>
+                      checked ? [...prev, "low"] : prev.filter((p) => p !== "low"),
+                    )
+                  }}
+                >
+                  ต่ำ
+                </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Tag Filter */}
+            {/* Department Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap flex-shrink-0 bg-transparent">
                   <Filter className="h-4 w-4" />
-                  Tags
-                  {selectedTags.length > 0 && (
+                  แผนก
+                  {selectedDepartments.length > 0 && (
                     <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                      {selectedTags.length}
+                      {selectedDepartments.length}
                     </Badge>
                   )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuLabel>Filter by Tag</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {availableTags.map((tag) => (
-                  <DropdownMenuCheckboxItem
-                    key={tag}
-                    checked={selectedTags.includes(tag)}
-                    onCheckedChange={(checked) => {
-                      setSelectedTags((prev) => (checked ? [...prev, tag] : prev.filter((t) => t !== tag)))
-                    }}
-                  >
-                    {tag}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Category Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap flex-shrink-0 bg-transparent">
-                  <Filter className="h-4 w-4" />
-                  Categories
-                  {selectedCategories.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                      {selectedCategories.length}
-                    </Badge>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
+                <DropdownMenuLabel>กรองตามแผนก</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {categories.map((category) => (
                   <DropdownMenuCheckboxItem
                     key={category}
-                    checked={selectedCategories.includes(category)}
+                    checked={selectedDepartments.includes(category)}
                     onCheckedChange={(checked) => {
-                      setSelectedCategories((prev) =>
+                      setSelectedDepartments((prev) =>
                         checked ? [...prev, category] : prev.filter((c) => c !== category),
                       )
                     }}
@@ -503,6 +528,85 @@ export function EventManager({
                     {category}
                   </DropdownMenuCheckboxItem>
                 ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Status Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap flex-shrink-0 bg-transparent">
+                  <Filter className="h-4 w-4" />
+                  สถานะ
+                  {selectedStatuses.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                      {selectedStatuses.length}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuLabel>กรองตามสถานะ</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={selectedStatuses.includes("pending")}
+                  onCheckedChange={(checked) => {
+                    setSelectedStatuses((prev) =>
+                      checked ? [...prev, "pending"] : prev.filter((s) => s !== "pending"),
+                    )
+                  }}
+                >
+                  รอดำเนินการ
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={selectedStatuses.includes("in_progress")}
+                  onCheckedChange={(checked) => {
+                    setSelectedStatuses((prev) =>
+                      checked ? [...prev, "in_progress"] : prev.filter((s) => s !== "in_progress"),
+                    )
+                  }}
+                >
+                  กำลังดำเนินการ
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={selectedStatuses.includes("pending_approval")}
+                  onCheckedChange={(checked) => {
+                    setSelectedStatuses((prev) =>
+                      checked ? [...prev, "pending_approval"] : prev.filter((s) => s !== "pending_approval"),
+                    )
+                  }}
+                >
+                  รออนุมัติ
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={selectedStatuses.includes("completed")}
+                  onCheckedChange={(checked) => {
+                    setSelectedStatuses((prev) =>
+                      checked ? [...prev, "completed"] : prev.filter((s) => s !== "completed"),
+                    )
+                  }}
+                >
+                  เสร็จสิ้น
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={selectedStatuses.includes("cancelled")}
+                  onCheckedChange={(checked) => {
+                    setSelectedStatuses((prev) =>
+                      checked ? [...prev, "cancelled"] : prev.filter((s) => s !== "cancelled"),
+                    )
+                  }}
+                >
+                  ยกเลิก
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={selectedStatuses.includes("rejected")}
+                  onCheckedChange={(checked) => {
+                    setSelectedStatuses((prev) =>
+                      checked ? [...prev, "rejected"] : prev.filter((s) => s !== "rejected"),
+                    )
+                  }}
+                >
+                  ปฏิเสธ
+                </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -514,7 +618,7 @@ export function EventManager({
                 className="gap-2 whitespace-nowrap flex-shrink-0"
               >
                 <X className="h-4 w-4" />
-                Clear Filters
+                ล้างตัวกรอง
               </Button>
             )}
           </div>
@@ -522,93 +626,87 @@ export function EventManager({
 
         {/* Desktop: Original layout */}
         <div className="hidden sm:flex items-center gap-2">
-          {/* Color Filter */}
+          {/* Priority Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">
                 <Filter className="h-4 w-4" />
-                Colors
-                {selectedColors.length > 0 && (
+                ความสำคัญ
+                {selectedPriorities.length > 0 && (
                   <Badge variant="secondary" className="ml-1 h-5 px-1">
-                    {selectedColors.length}
+                    {selectedPriorities.length}
                   </Badge>
                 )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Filter by Color</DropdownMenuLabel>
+              <DropdownMenuLabel>กรองตามความสำคัญ</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {colors.map((color) => (
-                <DropdownMenuCheckboxItem
-                  key={color.value}
-                  checked={selectedColors.includes(color.value)}
-                  onCheckedChange={(checked) => {
-                    setSelectedColors((prev) =>
-                      checked ? [...prev, color.value] : prev.filter((c) => c !== color.value),
-                    )
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={cn("h-3 w-3 rounded", color.bg)} />
-                    {color.name}
-                  </div>
-                </DropdownMenuCheckboxItem>
-              ))}
+              <DropdownMenuCheckboxItem
+                checked={selectedPriorities.includes("urgent")}
+                onCheckedChange={(checked) => {
+                  setSelectedPriorities((prev) =>
+                    checked ? [...prev, "urgent"] : prev.filter((p) => p !== "urgent"),
+                  )
+                }}
+              >
+                เร่งด่วนมาก
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedPriorities.includes("high")}
+                onCheckedChange={(checked) => {
+                  setSelectedPriorities((prev) =>
+                    checked ? [...prev, "high"] : prev.filter((p) => p !== "high"),
+                  )
+                }}
+              >
+                สูง
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedPriorities.includes("medium")}
+                onCheckedChange={(checked) => {
+                  setSelectedPriorities((prev) =>
+                    checked ? [...prev, "medium"] : prev.filter((p) => p !== "medium"),
+                  )
+                }}
+              >
+                ปานกลาง
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedPriorities.includes("low")}
+                onCheckedChange={(checked) => {
+                  setSelectedPriorities((prev) =>
+                    checked ? [...prev, "low"] : prev.filter((p) => p !== "low"),
+                  )
+                }}
+              >
+                ต่ำ
+              </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Tag Filter */}
+          {/* Department Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">
                 <Filter className="h-4 w-4" />
-                Tags
-                {selectedTags.length > 0 && (
+                แผนก
+                {selectedDepartments.length > 0 && (
                   <Badge variant="secondary" className="ml-1 h-5 px-1">
-                    {selectedTags.length}
+                    {selectedDepartments.length}
                   </Badge>
                 )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Filter by Tag</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {availableTags.map((tag) => (
-                <DropdownMenuCheckboxItem
-                  key={tag}
-                  checked={selectedTags.includes(tag)}
-                  onCheckedChange={(checked) => {
-                    setSelectedTags((prev) => (checked ? [...prev, tag] : prev.filter((t) => t !== tag)))
-                  }}
-                >
-                  {tag}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Category Filter */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                <Filter className="h-4 w-4" />
-                Categories
-                {selectedCategories.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1">
-                    {selectedCategories.length}
-                  </Badge>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
+              <DropdownMenuLabel>กรองตามแผนก</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {categories.map((category) => (
                 <DropdownMenuCheckboxItem
                   key={category}
-                  checked={selectedCategories.includes(category)}
+                  checked={selectedDepartments.includes(category)}
                   onCheckedChange={(checked) => {
-                    setSelectedCategories((prev) =>
+                    setSelectedDepartments((prev) =>
                       checked ? [...prev, category] : prev.filter((c) => c !== category),
                     )
                   }}
@@ -619,10 +717,89 @@ export function EventManager({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Status Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                <Filter className="h-4 w-4" />
+                สถานะ
+                {selectedStatuses.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1">
+                    {selectedStatuses.length}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>กรองตามสถานะ</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={selectedStatuses.includes("pending")}
+                onCheckedChange={(checked) => {
+                  setSelectedStatuses((prev) =>
+                    checked ? [...prev, "pending"] : prev.filter((s) => s !== "pending"),
+                  )
+                }}
+              >
+                รอดำเนินการ
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedStatuses.includes("in_progress")}
+                onCheckedChange={(checked) => {
+                  setSelectedStatuses((prev) =>
+                    checked ? [...prev, "in_progress"] : prev.filter((s) => s !== "in_progress"),
+                  )
+                }}
+              >
+                กำลังดำเนินการ
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedStatuses.includes("pending_approval")}
+                onCheckedChange={(checked) => {
+                  setSelectedStatuses((prev) =>
+                    checked ? [...prev, "pending_approval"] : prev.filter((s) => s !== "pending_approval"),
+                  )
+                }}
+              >
+                รออนุมัติ
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedStatuses.includes("completed")}
+                onCheckedChange={(checked) => {
+                  setSelectedStatuses((prev) =>
+                    checked ? [...prev, "completed"] : prev.filter((s) => s !== "completed"),
+                  )
+                }}
+              >
+                เสร็จสิ้น
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedStatuses.includes("cancelled")}
+                onCheckedChange={(checked) => {
+                  setSelectedStatuses((prev) =>
+                    checked ? [...prev, "cancelled"] : prev.filter((s) => s !== "cancelled"),
+                  )
+                }}
+              >
+                ยกเลิก
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedStatuses.includes("rejected")}
+                onCheckedChange={(checked) => {
+                  setSelectedStatuses((prev) =>
+                    checked ? [...prev, "rejected"] : prev.filter((s) => s !== "rejected"),
+                  )
+                }}
+              >
+                ปฏิเสธ
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
               <X className="h-4 w-4" />
-              Clear
+              ล้าง
             </Button>
           )}
         </div>
@@ -630,15 +807,19 @@ export function EventManager({
 
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">Active filters:</span>
-          {selectedColors.map((colorValue) => {
-            const color = getColorClasses(colorValue)
+          <span className="text-sm text-muted-foreground">ตัวกรองที่ใช้:</span>
+          {selectedPriorities.map((priority) => {
+            const priorityLabels: Record<string, string> = {
+              urgent: "เร่งด่วนมาก",
+              high: "สูง",
+              medium: "ปานกลาง",
+              low: "ต่ำ"
+            }
             return (
-              <Badge key={colorValue} variant="secondary" className="gap-1">
-                <div className={cn("h-2 w-2 rounded-full", color.bg)} />
-                {color.name}
+              <Badge key={priority} variant="secondary" className="gap-1">
+                {priorityLabels[priority] || priority}
                 <button
-                  onClick={() => setSelectedColors((prev) => prev.filter((c) => c !== colorValue))}
+                  onClick={() => setSelectedPriorities((prev) => prev.filter((p) => p !== priority))}
                   className="ml-1 hover:text-foreground"
                 >
                   <X className="h-3 w-3" />
@@ -646,28 +827,38 @@ export function EventManager({
               </Badge>
             )
           })}
-          {selectedTags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="gap-1">
-              {tag}
+          {selectedDepartments.map((dept) => (
+            <Badge key={dept} variant="secondary" className="gap-1">
+              {dept}
               <button
-                onClick={() => setSelectedTags((prev) => prev.filter((t) => t !== tag))}
+                onClick={() => setSelectedDepartments((prev) => prev.filter((d) => d !== dept))}
                 className="ml-1 hover:text-foreground"
               >
                 <X className="h-3 w-3" />
               </button>
             </Badge>
           ))}
-          {selectedCategories.map((category) => (
-            <Badge key={category} variant="secondary" className="gap-1">
-              {category}
-              <button
-                onClick={() => setSelectedCategories((prev) => prev.filter((c) => c !== category))}
-                className="ml-1 hover:text-foreground"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
+          {selectedStatuses.map((status) => {
+            const statusLabels: Record<string, string> = {
+              pending: "รอดำเนินการ",
+              in_progress: "กำลังดำเนินการ",
+              pending_approval: "รออนุมัติ",
+              completed: "เสร็จสิ้น",
+              cancelled: "ยกเลิก",
+              rejected: "ปฏิเสธ"
+            }
+            return (
+              <Badge key={status} variant="secondary" className="gap-1">
+                {statusLabels[status] || status}
+                <button
+                  onClick={() => setSelectedStatuses((prev) => prev.filter((s) => s !== status))}
+                  className="ml-1 hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )
+          })}
         </div>
       )}
 
@@ -769,8 +960,8 @@ export function EventManager({
                       value={
                         newEvent.startTime
                           ? new Date(newEvent.startTime.getTime() - newEvent.startTime.getTimezoneOffset() * 60000)
-                              .toISOString()
-                              .slice(0, 16)
+                            .toISOString()
+                            .slice(0, 16)
                           : ""
                       }
                       onChange={(e) => {
@@ -788,8 +979,8 @@ export function EventManager({
                       value={
                         newEvent.endTime
                           ? new Date(newEvent.endTime.getTime() - newEvent.endTime.getTimezoneOffset() * 60000)
-                              .toISOString()
-                              .slice(0, 16)
+                            .toISOString()
+                            .slice(0, 16)
                           : ""
                       }
                       onChange={(e) => {
@@ -1020,7 +1211,7 @@ function EventCard({
   const router = useRouter()
   const [isHovered, setIsHovered] = useState(false)
   const colorClasses = getColorClasses(event.color)
-  
+
   const handleViewJob = (e: React.MouseEvent) => {
     e.stopPropagation()
     // Try admin route first, fallback to employee route
@@ -1073,11 +1264,11 @@ function EventCard({
                   <h4 className="font-semibold text-sm leading-tight">{event.title}</h4>
                   <div className={cn("h-3 w-3 rounded-full flex-shrink-0", colorClasses.bg)} />
                 </div>
-                
+
                 {event.description && (
                   <p className="text-xs text-muted-foreground line-clamp-3">{event.description}</p>
                 )}
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
@@ -1097,7 +1288,7 @@ function EventCard({
                     <span className="text-[10px]">({getDuration()})</span>
                   </div>
                 </div>
-                
+
                 {(event.category || event.tags?.length) && (
                   <div className="flex flex-wrap gap-1">
                     {event.category && (
@@ -1112,7 +1303,7 @@ function EventCard({
                     ))}
                   </div>
                 )}
-                
+
                 <Button
                   size="sm"
                   variant="default"
@@ -1198,11 +1389,11 @@ function EventCard({
                 <h4 className="font-semibold leading-tight">{event.title}</h4>
                 <div className={cn("h-4 w-4 rounded-full flex-shrink-0", colorClasses.bg)} />
               </div>
-              
+
               {event.description && (
                 <p className="text-sm text-muted-foreground line-clamp-3">{event.description}</p>
               )}
-              
+
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5" />
@@ -1222,7 +1413,7 @@ function EventCard({
                   <span className="text-[10px]">({getDuration()})</span>
                 </div>
               </div>
-              
+
               {(event.category || event.tags?.length) && (
                 <div className="flex flex-wrap gap-1">
                   {event.category && (
@@ -1237,7 +1428,7 @@ function EventCard({
                   ))}
                 </div>
               )}
-              
+
               <Button
                 size="sm"
                 variant="default"
@@ -1290,20 +1481,20 @@ function MonthView({
     return events.filter((event) => {
       const eventStart = new Date(event.startTime)
       const eventEnd = new Date(event.endTime)
-      
+
       // Normalize dates to start of day for comparison
       const dayStart = new Date(date)
       dayStart.setHours(0, 0, 0, 0)
-      
+
       const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
       const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
       const dayDate = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate())
-      
+
       // Check if the day is within the event's date range
       return dayDate >= eventStartDate && dayDate <= eventEndDate
     })
   }
-  
+
   // Helper function to determine if event starts on this day
   const isEventStartDay = (event: Event, date: Date) => {
     const eventStart = new Date(event.startTime)
@@ -1311,7 +1502,7 @@ function MonthView({
     const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
     return eventStartDate.getTime() === dayDate.getTime()
   }
-  
+
   // Helper function to determine if event ends on this day
   const isEventEndDay = (event: Event, date: Date) => {
     const eventEnd = new Date(event.endTime)
@@ -1319,29 +1510,29 @@ function MonthView({
     const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
     return eventEndDate.getTime() === dayDate.getTime()
   }
-  
+
   // Helper function to get event span (how many days)
   const getEventSpan = (event: Event, date: Date) => {
     const eventStart = new Date(event.startTime)
     const eventEnd = new Date(event.endTime)
-    
+
     const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
     const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
     const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    
+
     if (dayDate < eventStartDate || dayDate > eventEndDate) return 0
-    
+
     // Calculate how many days from start to end
     const totalDays = Math.ceil((eventEndDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
     const dayIndex = Math.ceil((dayDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24))
-    
+
     // Calculate remaining days from this day to end
     const remainingDays = totalDays - dayIndex
-    
+
     // Check if this is the last day in the visible week
     const dayOfWeek = date.getDay()
     const daysUntilWeekEnd = 6 - dayOfWeek
-    
+
     return Math.min(remainingDays, daysUntilWeekEnd + 1)
   }
 
@@ -1394,7 +1585,7 @@ function MonthView({
             )
           })}
         </div>
-        
+
         {/* Events overlay - positioned absolutely to span multiple days */}
         <div className="absolute inset-0 pointer-events-none" style={{ padding: '0.25rem' }}>
           {(() => {
@@ -1404,13 +1595,13 @@ function MonthView({
               const eventEnd = new Date(event.endTime)
               const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
               const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
-              
+
               // Check if event overlaps with visible calendar days
               const visibleStart = days[0]
               const visibleEnd = days[days.length - 1]
               const visibleStartDate = new Date(visibleStart.getFullYear(), visibleStart.getMonth(), visibleStart.getDate())
               const visibleEndDate = new Date(visibleEnd.getFullYear(), visibleEnd.getMonth(), visibleEnd.getDate())
-              
+
               return eventEndDate >= visibleStartDate && eventStartDate <= visibleEndDate
             })
 
@@ -1423,43 +1614,43 @@ function MonthView({
               const eventEnd = new Date(event.endTime)
               const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
               const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
-              
+
               // Find the day index where event starts
               const startDayIndex = days.findIndex(day => {
                 const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate())
                 return dayDate.getTime() === eventStartDate.getTime()
               })
-              
+
               if (startDayIndex === -1) return
-              
+
               // Calculate how many days the event spans
               const totalDays = Math.ceil((eventEndDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
               const remainingDays = days.length - startDayIndex
               const visibleSpan = Math.min(totalDays, remainingDays)
-              
+
               // Find available row for this event
               // Check all days this event spans to find conflicts
               let row = 0
               let hasConflict = true
-              
+
               while (hasConflict) {
                 hasConflict = false
-                
+
                 // Check if this row conflicts with any existing event in the days this event spans
                 for (let dayOffset = 0; dayOffset < visibleSpan; dayOffset++) {
                   const checkDayIndex = startDayIndex + dayOffset
                   if (checkDayIndex >= days.length) break
-                  
+
                   // Check all events to see if they conflict on this specific day
                   eventPositions.forEach((pos, eventId) => {
                     if (eventId === event.id) return
-                    
+
                     // Check if events overlap in day range
                     const posStartDay = pos.dayIndex
                     const posEndDay = pos.dayIndex + pos.span - 1
                     const currentStartDay = startDayIndex
                     const currentEndDay = startDayIndex + visibleSpan - 1
-                    
+
                     // Check if day ranges overlap
                     if (!(currentStartDay > posEndDay || currentEndDay < posStartDay)) {
                       // They overlap in day range, check if same row
@@ -1471,10 +1662,10 @@ function MonthView({
                       }
                     }
                   })
-                  
+
                   if (hasConflict) break
                 }
-                
+
                 if (hasConflict) {
                   row++
                   // Limit to maximum rows to prevent infinite loop
@@ -1484,7 +1675,7 @@ function MonthView({
                   }
                 }
               }
-              
+
               // Store this event's position
               eventPositions.set(event.id, { row, dayIndex: startDayIndex, span: visibleSpan })
             })
@@ -1493,18 +1684,18 @@ function MonthView({
             return visibleEvents.map((event, eventIndex) => {
               const position = eventPositions.get(event.id)
               if (!position) return null
-              
+
               const { row, dayIndex, span } = position
-              
+
               const eventStart = new Date(event.startTime)
               const eventEnd = new Date(event.endTime)
               const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
-              
+
               // Calculate position
               const dayWidth = 100 / 7 // 7 days in a week
               const leftPercent = (dayIndex % 7) * dayWidth
               const widthPercent = span * dayWidth
-              
+
               // Calculate row (which week)
               const weekRow = Math.floor(dayIndex / 7)
               const rowHeight = 95 // Approximate height per row in pixels (min-h-20 = 5rem = 80px)
@@ -1512,7 +1703,7 @@ function MonthView({
               const dateNumberHeight = 24 // Height for date number (h-6 = 1.5rem = 24px)
               const spacingAfterDate = 12 // Spacing after date number to avoid overlap
               const topOffset = weekRow * rowHeight + dateNumberHeight + spacingAfterDate + (row * eventRowHeight) // Offset to avoid overlapping with date number
-              
+
               return (
                 <div
                   key={`event-${event.id}-${eventIndex}`}
@@ -1592,11 +1783,11 @@ function WeekView({
     const eventEnd = new Date(event.endTime)
     const dayStart = new Date(day)
     dayStart.setHours(0, 0, 0, 0)
-    
+
     // Check if event is on this day
     const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
     const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate())
-    
+
     if (eventStartDate.getTime() !== dayDate.getTime()) {
       return null
     }
@@ -1604,13 +1795,13 @@ function WeekView({
     const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes()
     const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes()
     const durationMinutes = endMinutes - startMinutes
-    
+
     // Each hour cell is approximately 48px (min-h-12) on mobile, 64px (min-h-16) on desktop
     // Use desktop height for better visibility
     const hourHeight = 64 // base height per hour in pixels
     const topOffset = (startMinutes / 60) * hourHeight
     const height = (durationMinutes / 60) * hourHeight
-    
+
     return {
       top: `${topOffset}px`,
       height: `${Math.max(height, 32)}px`, // Minimum height
@@ -1641,7 +1832,7 @@ function WeekView({
         <div className="grid grid-cols-8">
           {hours.map((hour) => (
             <div key={`time-${hour}`} className="contents">
-              <div 
+              <div
                 className="border-b border-r p-1 text-[10px] text-muted-foreground sm:p-2 sm:text-xs sticky top-0 bg-background z-20"
               >
                 {hour.toString().padStart(2, "0")}:00
@@ -1657,7 +1848,7 @@ function WeekView({
             </div>
           ))}
         </div>
-        
+
         {/* Events overlay - positioned absolutely */}
         <div className="absolute inset-0 pointer-events-none">
           {weekDays.map((day, dayIndex) => {
@@ -1667,16 +1858,16 @@ function WeekView({
               const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate())
               return eventStartDate.getTime() === dayDate.getTime()
             })
-            
+
             return dayEvents.map((event) => {
               const eventStyle = getEventStyle(event, day)
               if (!eventStyle) return null
-              
+
               // Calculate position based on grid
               // Time column takes 1/8, each day takes 1/8
               const leftPercent = ((dayIndex + 1) * 12.5)
               const widthPercent = 12.5
-              
+
               return (
                 <div
                   key={`event-${event.id}-${day.toISOString()}`}
@@ -1742,7 +1933,7 @@ function DayView({
   const getEventStyle = (event: Event) => {
     const eventStart = new Date(event.startTime)
     const eventEnd = new Date(event.endTime)
-    
+
     // Check if event is on this day
     if (
       eventStart.getDate() !== currentDate.getDate() ||
@@ -1754,11 +1945,11 @@ function DayView({
 
     const dayStart = new Date(currentDate)
     dayStart.setHours(0, 0, 0, 0)
-    
+
     const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes()
     const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes()
     const durationMinutes = endMinutes - startMinutes
-    
+
     // Each hour cell is approximately 64px (min-h-16) on mobile, 80px (min-h-20) on desktop
     const hourHeightMobile = 64
     const hourHeightDesktop = 80
@@ -1766,7 +1957,7 @@ function DayView({
     const topOffsetDesktop = (startMinutes / 60) * hourHeightDesktop
     const heightMobile = (durationMinutes / 60) * hourHeightMobile
     const heightDesktop = (durationMinutes / 60) * hourHeightDesktop
-    
+
     return {
       mobile: {
         top: `${topOffsetMobile}px`,
@@ -1826,13 +2017,13 @@ function DayView({
             </div>
           )
         })}
-        
+
         {/* Desktop: Absolute positioned events */}
         <div className="hidden sm:block absolute top-0 left-20 right-0" style={{ height: `${24 * 80}px` }}>
           {dayEvents.map((event) => {
             const eventStyle = getEventStyle(event)
             if (!eventStyle) return null
-            
+
             return (
               <div
                 key={`desktop-${event.id}`}

@@ -244,30 +244,33 @@ export default function UsersPage() {
           filters={[
             {
               key: "role",
-              placeholder: "Filter Role",
+              placeholder: "กรองตามบทบาท",
+              allLabel: "บทบาททั้งหมด",
               options: [
-                { label: "Admin", value: "admin" },
-                { label: "Manager", value: "manager" },
-                { label: "Lead Technician", value: "lead_technician" },
-                { label: "Employee", value: "employee" },
+                { label: "ผู้ดูแลระบบ", value: "admin" },
+                { label: "ผู้จัดการ", value: "manager" },
+                { label: "หัวหน้าช่าง", value: "lead_technician" },
+                { label: "พนักงาน", value: "employee" },
               ],
             },
             {
               key: "status",
-              placeholder: "Filter Status",
+              placeholder: "กรองตามสถานะ",
+              allLabel: "สถานะทั้งหมด",
               options: [
-                { label: "Active", value: "active" },
-                { label: "Inactive", value: "inactive" },
+                { label: "ใช้งาน", value: "active" },
+                { label: "ไม่ใช้งาน", value: "inactive" },
               ],
             },
             {
               key: "department",
-              placeholder: "Filter Department",
+              placeholder: "กรองตามแผนก",
+              allLabel: "แผนกทั้งหมด",
               options: [
-                { label: "Electrical", value: "Electrical" },
-                { label: "Mechanical", value: "Mechanical" },
-                { label: "Technical", value: "Technical" },
-                { label: "Civil", value: "Civil" },
+                { label: "ไฟฟ้า", value: "Electrical" },
+                { label: "เครื่องกล", value: "Mechanical" },
+                { label: "เทคนิค", value: "Technical" },
+                { label: "โยธา", value: "Civil" },
               ],
             },
           ]}
@@ -360,10 +363,10 @@ export default function UsersPage() {
                 <div className="col-span-2">
                   <p className="text-gray-600 dark:text-gray-400 mb-1">Status</p>
                   <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${user.status === 'active'
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : user.status === 'inactive'
-                        ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : user.status === 'inactive'
+                      ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                      : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                     }`}>
                     {user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Undefined'}
                   </span>

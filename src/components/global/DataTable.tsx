@@ -33,6 +33,7 @@ interface DataTableProps<T> {
     key: keyof T;
     options: FilterOption[];
     placeholder?: string;
+    allLabel?: string;
   }[];
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
@@ -164,20 +165,20 @@ export function DataTable<T extends { id: string | number }>({
   };
 
   const rowVariants = {
-    hidden: { 
-      opacity: 0, 
+    hidden: {
+      opacity: 0,
       y: 10,
       scale: 0.95
     },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       scale: 1,
     },
-    exit: { 
-      opacity: 0, 
+    exit: {
+      opacity: 0,
       transition: {
-        duration: 0.2 
+        duration: 0.2
       }
     },
     hover: {
@@ -193,7 +194,7 @@ export function DataTable<T extends { id: string | number }>({
     <div className="h-full space-y-3 overflow-hidden">
       {/* Toolbar with fade-in animation - แสดงเฉพาะเมื่อมี searchKey หรือ filters */}
       {(searchKey || (filters && filters.length > 0)) && (
-        <motion.div 
+        <motion.div
           className="flex flex-wrap items-center justify-between gap-3"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -227,7 +228,7 @@ export function DataTable<T extends { id: string | number }>({
                       <SelectValue placeholder={f.placeholder || "Filter"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="all">{f.allLabel || "All"}</SelectItem>
                       {f.options.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
@@ -243,11 +244,11 @@ export function DataTable<T extends { id: string | number }>({
       )}
 
       {/* Table with animated rows */}
-      <motion.div 
+      <motion.div
         className="border rounded-md overflow-hidden"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3}}
+        transition={{ duration: 0.3 }}
       >
         <Table>
           <TableHeader>
@@ -265,25 +266,24 @@ export function DataTable<T extends { id: string | number }>({
               {columns.map((col) => {
                 const alignClass = col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "";
                 const sortableClass = col.sortable ? "cursor-pointer select-none" : "";
-                
+
                 return (
                   <TableHead
                     key={String(col.key)}
                     onClick={() => col.sortable && handleSort(col.key)}
                     className={`${sortableClass} ${alignClass}`}
                   >
-                    <motion.div 
-                      className={`flex items-center gap-1 overflow-hidden ${
-                        col.align === "center" ? "justify-center" : 
+                    <motion.div
+                      className={`flex items-center gap-1 overflow-hidden ${col.align === "center" ? "justify-center" :
                         col.align === "right" ? "justify-end" : ""
-                      }`}
+                        }`}
                       whileHover={col.sortable ? { scale: 1.05 } : {}}
                     >
                       {col.label}
                       {col.sortable && (
                         <motion.div
-                          animate={{ 
-                            rotate: sortConfigs.find(s => s.key === col.key)?.direction === "desc" ? 180 : 0 
+                          animate={{
+                            rotate: sortConfigs.find(s => s.key === col.key)?.direction === "desc" ? 180 : 0
                           }}
                           transition={{ duration: 0.2 }}
                         >
@@ -296,7 +296,7 @@ export function DataTable<T extends { id: string | number }>({
               })}
             </TableRow>
           </TableHeader>
-            <TableBody>
+          <TableBody>
             <AnimatePresence mode="popLayout">
               {paginatedData.length > 0 ? (
                 paginatedData.map((row, index) => (
@@ -331,11 +331,11 @@ export function DataTable<T extends { id: string | number }>({
                       </TableCell>
                     )}
                     {columns.map((col) => (
-                      <TableCell 
+                      <TableCell
                         key={String(col.key)}
                         className={
-                          col.align === "center" ? "text-center" : 
-                          col.align === "right" ? "text-right" : ""
+                          col.align === "center" ? "text-center" :
+                            col.align === "right" ? "text-right" : ""
                         }
                       >
                         {col.render ? col.render(row) : String(row[col.key])}

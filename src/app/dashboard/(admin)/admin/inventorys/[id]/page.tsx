@@ -8,6 +8,7 @@ import 'dayjs/locale/th';
 // Zustand Store
 import { useInventoryStore } from "@/stores/features/inventoryStore";
 import { useJobStore } from "@/stores/features/jobStore";
+import { useAuditLogStore } from "@/stores/features/auditLogStore";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,8 @@ import {
   Calendar,
   ClipboardList,
   ExternalLink,
+  History,
+  Clock,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
@@ -121,6 +124,7 @@ export default function InventoryDetailPage() {
 
   const { inventories, getInventoryRequestStatus } = useInventoryStore();
   const { jobs } = useJobStore();
+  const { getAuditLogsByEntity } = useAuditLogStore();
 
   // หา inventory ตาม id
   const inventory = inventories.find((inv) => inv.id === inventoryId);
@@ -130,7 +134,7 @@ export default function InventoryDetailPage() {
     // ตรวจสอบว่า job ใช้ inventory นี้
     const usesInventory = job.usedInventory?.some((usedInv) => usedInv.id === inventoryId);
     if (!usesInventory) return false;
-    
+
     // ตรวจสอบว่าได้รับการอนุมัติแล้ว
     const requestStatus = getInventoryRequestStatus(job.id);
     return requestStatus === "approved";
@@ -145,13 +149,16 @@ export default function InventoryDetailPage() {
     };
   });
 
+  // ✅ ดึง audit logs ของ inventory นี้เท่านั้น
+  const inventoryAuditLogs = getAuditLogsByEntity("inventory", inventoryId);
+
   if (!inventory) {
     return (
       <div className="p-8 text-center">
         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
         <p className="text-muted-foreground">กำลังโหลดรายละเอียดวัสดุ...</p>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="mt-4"
           onClick={() => router.back()}
         >
@@ -184,8 +191,8 @@ export default function InventoryDetailPage() {
               <div className="flex items-start justify-between">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <Badge 
-                      variant={getStatusVariant(inventory.status)} 
+                    <Badge
+                      variant={getStatusVariant(inventory.status)}
                       className="capitalize"
                     >
                       {inventory.status}
@@ -266,7 +273,7 @@ export default function InventoryDetailPage() {
               {/* Status Details */}
               <div>
                 <p className="text-sm text-muted-foreground mb-2">สถานะ</p>
-                <Badge 
+                <Badge
                   className={`${getStatusColor(inventory.status)} px-3 py-1`}
                 >
                   {inventory.status}
@@ -374,6 +381,94 @@ export default function InventoryDetailPage() {
                   <ClipboardList className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
                   <p className="text-sm text-muted-foreground">
                     ยังไม่มีประวัติการเบิกใช้วัสดุนี้
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Audit Log History */}
+          <Card className="mt-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  ประวัติการเปลี่ยนแปลง
+                </CardTitle>
+                {inventoryAuditLogs.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {inventoryAuditLogs.length} รายการ
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {inventoryAuditLogs.length > 0 ? (
+                <div className="space-y-4">
+                  {inventoryAuditLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="border rounded-lg p-4 space-y-2 hover:bg-secondary/50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge
+                              variant="outline"
+                              className="text-xs capitalize"
+                            >
+                              {log.action === "create" && "สร้าง"}
+                              {log.action === "update" && "แก้ไข"}
+                              {log.action === "delete" && "ลบ"}
+                              {log.action === "approve" && "อนุมัติ"}
+                              {log.action === "reject" && "ปฏิเสธ"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm font-medium">
+                            {log.details || "ไม่มีรายละเอียด"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            โดย: {log.performedBy.name} ({log.performedBy.role})
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                          <Clock className="h-3 w-3" />
+                          {dayjs(log.timestamp).format("DD/MM/YYYY HH:mm")}
+                        </div>
+                      </div>
+
+                      {/* Changes Details */}
+                      {log.changes && log.changes.length > 0 && (
+                        <div className="mt-3 p-3 bg-muted/50 rounded-md">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            การเปลี่ยนแปลง:
+                          </p>
+                          <div className="space-y-1">
+                            {log.changes.map((change, idx) => (
+                              <div key={idx} className="text-xs">
+                                <span className="font-medium">
+                                  {change.field}:
+                                </span>{" "}
+                                <span className="text-red-400 line-through">
+                                  {String(change.oldValue)}
+                                </span>{" "}
+                                →{" "}
+                                <span className="text-green-400">
+                                  {String(change.newValue)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <History className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                  <p className="text-sm text-muted-foreground">
+                    ยังไม่มีประวัติการเปลี่ยนแปลง
                   </p>
                 </div>
               )}

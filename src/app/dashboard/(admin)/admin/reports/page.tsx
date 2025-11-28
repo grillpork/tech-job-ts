@@ -342,11 +342,11 @@ export default function ReportPage() {
                         </span>
                       </div>
                     </div>
-                    <div>
+                    <div className="h-32">
                       <CardTitle className="text-base sm:text-lg lg:text-xl mb-1.5 sm:mb-2 leading-snug">
                         {report.title}
                       </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm lg:text-base line-clamp-2 sm:line-clamp-none">
+                      <CardDescription className="text-xs sm:text-sm lg:text-base line-clamp-2 sm:line-clamp-none ">
                         {report.description}
                       </CardDescription>
                     </div>

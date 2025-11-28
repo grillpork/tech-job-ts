@@ -488,7 +488,7 @@ export default function CreateJobPage() {
         leadTechnicianId: leadTechnician,
         departments: departments,
         priority: priority as "low" | "medium" | "high" | "urgent" | null,
-        type: (type || null) as "บ้าน" | "คอนโด" | null,
+        type: (type || null) as "บ้าน" | "อาคาร" | null,
         assignedEmployeeIds: selectedEmployees.map(emp => emp.value),
         usedInventory: selectedInventory.map(inv => ({ id: inv.value, qty: inv.qty ?? 1 })),
         status: "pending" as const,
@@ -576,16 +576,16 @@ export default function CreateJobPage() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="jobTitle">Job Title</Label>
-                      <Input id="jobTitle" name="jobTitle" placeholder="Enter job title" className="mt-1.5" disabled={isLeadTechnician} />
+                      <Label htmlFor="jobTitle">ชื่องาน</Label>
+                      <Input id="jobTitle" name="jobTitle" placeholder="กรอกชื่องาน" className="mt-1.5" disabled={isLeadTechnician} />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="jobDescription">Job Description</Label>
+                      <Label htmlFor="jobDescription">รายละเอียดงาน</Label>
                       <Textarea
                         id="jobDescription"
                         name="jobDescription"
-                        placeholder="Enter job description"
+                        placeholder="กรอกรายละเอียดงาน"
                         className="mt-1.5 resize-none h-32 overflow-y-auto"
                         disabled={isLeadTechnician}
                       />
@@ -597,7 +597,7 @@ export default function CreateJobPage() {
                       <div className="space-y-2">
                         <Label htmlFor="priority" className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4" />
-                          Priority
+                          ความสำคัญ
                         </Label>
                         <Select
                           name="priority"
@@ -609,10 +609,10 @@ export default function CreateJobPage() {
                             <SelectValue placeholder="เลือกความสำคัญ" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="low">Low</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="high">High</SelectItem>
-                            <SelectItem value="urgent">Urgent</SelectItem>
+                            <SelectItem value="low">ต่ำ</SelectItem>
+                            <SelectItem value="medium">ปานกลาง</SelectItem>
+                            <SelectItem value="high">สูง</SelectItem>
+                            <SelectItem value="urgent">เร่งด่วนมาก</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -620,7 +620,7 @@ export default function CreateJobPage() {
                       <div className="space-y-2">
                         <Label htmlFor="type" className="flex items-center gap-2">
                           <Building2 className="h-4 w-4" />
-                          Type
+                          ประเภท
                         </Label>
                         <Select
                           name="type"
@@ -633,7 +633,7 @@ export default function CreateJobPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="บ้าน">บ้าน</SelectItem>
-                            <SelectItem value="คอนโด">คอนโด</SelectItem>
+                            <SelectItem value="อาคาร">อาคาร</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -645,7 +645,7 @@ export default function CreateJobPage() {
                       <div className="space-y-2">
                         <Label htmlFor="startDate" className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4" />
-                          Start date
+                          วันที่เริ่มต้น
                         </Label>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -658,7 +658,7 @@ export default function CreateJobPage() {
                               disabled={isLeadTechnician}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                              {startDate ? format(startDate, "PPP") : <span>เลือกวันที่</span>}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -667,6 +667,7 @@ export default function CreateJobPage() {
                               selected={startDate}
                               onSelect={setStartDate}
                               initialFocus
+                              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                             />
                           </PopoverContent>
                         </Popover>
@@ -674,7 +675,7 @@ export default function CreateJobPage() {
                       <div className="space-y-2">
                         <Label htmlFor="endDate" className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4" />
-                          End date
+                          วันที่สิ้นสุด
                         </Label>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -687,7 +688,7 @@ export default function CreateJobPage() {
                               disabled={isLeadTechnician}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                              {endDate ? format(endDate, "PPP") : <span>เลือกวันที่</span>}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -696,6 +697,7 @@ export default function CreateJobPage() {
                               selected={endDate}
                               onSelect={setEndDate}
                               initialFocus
+                              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                             />
                           </PopoverContent>
                         </Popover>
@@ -857,7 +859,7 @@ export default function CreateJobPage() {
                       </div>
                     )}
 
-                    <Separator />
+                    {/* <Separator />
 
                     <div className="space-y-2">
                       <Label className="flex items-center gap-2">
@@ -895,7 +897,7 @@ export default function CreateJobPage() {
                           ลบลายเซ็น
                         </Button>
                       </div>
-                    </div>
+                    </div> */}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -935,7 +937,7 @@ export default function CreateJobPage() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label>เลือกแผนก</Label>
                       <Popover open={departmentsPopoverOpen} onOpenChange={setDepartmentsPopoverOpen}>
                         <PopoverTrigger asChild>
@@ -999,7 +1001,7 @@ export default function CreateJobPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                           <Command>
-                            <CommandInput placeholder="Search departments..." />
+                            <CommandInput placeholder="ค้นหาแผนก..." />
                             <CommandList>
                               <CommandEmpty>No department found.</CommandEmpty>
                               <CommandGroup>
@@ -1038,9 +1040,9 @@ export default function CreateJobPage() {
                           </Command>
                         </PopoverContent>
                       </Popover>
-                    </div>
+                    </div> */}
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label>Assign employee</Label>
                       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                         <PopoverTrigger asChild>
@@ -1095,7 +1097,7 @@ export default function CreateJobPage() {
                           align="start"
                         >
                           <Command>
-                            <CommandInput placeholder="Search employee..." />
+                            <CommandInput placeholder="ค้นหาพนักงาน..." />
                             <CommandList>
                               <CommandEmpty>No employee found in selected departments.</CommandEmpty>
                               <CommandGroup>
@@ -1134,9 +1136,9 @@ export default function CreateJobPage() {
                       </Popover>
                     </div>
 
-                    <Separator />
+                    <Separator /> */}
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label>Used inventory <span className="text-xs text-muted-foreground">(select items used on site)</span></Label>
                       <Popover open={invPopoverOpen} onOpenChange={setInvPopoverOpen}>
                         <PopoverTrigger asChild>
@@ -1152,7 +1154,7 @@ export default function CreateJobPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                           <Command>
-                            <CommandInput placeholder="Search inventory..." />
+                            <CommandInput placeholder="ค้นหาวัสดุ..." />
                             <CommandList>
                               <CommandEmpty>No inventory found.</CommandEmpty>
                               <CommandGroup>
@@ -1228,7 +1230,7 @@ export default function CreateJobPage() {
                           <p className="text-xs text-muted-foreground mt-1">คลิกปุ่มด้านบนเพื่อเลือกวัสดุ</p>
                         </div>
                       )}
-                    </div>
+                    </div> */}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1242,18 +1244,18 @@ export default function CreateJobPage() {
                     </CardTitle>
                     <CardDescription>อัปโหลดไฟล์หรือเอกสารที่เกี่ยวข้องกับงาน</CardDescription>
                   </CardHeader>
+
                   <CardContent>
                     <div
                       className={cn(
                         "mt-2 rounded-lg border border-dashed border-input transition-colors",
                         "flex flex-col",
                         "min-h-[200px]",
-                        isDragging && "border-primary bg-muted/50",
-                        isAdmin && "opacity-50 pointer-events-none"
+                        isDragging && "border-primary bg-muted/50"
                       )}
-                      onDragOver={!isAdmin ? handleDragOver : undefined}
-                      onDragLeave={!isAdmin ? handleDragLeave : undefined}
-                      onDrop={!isAdmin ? handleDrop : undefined}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
                     >
                       <input
                         ref={fileInputRef}
@@ -1261,61 +1263,50 @@ export default function CreateJobPage() {
                         multiple
                         className="hidden"
                         onChange={handleFileSelect}
-                        disabled={isAdmin}
                       />
 
                       {attachments.length === 0 ? (
                         <div
-                          className={cn(
-                            "flex-1 flex flex-col items-center justify-center text-center p-6",
-                            !isAdmin && "cursor-pointer"
-                          )}
-                          onClick={!isAdmin ? openFileDialog : undefined}
+                          className="flex-1 flex flex-col items-center justify-center text-center p-6 cursor-pointer"
+                          onClick={openFileDialog}
                         >
                           <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
                           <p className="mt-4 text-sm text-muted-foreground">
-                            <span className="font-semibold text-primary">
-                              Drag 'n' drop
-                            </span>{" "}
+                            <span className="font-semibold text-primary">Drag 'n' drop</span>{" "}
                             files here, or{" "}
                             <Button
                               type="button"
                               variant="link"
                               className="p-0 h-auto font-semibold text-primary"
                               onClick={(e) => {
-                                e.stopPropagation();
-                                if (!isAdmin) openFileDialog();
+                                e.stopPropagation()
+                                openFileDialog()
                               }}
-                              disabled={isAdmin}
                             >
                               click to browse
                             </Button>
                             .
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            Max file size: 5MB
-                          </p>
+                          <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
                         </div>
                       ) : (
                         <>
                           <div className="p-4 border-b border-dashed">
                             <p className="text-sm text-muted-foreground text-center">
-                              <span className="font-semibold text-primary">
-                                Drag 'n' drop
-                              </span>{" "}
+                              <span className="font-semibold text-primary">Drag 'n' drop</span>{" "}
                               more files, or{" "}
                               <Button
                                 type="button"
                                 variant="link"
                                 className="p-0 h-auto font-semibold text-primary"
                                 onClick={openFileDialog}
-                                disabled={isAdmin}
                               >
                                 click to browse
                               </Button>
                               .
                             </p>
                           </div>
+
                           <ScrollArea className="flex-1 min-h-0">
                             <div className="space-y-2 p-4">
                               {attachments.map((file, index) => (
@@ -1325,23 +1316,20 @@ export default function CreateJobPage() {
                                 >
                                   <div className="flex items-center gap-2 overflow-hidden">
                                     <FileIcon className="h-4 w-4 flex-shrink-0" />
-                                    <span
-                                      className="text-sm truncate"
-                                      title={file.name}
-                                    >
+                                    <span className="text-sm truncate" title={file.name}>
                                       {file.name}
                                     </span>
                                     <span className="text-xs text-muted-foreground flex-shrink-0">
                                       ({(file.size / 1024).toFixed(1)} KB)
                                     </span>
                                   </div>
+
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
                                     className="h-6 w-6 flex-shrink-0"
                                     onClick={() => deleteAttachment(file.name)}
-                                    disabled={isAdmin}
                                   >
                                     <X className="h-4 w-4" />
                                   </Button>
@@ -1355,6 +1343,7 @@ export default function CreateJobPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
             </Tabs>
           </form>
 

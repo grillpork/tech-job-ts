@@ -4,7 +4,7 @@ import * as React from "react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { MoreHorizontal, Search, User, Calendar, X } from "lucide-react";
+import { MoreHorizontal, Search, User, Calendar, X, ImageIcon, Upload, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import SignaturePad, { SignaturePadRef } from "@/components/signature/SignaturePad";
 
@@ -66,10 +66,44 @@ export default function JobManagementPage() {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
 
+  // Image State
+  const [beforeImages, setBeforeImages] = useState<string[]>([]);
+  const [afterImages, setAfterImages] = useState<string[]>([]);
+
   const handleComplete = (job: Job) => {
     setJobToDelete(job);
     setSignatureData(null);
+    // Load existing images if any
+    setBeforeImages(job.beforeImages || []);
+    setAfterImages(job.afterImages || []);
     setIsCompleteDialogOpen(true);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.result) {
+            if (type === 'before') {
+              setBeforeImages(prev => [...prev, reader.result as string]);
+            } else {
+              setAfterImages(prev => [...prev, reader.result as string]);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeImage = (index: number, type: 'before' | 'after') => {
+    if (type === 'before') {
+      setBeforeImages(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setAfterImages(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   // -------------------- Signature Logic --------------------
@@ -158,7 +192,9 @@ export default function JobManagementPage() {
         requestJobCompletion(
           jobToDelete.id,
           { id: currentUser.id, name: currentUser.name },
-          signatureData
+          signatureData,
+          beforeImages,
+          afterImages
         );
 
         toast.success("ส่งคำขอจบงานแล้ว รอการอนุมัติจากหัวหน้าช่าง");
@@ -301,6 +337,102 @@ export default function JobManagementPage() {
           </DialogHeader>
 
           {/* Signature Pad */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+            {/* Before Images */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                  รูปภาพก่อนเริ่มงาน
+                </Label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="before-upload"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, 'before')}
+                  />
+                  <Label
+                    htmlFor="before-upload"
+                    className="cursor-pointer inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    เพิ่มรูป
+                  </Label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {beforeImages.map((img, idx) => (
+                  <div key={idx} className="relative group aspect-square rounded-md border overflow-hidden bg-muted">
+                    <img src={img} alt={`Before ${idx}`} className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => removeImage(idx, 'before')}
+                      className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {beforeImages.length === 0 && (
+                  <div className="col-span-3 h-24 flex flex-col items-center justify-center border-2 border-dashed rounded-md text-muted-foreground bg-muted/10">
+                    <ImageIcon className="h-8 w-8 opacity-20 mb-2" />
+                    <span className="text-xs">ยังไม่มีรูปภาพ</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* After Images */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                  รูปภาพหลังจบงาน
+                </Label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="after-upload"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, 'after')}
+                  />
+                  <Label
+                    htmlFor="after-upload"
+                    className="cursor-pointer inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    เพิ่มรูป
+                  </Label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {afterImages.map((img, idx) => (
+                  <div key={idx} className="relative group aspect-square rounded-md border overflow-hidden bg-muted">
+                    <img src={img} alt={`After ${idx}`} className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => removeImage(idx, 'after')}
+                      className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {afterImages.length === 0 && (
+                  <div className="col-span-3 h-24 flex flex-col items-center justify-center border-2 border-dashed rounded-md text-muted-foreground bg-muted/10">
+                    <ImageIcon className="h-8 w-8 opacity-20 mb-2" />
+                    <span className="text-xs">ยังไม่มีรูปภาพ</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label className="text-sm font-medium">ลายเซ็น</Label>
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/20">

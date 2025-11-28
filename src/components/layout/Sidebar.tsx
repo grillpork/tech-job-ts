@@ -61,7 +61,6 @@ export default function Sidebar() {
         href: "/dashboard/admin/inventorys",
         icon: ToolCase,
       },
-      { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
     ],
     manager: [
       {
@@ -69,7 +68,6 @@ export default function Sidebar() {
         href: "/dashboard/admin/dashboard",
         icon: LayoutDashboard,
       },
-      { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
     ],
     lead_technician: [
       {

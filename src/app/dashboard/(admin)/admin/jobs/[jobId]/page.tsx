@@ -87,7 +87,7 @@ const getStatusVariant = (status: string) => {
 };
 
 const getStatusColor = (status: string) => {
-   switch (status) {
+  switch (status) {
     case 'completed': return 'bg-emerald-500/15 text-emerald-700 border-emerald-200';
     case 'in_progress': return 'bg-blue-500/15 text-blue-700 border-blue-200';
     case 'pending_approval': return 'bg-amber-500/15 text-amber-700 border-amber-200';
@@ -178,11 +178,10 @@ function LocationImagesCarousel({ images }: { images: string[] }) {
             {images.map((_, index) => (
               <button
                 key={index}
-                className={`h-1.5 rounded-full transition-all ${
-                  selectedIndex === index
+                className={`h-1.5 rounded-full transition-all ${selectedIndex === index
                     ? 'w-4 bg-white'
                     : 'w-1.5 bg-white/50'
-                }`}
+                  }`}
                 onClick={() => emblaApi?.scrollTo(index)}
               />
             ))}
@@ -215,7 +214,7 @@ export default function JobViewPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto p-6 space-y-8">
-      
+
       {/* --- Header Section --- */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 border-b pb-6">
         <div className="space-y-4">
@@ -225,7 +224,7 @@ export default function JobViewPage() {
             </Badge>
             {job.priority && (
               <Badge variant="outline" className={`px-3 py-1 text-sm font-medium capitalize border ${getPriorityColor(job.priority)}`}>
-                {job.priority} Priority
+                ความสำคัญ {job.priority}
               </Badge>
             )}
             <span className="text-sm text-muted-foreground flex items-center gap-1 ml-2">
@@ -233,7 +232,7 @@ export default function JobViewPage() {
               {job.id.substring(0, 8)}
             </span>
           </div>
-          
+
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{job.title}</h1>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-muted-foreground">
@@ -261,16 +260,16 @@ export default function JobViewPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* --- Left Column (Main Info) --- */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* 1. Customer & Location (High Priority) */}
           <Card className="shadow-sm border-none ring-1 ring-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <MapPin className="h-5 w-5 text-primary" />
-                Job Site & Customer
+                สถานที่ปฏิบัติงานและลูกค้า
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -283,8 +282,8 @@ export default function JobViewPage() {
                       <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Name</p>
-                      <p className="font-medium">{job.customerName || "N/A"}</p>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">ชื่อลูกค้า</p>
+                      <p className="font-medium">{job.customerName || "ไม่ระบุ"}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -292,8 +291,8 @@ export default function JobViewPage() {
                       <Phone className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contact Number</p>
-                      <p className="font-medium">{job.customerPhone || "N/A"}</p>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">เบอร์โทรศัพท์</p>
+                      <p className="font-medium">{job.customerPhone || "ไม่ระบุ"}</p>
                     </div>
                   </div>
                 </div>
@@ -308,7 +307,7 @@ export default function JobViewPage() {
                           <Building2 className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Company Name</p>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">ชื่อบริษัท</p>
                           <p className="font-medium">{job.customerCompanyName || "-"}</p>
                         </div>
                       </div>
@@ -317,7 +316,7 @@ export default function JobViewPage() {
                           <Receipt className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tax ID</p>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">เลขประจำตัวผู้เสียภาษี</p>
                           <p className="font-medium">{job.customerTaxId || "-"}</p>
                         </div>
                       </div>
@@ -327,7 +326,7 @@ export default function JobViewPage() {
                             <MapPin className="h-4 w-4 text-muted-foreground" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Company Address</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">ที่อยู่บริษัท</p>
                             <p className="font-medium text-sm leading-relaxed">{job.customerAddress}</p>
                           </div>
                         </div>
@@ -341,7 +340,7 @@ export default function JobViewPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold flex items-center gap-2">
-                    Location Details
+                    รายละเอียดสถานที่
                   </h4>
                   {job.location?.lat && (
                     <Badge variant="outline" className="font-mono text-xs">
@@ -349,33 +348,33 @@ export default function JobViewPage() {
                     </Badge>
                   )}
                 </div>
-                
+
                 {job.location && job.location.lat != null && job.location.lng != null ? (
                   <MapRouting
                     companyLocation={{
                       lat: 13.7563,
                       lng: 100.5018,
-                      name: "HQ"
+                      name: "สำนักงานใหญ่"
                     }}
                     jobLocation={{
                       lat: job.location.lat,
                       lng: job.location.lng,
-                      name: job.location.name || "Job Site"
+                      name: job.location.name || "สถานที่ปฏิบัติงาน"
                     }}
                     className="h-[300px] w-full rounded-lg overflow-hidden border shadow-sm"
                   />
                 ) : (
                   <div className="h-[200px] flex items-center justify-center bg-muted/30 rounded-lg border border-dashed text-muted-foreground">
                     <MapPin className="h-8 w-8 opacity-20 mr-2" />
-                    <span>No location data available</span>
+                    <span>ไม่มีข้อมูลสถานที่</span>
                   </div>
                 )}
-                
+
                 {job.locationImages && job.locationImages.length > 0 && (
                   <div className="mt-4">
                     <p className="text-sm font-medium mb-3 flex items-center gap-2">
                       <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                      Site Photos
+                      รูปภาพสถานที่
                     </p>
                     <LocationImagesCarousel images={job.locationImages} />
                   </div>
@@ -389,34 +388,34 @@ export default function JobViewPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <FileText className="h-5 w-5 text-primary" />
-                Job Details
+                รายละเอียดงาน
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Job Type</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">ประเภทงาน</p>
                   <div className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{job.type || "General"}</span>
+                    <span className="font-medium">{job.type || "ทั่วไป"}</span>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Schedule</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">กำหนดการ</p>
                   <div className="flex items-center gap-2">
                     <CalendarRange className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">
-                      {job.startDate ? dayjs(job.startDate).format('DD/MM/YY') : 'TBD'} 
-                      {' - '} 
-                      {job.endDate ? dayjs(job.endDate).format('DD/MM/YY') : 'TBD'}
+                      {job.startDate ? dayjs(job.startDate).format('DD/MM/YY') : 'รอระบุ'}
+                      {' - '}
+                      {job.endDate ? dayjs(job.endDate).format('DD/MM/YY') : 'รอระบุ'}
                     </span>
                   </div>
                 </div>
               </div>
-              
+
               {job.description && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Description</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">รายละเอียดเพิ่มเติม</p>
                   <div className="p-4 bg-muted/30 rounded-lg border text-sm leading-relaxed">
                     {job.description}
                   </div>
@@ -428,7 +427,7 @@ export default function JobViewPage() {
                 <div className="space-y-3 pt-2">
                   <p className="text-sm font-medium flex items-center gap-2">
                     <Paperclip className="h-4 w-4 text-muted-foreground" />
-                    Attachments ({job.attachments.length})
+                    ไฟล์แนบ ({job.attachments.length})
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {job.attachments.map((attachment) => (
@@ -465,15 +464,15 @@ export default function JobViewPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <ImageIcon className="h-5 w-5 text-primary" />
-                  Work Evidence
+                  หลักฐานการทำงาน
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-8">
                 {job.beforeImages && job.beforeImages.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Before</Badge>
-                      <span className="text-xs text-muted-foreground">Photos taken before work started</span>
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">ก่อนทำ</Badge>
+                      <span className="text-xs text-muted-foreground">รูปภาพก่อนเริ่มงาน</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {job.beforeImages.map((imageUrl, index) => (
@@ -489,14 +488,14 @@ export default function JobViewPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {job.beforeImages && job.beforeImages.length > 0 && job.afterImages && job.afterImages.length > 0 && <Separator />}
 
                 {job.afterImages && job.afterImages.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">After</Badge>
-                      <span className="text-xs text-muted-foreground">Photos taken after work completed</span>
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">หลังทำ</Badge>
+                      <span className="text-xs text-muted-foreground">รูปภาพหลังงานเสร็จสิ้น</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {job.afterImages.map((imageUrl, index) => (
@@ -515,7 +514,7 @@ export default function JobViewPage() {
 
                 {job.signature && (
                   <div className="pt-4 border-t">
-                    <p className="text-sm font-medium mb-3">Customer Signature</p>
+                    <p className="text-sm font-medium mb-3">ลายเซ็นลูกค้า</p>
                     <div className="inline-block border rounded-lg p-4 bg-white">
                       <img
                         src={job.signature}
@@ -532,19 +531,19 @@ export default function JobViewPage() {
 
         {/* --- Right Column (Sidebar) --- */}
         <div className="space-y-6">
-          
+
           {/* Team Card */}
           <Card className="shadow-sm border-none ring-1 ring-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Users className="h-4 w-4 text-primary" />
-                Assigned Team
+                ทีมที่ได้รับมอบหมาย
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                  <UserCheck className="h-3 w-3" /> Lead Technician
+                  <UserCheck className="h-3 w-3" /> หัวหน้าช่าง
                 </p>
                 {job.leadTechnician ? (
                   <div className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
@@ -555,14 +554,14 @@ export default function JobViewPage() {
                     <span className="text-sm font-medium">{job.leadTechnician.name}</span>
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground italic pl-2">Not assigned</span>
+                  <span className="text-sm text-muted-foreground italic pl-2">ยังไม่ได้กำหนด</span>
                 )}
               </div>
-              
+
               <Separator />
-              
+
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">Team Members</p>
+                <p className="text-xs font-medium text-muted-foreground mb-2">สมาชิกในทีม</p>
                 {job.assignedEmployees.length > 0 ? (
                   <div className="space-y-1">
                     {job.assignedEmployees.map(employee => (
@@ -576,7 +575,7 @@ export default function JobViewPage() {
                     ))}
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground italic pl-2">No other members</span>
+                  <span className="text-sm text-muted-foreground italic pl-2">ไม่มีสมาชิกอื่น</span>
                 )}
               </div>
             </CardContent>
@@ -588,10 +587,10 @@ export default function JobViewPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Package className="h-4 w-4 text-primary" />
-                  Inventory
+                  อุปกรณ์ที่ใช้
                 </CardTitle>
                 <Badge variant="secondary" className="text-xs font-normal">
-                  {job.usedInventory?.length || 0} Items
+                  {job.usedInventory?.length || 0} รายการ
                 </Badge>
               </div>
             </CardHeader>
@@ -609,7 +608,7 @@ export default function JobViewPage() {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="font-bold">{usedInv.qty}</span>
-                          <span className="text-xs text-muted-foreground">units</span>
+                          <span className="text-xs text-muted-foreground">หน่วย</span>
                         </div>
                       </div>
                     );
@@ -617,7 +616,7 @@ export default function JobViewPage() {
                 </div>
               ) : (
                 <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-md">
-                  No inventory used
+                  ไม่มีการใช้อุปกรณ์
                 </div>
               )}
             </CardContent>
@@ -628,7 +627,7 @@ export default function JobViewPage() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <History className="h-4 w-4 text-primary" />
-                Activity Log
+                ประวัติการทำงาน
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -657,7 +656,7 @@ export default function JobViewPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-sm text-muted-foreground italic pl-2">No activity recorded</div>
+                  <div className="text-sm text-muted-foreground italic pl-2">ไม่มีประวัติการทำงาน</div>
                 )}
               </div>
             </CardContent>

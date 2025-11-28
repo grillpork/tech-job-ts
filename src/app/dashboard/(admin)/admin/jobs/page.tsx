@@ -347,6 +347,9 @@ const JobsList = () => {
     return job?.leadTechnician?.id === currentUser?.id;
   });
 
+  // Determine if tabs should be shown (only for admin, manager, lead_technician)
+  const showTabs = currentUser && ['lead_technician'].includes(currentUser.role);
+
   // ===========================
   // 11. นิยาม Columns สำหรับ Jobs List
   // ===========================
@@ -613,17 +616,19 @@ const JobsList = () => {
 
       {/* TABS SECTION */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "jobs" | "completion-requests")} className="mb-4">
-        <TabsList className="grid w-fit max-w-md grid-cols-2">
-          <TabsTrigger value="jobs">รายการงาน</TabsTrigger>
-          <TabsTrigger value="completion-requests">
-            คำขอจบงาน
-            {pendingCompletionRequests.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500 text-white rounded-full">
-                {pendingCompletionRequests.length}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        {showTabs && (
+          <TabsList className="grid w-fit max-w-md grid-cols-2">
+            <TabsTrigger value="jobs">รายการงาน</TabsTrigger>
+            <TabsTrigger value="completion-requests">
+              คำขอจบงาน
+              {pendingCompletionRequests.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500 text-white rounded-full">
+                  {pendingCompletionRequests.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="jobs" className="mt-4">
           {/* FILTERS SECTION */}
@@ -631,7 +636,7 @@ const JobsList = () => {
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">ตัวกรอง:</span>
               </div>
               {hasActiveFilters && (
                 <Button
@@ -641,7 +646,7 @@ const JobsList = () => {
                   className="h-7 text-xs"
                 >
                   <X className="h-3 w-3 mr-1" />
-                  Clear All
+                  ล้างทั้งหมด
                 </Button>
               )}
             </div>
@@ -649,7 +654,7 @@ const JobsList = () => {
               {/* Search Input */}
               <div className="w-full sm:w-[240px]">
                 <Input
-                  placeholder="Search by title..."
+                  placeholder="ค้นหาตามชื่องาน..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full"
@@ -659,16 +664,16 @@ const JobsList = () => {
               {/* Status Filter */}
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger className="w-full sm:w-[150px]">
-                  <SelectValue placeholder="All Status" />
+                  <SelectValue placeholder="สถานะทั้งหมด" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="pending_approval">Pending Approval</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="all">สถานะทั้งหมด</SelectItem>
+                  <SelectItem value="pending">รอดำเนินการ</SelectItem>
+                  <SelectItem value="in_progress">กำลังดำเนินการ</SelectItem>
+                  <SelectItem value="pending_approval">รออนุมัติ</SelectItem>
+                  <SelectItem value="completed">เสร็จสิ้น</SelectItem>
+                  <SelectItem value="cancelled">ยกเลิก</SelectItem>
+                  <SelectItem value="rejected">ปฏิเสธ</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -684,13 +689,13 @@ const JobsList = () => {
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRange.from && dateRange.to ? (
-                      `${format(dateRange.from, "M / d / yyyy")} - ${format(dateRange.to, "M / d / yyyy")}`
+                      `${format(dateRange.from, "d/M/yyyy")} - ${format(dateRange.to, "d/M/yyyy")}`
                     ) : dateRange.from ? (
-                      `From ${format(dateRange.from, "M / d / yyyy")}`
+                      `จาก ${format(dateRange.from, "d/M/yyyy")}`
                     ) : dateRange.to ? (
-                      `Until ${format(dateRange.to, "M / d / yyyy")}`
+                      `ถึง ${format(dateRange.to, "d/M/yyyy")}`
                     ) : (
-                      "Select Date Range"
+                      "เลือกช่วงวันที่"
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -717,10 +722,10 @@ const JobsList = () => {
               {/* Department Filter */}
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
                 <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="All Departments" />
+                  <SelectValue placeholder="แผนกทั้งหมด" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
+                  <SelectItem value="all">แผนกทั้งหมด</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept} value={dept}>
                       {dept}
@@ -732,14 +737,14 @@ const JobsList = () => {
               {/* Priority Filter */}
               <Select value={selectedPriority} onValueChange={setSelectedPriority}>
                 <SelectTrigger className="w-full sm:w-[150px]">
-                  <SelectValue placeholder="All Priorities" />
+                  <SelectValue placeholder="ความสำคัญทั้งหมด" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="all">ความสำคัญทั้งหมด</SelectItem>
+                  <SelectItem value="urgent">เร่งด่วนมาก</SelectItem>
+                  <SelectItem value="high">สูง</SelectItem>
+                  <SelectItem value="medium">ปานกลาง</SelectItem>
+                  <SelectItem value="low">ต่ำ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -889,66 +894,68 @@ const JobsList = () => {
 
         </TabsContent>
 
-        <TabsContent value="completion-requests" className="mt-4">
-          <Card className="p-4">
-            <h2 className="text-xl font-semibold mb-4">คำขอจบงานที่รอการอนุมัติ</h2>
-            {pendingCompletionRequests.length > 0 ? (
-              <div className="space-y-4">
-                {pendingCompletionRequests.map((request) => {
-                  const job = jobs.find(j => j.id === request.jobId);
-                  if (!job) return null;
-                  return (
-                    <Card key={request.id} className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg mb-2">{job.title}</h3>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>ผู้ส่งคำขอ: {request.requestedBy.name}</p>
-                            <p>วันที่ส่งคำขอ: {new Date(request.requestedAt).toLocaleString('th-TH')}</p>
-                            <p>แผนก: {getJobDepartments(job).join(", ") || '-'}</p>
+        {showTabs && (
+          <TabsContent value="completion-requests" className="mt-4">
+            <Card className="p-4">
+              <h2 className="text-xl font-semibold mb-4">คำขอจบงานที่รอการอนุมัติ</h2>
+              {pendingCompletionRequests.length > 0 ? (
+                <div className="space-y-4">
+                  {pendingCompletionRequests.map((request) => {
+                    const job = jobs.find(j => j.id === request.jobId);
+                    if (!job) return null;
+                    return (
+                      <Card key={request.id} className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg mb-2">{job.title}</h3>
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              <p>ผู้ส่งคำขอ: {request.requestedBy.name}</p>
+                              <p>วันที่ส่งคำขอ: {new Date(request.requestedAt).toLocaleString('th-TH')}</p>
+                              <p>แผนก: {getJobDepartments(job).join(", ") || '-'}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 h-8 px-3"
+                              onClick={() => handleApproveRequest(request.id)}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              อนุมัติ
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800 h-8 px-3"
+                              onClick={() => handleRejectRequest(request.id)}
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />
+                              ปฏิเสธ
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 h-8 px-3"
-                            onClick={() => handleApproveRequest(request.id)}
+                            onClick={() => router.push(`/dashboard/admin/jobs/${job.id}`)}
                           >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            อนุมัติ
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800 h-8 px-3"
-                            onClick={() => handleRejectRequest(request.id)}
-                          >
-                            <XCircle className="h-4 w-4 mr-2" />
-                            ปฏิเสธ
+                            ดูรายละเอียดงาน
                           </Button>
                         </div>
-                      </div>
-                      <div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/dashboard/admin/jobs/${job.id}`)}
-                        >
-                          ดูรายละเอียดงาน
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>ไม่มีคำขอจบงานที่รอการอนุมัติ</p>
-              </div>
-            )}
-          </Card>
-        </TabsContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>ไม่มีคำขอจบงานที่รอการอนุมัติ</p>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Delete Confirmation Dialog */}

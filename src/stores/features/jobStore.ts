@@ -164,7 +164,9 @@ interface JobStoreState {
   requestJobCompletion: (
     jobId: string,
     requestedBy: { id: string; name: string },
-    signature: string
+    signature: string,
+    beforeImages?: string[],
+    afterImages?: string[]
   ) => string;
   approveCompletionRequest: (
     requestId: string,
@@ -575,7 +577,13 @@ export const useJobStore = create<JobStoreState>()(
       },
 
       // Completion Request functions
-      requestJobCompletion: (jobId, requestedBy, signature) => {
+      requestJobCompletion: (
+        jobId,
+        requestedBy,
+        signature,
+        beforeImages = [],
+        afterImages = []
+      ) => {
         const job = get().jobs.find((j) => j.id === jobId);
         if (!job) {
           console.error("JobStore: Job not found for completion request");
@@ -614,6 +622,13 @@ export const useJobStore = create<JobStoreState>()(
           if (jobIndex !== -1) {
             state.jobs[jobIndex].status = "pending_approval";
             state.jobs[jobIndex].signature = signature;
+            // อัปเดตรูปภาพ before/after
+            if (beforeImages.length > 0) {
+              state.jobs[jobIndex].beforeImages = beforeImages;
+            }
+            if (afterImages.length > 0) {
+              state.jobs[jobIndex].afterImages = afterImages;
+            }
             // ล้าง rejection reason เมื่อส่งคำขอใหม่
             state.jobs[jobIndex].rejectionReason = null;
           }

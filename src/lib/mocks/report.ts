@@ -26,8 +26,8 @@ export const MOCK_REPORTS: Report[] = [
       "ต้องการให้สามารถ Export รายงานการทำงานเป็นไฟล์ PDF เพื่อส่งให้หัวหน้าทีมได้",
     type: "request",
     status: "in_progress",
-    createdAt: "2024-01-14T14:20:00Z",
-    updatedAt: "2024-01-15T09:15:00Z",
+    createdAt: "2025-11-21T14:20:00Z",
+    updatedAt: "2025-11-21T09:15:00Z",
     reporter: {
       id: "user-emp-e2",
       name: "นางสาว พิรัย กรรม",
@@ -48,8 +48,8 @@ export const MOCK_REPORTS: Report[] = [
       "ปั๊มน้ำ PW-200 ที่ใช้ในงานซ่อมประปาเกิดเสียงผิดปกติและหยุดทำงานทันที ต้องส่งซ่อมด่วน",
     type: "incident",
     status: "resolved",
-    createdAt: "2024-01-13T08:45:00Z",
-    updatedAt: "2024-01-14T16:30:00Z",
+    createdAt: "2025-11-21T08:45:00Z",
+    updatedAt: "2025-11-21T16:30:00Z",
     reporter: {
       id: "user-emp-m1",
       name: "นาย มาลี แหม่ม",
@@ -71,7 +71,7 @@ export const MOCK_REPORTS: Report[] = [
       "ระบบแจ้งเตือนปัจจุบันไม่ชัดเจนพอ ควรเพิ่มเสียงแจ้งเตือนและแสดง popup ที่เด่นชัดขึ้น",
     type: "improvement",
     status: "open",
-    createdAt: "2024-01-12T11:00:00Z",
+    createdAt: "2025-11-21T11:00:00Z",
     updatedAt: null,
     reporter: {
       id: "user-emp-m2",
@@ -89,8 +89,8 @@ export const MOCK_REPORTS: Report[] = [
       "เมื่อเข้าหน้า Job detail หน้าจอจะกระพริบหลายครั้งก่อนจะแสดงข้อมูล ซึ่งทำให้ผู้ใช้สับสน",
     type: "bug",
     status: "in_progress",
-    createdAt: "2024-01-11T15:30:00Z",
-    updatedAt: "2024-01-12T10:20:00Z",
+    createdAt: "2025-11-21T15:30:00Z",
+    updatedAt: "2025-11-21T10:20:00Z",
     reporter: {
       id: "user-emp-e3",
       name: "นางสาว สมศรี เรืองแสง",
@@ -112,8 +112,8 @@ export const MOCK_REPORTS: Report[] = [
       "ต้องการให้สามารถกรอง Job ตามสถานะ (pending, in_progress, completed) เพื่อให้ค้นหาง่ายขึ้น",
     type: "request",
     status: "closed",
-    createdAt: "2024-01-10T09:15:00Z",
-    updatedAt: "2024-01-13T14:00:00Z",
+    createdAt: "2025-11-21T09:15:00Z",
+    updatedAt: "2025-11-21T14:00:00Z",
     reporter: {
       id: "user-emp-e4",
       name: "นาย ประยุบ อังคาร",
@@ -134,8 +134,8 @@ export const MOCK_REPORTS: Report[] = [
       "เมื่อมีผู้ใช้เข้าถึงระบบพร้อมกันมากกว่า 50 คน ระบบจะล่มชั่วคราวและต้องรีสตาร์ทเซิร์ฟเวอร์",
     type: "incident",
     status: "resolved",
-    createdAt: "2024-01-09T13:45:00Z",
-    updatedAt: "2024-01-11T11:30:00Z",
+    createdAt: "2025-11-21T13:45:00Z",
+    updatedAt: "2025-11-21T11:30:00Z",
     reporter: {
       id: "user-emp-m3",
       name: "นาย อูโน่ หลาวทอง",
@@ -156,7 +156,7 @@ export const MOCK_REPORTS: Report[] = [
       "ฟอร์มเพิ่ม Job ควรมี auto-save และ validation ที่ดีขึ้น เพื่อป้องกันการสูญเสียข้อมูล",
     type: "improvement",
     status: "open",
-    createdAt: "2024-01-08T10:20:00Z",
+    createdAt: "2025-11-21T10:20:00Z",
     updatedAt: null,
     reporter: {
       id: "user-emp-m4",

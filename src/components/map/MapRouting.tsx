@@ -96,7 +96,7 @@ const RoutingMachine = ({ waypoints, onRouteFound }: RoutingMachineProps) => {
         // @ts-ignore
         if (routingControl) {
           // ป้องกัน error จากการพยายาม update map ที่ถูก destroy ไปแล้ว
-          routingControl.getPlan().setWaypoints([]); 
+          routingControl.getPlan().setWaypoints([]);
           if (map) {
             map.removeControl(routingControl);
           }
@@ -160,8 +160,8 @@ export default function MapRouting({
         style={{ height: "100%", width: "100%", zIndex: 0 }}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
         {/* Routing */}
@@ -200,8 +200,8 @@ export default function MapRouting({
 
       {/* Route Info Overlay */}
       <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           className="bg-white text-black hover:bg-gray-100 shadow-md gap-2"
           onClick={handleOpenGoogleMaps}
         >

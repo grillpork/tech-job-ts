@@ -368,13 +368,13 @@ export default function ReportPage() {
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {/* <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {report.tags.map((tag) => (
                           <Badge key={tag} variant="secondary" className="text-[10px] sm:text-xs">
                             {tag}
                           </Badge>
                         ))}
-                      </div>
+                      </div> */}
                       <span className="text-[10px] sm:text-xs text-muted-foreground">
                         {new Date(report.createdAt).toLocaleDateString('th-TH', {
                           year: '2-digit',
@@ -409,9 +409,6 @@ export default function ReportPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-3">
-                        <Badge variant="outline" className="font-mono">
-                          {selectedReport.id}
-                        </Badge>
                         <Badge className={statusConfig[selectedReport.status].color}>
                           {statusConfig[selectedReport.status].label}
                         </Badge>
@@ -478,7 +475,7 @@ export default function ReportPage() {
                   </div>
 
                   {/* Tags */}
-                  <div>
+                  {/* <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Tag className="h-4 w-4 text-muted-foreground" />
                       <p className="text-sm font-medium">แท็ก</p>
@@ -490,7 +487,7 @@ export default function ReportPage() {
                         </Badge>
                       ))}
                     </div>
-                  </div>
+                  </div> */}
 
                   <Separator />
 

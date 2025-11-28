@@ -371,13 +371,13 @@ const JobsList = () => {
   const columns: any[] = [
     {
       key: "title",
-      label: "Title",
+      label: "หัวเรื่อง",
       sortable: true,
       render: (row: Job) => <span className="font-medium">{row.title}</span>,
     },
     {
       key: "status",
-      label: "Status",
+      label: "สถานะ",
       render: (row: Job) => (
         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(row.status)}`}>
           {formatStatusLabel(row.status)}
@@ -386,7 +386,7 @@ const JobsList = () => {
     },
     {
       key: "priority",
-      label: "Priority",
+      label: "ความสำคัญ",
       render: (row: Job) => (
         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getPriorityColor(row.priority)}`}>
           {formatPriorityLabel(row.priority)}
@@ -403,7 +403,7 @@ const JobsList = () => {
     },
     {
       key: "createdBy",
-      label: "Creator",
+      label: "ผู้สร้าง",
       render: (row: Job) => {
         const creatorId = row.creator?.id;
         // Prefer live user data from user store so profile updates (imageUrl) reflect here
@@ -429,7 +429,7 @@ const JobsList = () => {
     },
     {
       key: "leadTechnician",
-      label: "Leader",
+      label: "หัวหน้า",
       render: (row: Job) => {
         const leadTechnicianId = row.leadTechnician?.id;
         // Prefer live user data from user store so profile updates (imageUrl) reflect here
@@ -455,7 +455,7 @@ const JobsList = () => {
     },
     {
       key: "assignedTo",
-      label: "Assigned To",
+      label: "ผู้รับผิดชอบ",
       render: (row: Job) => {
         const assignedUsers = row.assignedEmployees || [];
         const visible = assignedUsers.slice(0, 3);
@@ -512,14 +512,14 @@ const JobsList = () => {
     },
     {
       key: "startDate",
-      label: "Start Date",
+      label: "วันที่เริ่ม",
       render: (row: Job) => (
         <span>{row.startDate ? new Date(row.startDate).toLocaleDateString() : '-'}</span>
       ),
     },
     {
       key: "actions",
-      label: "Actions",
+      label: "การดำเนินการ",
       align: "center",
       render: (row: Job) => (
         <div className="flex justify-center">

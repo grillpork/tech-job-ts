@@ -107,12 +107,12 @@ export default function Sidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          "h-screen flex flex-col transition-all duration-300",
+          "h-screen bg-white dark:bg-background flex flex-col transition-all duration-300",
           collapsed ? "w-17" : "w-64"
         )}
       >
         {/* Header */}
-        <div className={!collapsed ? "flex items-center justify-between p-4" : "flex flex-col items-center justify-between p-4"}>
+        <div className={!collapsed ? "hidden sm:flex items-center justify-between p-4" : "flex flex-col items-center justify-between p-4"}>
           {!collapsed ? (
             <div className="flex items-center gap-3">
               <img 

@@ -259,11 +259,11 @@ export default function LeafletMapPage() {
         className="w-full h-full"
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <MapController mapRef={mapRef} onMapReady={() => {}} />
+        <MapController mapRef={mapRef} onMapReady={() => { }} />
         <FitBounds locations={filteredLocations} />
         <Markers locations={filteredLocations} />
       </MapContainer>
@@ -294,8 +294,8 @@ export default function LeafletMapPage() {
             <SelectContent>
               <SelectGroup>
                 <SelectItem value="all">ทั้งหมด</SelectItem>
-                <SelectItem value="home"><Home/>บ้าน</SelectItem>
-                <SelectItem value="building"><Building/>อาคาร</SelectItem>
+                <SelectItem value="home"><Home />บ้าน</SelectItem>
+                <SelectItem value="building"><Building />อาคาร</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -319,7 +319,7 @@ export default function LeafletMapPage() {
 
               <div className="flex flex-col w-full gap-2">
                 <Badge
-                 
+
                   className={`bg-transparent outline ${statusColors[loc.status]}`}
                 >
                   {statusIcons[loc.status]}
@@ -330,7 +330,7 @@ export default function LeafletMapPage() {
                 <p className="text-sm dark:text-white/50 text-black/50 line-clamp-2">
                   {loc.description}
                 </p>
-                
+
               </div>
             </Card>
           ))}

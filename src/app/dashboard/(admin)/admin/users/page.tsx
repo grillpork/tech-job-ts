@@ -110,8 +110,8 @@ export default function UsersPage() {
   const columns: any = [
     {
       key: "name",
-      label: "Name",
-      sortable: true,
+      label: "ชื่อ",
+      // sortable: true,
       render: (row: any) => {
         const initials = (row?.name || "")
           .split(" ")
@@ -148,32 +148,32 @@ export default function UsersPage() {
     },
     {
       key: "department",
-      label: "Department",
-      sortable: true,
+      label: "แผนก",
+      // sortable: true,
       render: (row: any) => {
         const dept = row?.department;
         return (
           <span className="text-sm">
-            {dept ? (departmentLabels[dept] || dept) : "None"}
+            {dept ? (departmentLabels[dept] || dept) : "ไม่ระบุ"}
           </span>
         );
       },
     },
     {
       key: "role",
-      label: "Role",
-      sortable: true,
+      label: "บทบาท",
+      // sortable: true,
       render: (row: any) => roleLabels[row.role] || row.role
     },
     {
       key: "status",
-      label: "Status",
-      sortable: true,
+      label: "สถานะ",
+      // sortable: true,
       render: (row: any) => statusLabels[row.status] || row.status
     },
     {
       key: "actions",
-      label: "Actions",
+      label: "การดำเนินการ",
       align: "center",
       render: (row: any) => (
         <DropdownMenu>

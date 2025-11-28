@@ -181,10 +181,10 @@ export default function EditJobPage() {
 
   // รายการ departments ทั้งหมด
   const allDepartments = [
-    { value: "Electrical", label: "แผนกช่างไฟ (Electrical)" },
-    { value: "Mechanical", label: "แผนกช่างกล (Mechanical)" },
-    { value: "Technical", label: "แผนกช่างเทคนิค (Technical)" },
-    { value: "Civil", label: "แผนกช่างโยธา (Civil)" },
+    { value: "ไฟฟ้า", label: "แผนกช่างไฟ (Electrical)" },
+    { value: "เครื่องกล", label: "แผนกช่างกล (Mechanical)" },
+    { value: "เทคนิค", label: "แผนกช่างเทคนิค (Technical)" },
+    { value: "โยธา", label: "แผนกช่างโยธา (Civil)" },
   ];
 
   // Helper function to get localStorage key for signature
@@ -228,8 +228,17 @@ export default function EditJobPage() {
       setEndDate(job.endDate ? parseISO(job.endDate) : undefined);
 
       setSelectedEmployees(job.assignedEmployees.map(u => ({ value: u.id, label: u.name })));
-      // แปลง department เดิมเป็น array (backward compatibility)
-      setDepartments(Array.isArray(job.departments) ? job.departments : (job.departments ? [job.departments] : []));
+
+      // แปลง department เดิมเป็น array และ map เป็นภาษาไทย (backward compatibility)
+      const deptMap: Record<string, string> = {
+        "Electrical": "ไฟฟ้า",
+        "Mechanical": "เครื่องกล",
+        "Technical": "เทคนิค",
+        "Civil": "โยธา"
+      };
+      const rawDepts = Array.isArray(job.departments) ? job.departments : (job.departments ? [job.departments] : []);
+      const mappedDepts = rawDepts.map(d => deptMap[d] || d);
+      setDepartments(mappedDepts);
       setLeadTechnician(job.leadTechnician?.id || ''); // ใช้ค่าจาก job
       setPriority(job.priority || 'medium'); // ใช้ค่าจาก job
       setType(job.type || ''); // ใช้ค่าจาก job

@@ -143,15 +143,6 @@ const NotificationsPage: React.FC = () => {
     return configs[type] || configs.system;
   };
 
-  const handleNotificationClick = (notification: typeof notifications[0]) => {
-    if (!notification.read) {
-      markAsRead(notification.id);
-    }
-    if (notification.link) {
-      router.push(notification.link);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-transparent transition-colors duration-200">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -193,8 +184,7 @@ const NotificationsPage: React.FC = () => {
             return (
               <div
                 key={notification.id}
-                onClick={() => handleNotificationClick(notification)}
-                className={`group relative bg-white dark:bg-[#1a1a1a] rounded-xl border transition-all duration-200 hover:shadow-lg dark:hover:bg-[#1f1f1f] cursor-pointer ${notification.read
+                className={`group relative bg-white dark:bg-[#1a1a1a] rounded-xl border transition-all duration-200 hover:shadow-lg dark:hover:bg-[#1f1f1f] ${notification.read
                   ? 'border-gray-200 dark:border-gray-800'
                   : 'border-blue-200 dark:border-blue-900/30 shadow-sm'
                   }`}
@@ -248,7 +238,7 @@ const NotificationsPage: React.FC = () => {
 
                       <div className="flex items-center justify-between">
                         {notification.user && (
-                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
                             {notification.user}
                           </span>
                         )}

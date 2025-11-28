@@ -276,7 +276,7 @@ export default function ReportPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <Select value={filterDepartment} onValueChange={(value) => setFilterDepartment(value as Department | "all")}>
+            {/* <Select value={filterDepartment} onValueChange={(value) => setFilterDepartment(value as Department | "all")}>
               <SelectTrigger className="w-full lg:w-[180px] h-10">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="ฝ่าย" />
@@ -289,7 +289,7 @@ export default function ReportPage() {
                 <SelectItem value="qa">QA</SelectItem>
                 <SelectItem value="customer">Customer</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
             <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as Status | "all")}>
               <SelectTrigger className="w-full lg:w-[180px] h-10">
                 <SelectValue placeholder="สถานะ" />

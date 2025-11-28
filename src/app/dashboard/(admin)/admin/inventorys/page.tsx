@@ -399,6 +399,12 @@ const InventoryManagement = () => {
 
   // Handle reject inventory request
   const handleRejectInventory = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) {
+      toast.error("ไม่พบใบงาน");
+      return;
+    }
+
     const request = getInventoryRequestByJobId(jobId);
     if (!request) {
       toast.error("ไม่พบคำขอเบิกวัสดุ");
@@ -415,6 +421,11 @@ const InventoryManagement = () => {
       },
       null
     );
+
+    // ✅ ลบ usedInventory ออกจากใบงานเมื่อปฏิเสธ
+    updateJob(jobId, {
+      usedInventory: [],
+    });
 
     toast.error("ปฏิเสธคำขอเบิกวัสดุ");
   };

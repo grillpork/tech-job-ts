@@ -135,11 +135,17 @@ export default function CreateUserPage() {
             </div>
             <div>
               <Label className="text-sm text-gray-500">แผนก</Label>
-              <Input 
-                className="w-full border rounded px-3 py-2 mt-1" 
-                value={form.department} 
-                onChange={(e) => handleChange("department", e.target.value)} 
-              />
+              <Select value={form.department} onValueChange={(value) => handleChange("department", value)}>
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="เลือกแผนก" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Electrical">ช่างไฟฟ้า</SelectItem>
+                  <SelectItem value="Mechanical">ช่างเครื่องกล</SelectItem>
+                  <SelectItem value="Civil">ช่างโยธา</SelectItem>
+                  <SelectItem value="Technical">ช่างเทคนิค</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-sm text-gray-500">บทบาท</Label>

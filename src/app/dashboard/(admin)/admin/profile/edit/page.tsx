@@ -144,7 +144,6 @@ const EditProfilePage: React.FC = () => {
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e)=>onFile(e.target.files?.[0] ?? null)} />
             <div className="mt-3 flex flex-col gap-2 w-full">
               <Button variant="outline" onClick={() => fileRef.current?.click()}>Change Photo</Button>
-              <Button variant="ghost" onClick={() => { setForm((s)=>({...s, imageUrl: ''})); if (fileRef.current) fileRef.current.value = ''; }}>Remove Photo</Button>
             </div>
           </div>
 

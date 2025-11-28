@@ -112,33 +112,42 @@ const JobsList = () => {
       case "pending_approval":
         return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30";
       case "in_progress":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30";
+        return "bg-blue-500/20 text-blue-400 text-shadow-mg border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30";
       case "completed":
-        return "bg-green-500/20 text-green-400 border-green-500/30 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30";
+        return "bg-green-500/20 text-green-400 text-shadow-mg border-green-500/30 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30";
       case "cancelled":
       case "rejected":
-        return "bg-red-500/20 text-red-400 border-red-500/30 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30";
+        return "bg-red-500/20 text-red-400 text-shadow-mg border-red-500/30 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30";
       default:
         return "bg-gray-500/20 text-gray-400 border-gray-500/30 dark:bg-gray-500/20 dark:text-gray-400 dark:border-gray-500/30";
     }
   };
 
+  // ฟังก์ชันแปลงสถานะเป็นภาษาไทย
   const formatStatusLabel = (status: string) => {
     if (!status) return "-";
-    return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const statusMap: Record<string, string> = {
+      "pending": "รอดำเนินการ",
+      "in_progress": "กำลังดำเนินการ",
+      "pending_approval": "รออนุมัติ",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิก",
+      "rejected": "ปฏิเสธ",
+    };
+    return statusMap[status.toLowerCase()] || status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
   const getPriorityColor = (priority: string | null | undefined) => {
     if (!priority) return "bg-gray-500/20 text-gray-400 border-gray-500/30";
     switch (priority.toLowerCase()) {
       case "urgent":
-        return "bg-red-500/20 text-red-400 border-red-500/30";
+        return "bg-red-500/20 text-shadow-mg text-red-400 border-red-500/30";
       case "high":
-        return "bg-orange-500/20 text-orange-400 border-orange-500/30";
+        return "bg-orange-500/20  text-shadow-mg text-orange-400 border-orange-500/30";
       case "medium":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+        return "bg-yellow-500/20 text-shadow-mg text-yellow-400 border-yellow-500/30";
       case "low":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+        return "bg-blue-500/20 text-shadow-mg text-blue-400 border-blue-500/30";
       default:
         return "bg-gray-500/20 text-gray-400 border-gray-500/30";
     }
@@ -146,7 +155,13 @@ const JobsList = () => {
 
   const formatPriorityLabel = (priority: string | null | undefined) => {
     if (!priority) return "-";
-    return priority.charAt(0).toUpperCase() + priority.slice(1);
+    const priorityMap: Record<string, string> = {
+      "urgent": "ด่วน",
+      "high": "สูง",
+      "medium": "ปานกลาง",
+      "low": "ต่ำ",
+    };
+    return priorityMap[priority.toLowerCase()] || priority.charAt(0).toUpperCase() + priority.slice(1);
   };
 
   // Filter jobs based on selected filters

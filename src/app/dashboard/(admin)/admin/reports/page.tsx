@@ -32,15 +32,16 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useReportStore, type Report as StoreReport } from "@/stores/features/reportStore"
+import { useUserStore } from "@/stores/features/userStore"
 
 // Types
-type Department = "engineering" | "design" | "product" | "qa" | "customer"
+type Department = "engineering" | "design" | "product" | "qa" | "customer" | "Electrical" | "Mechanical" | "Civil" | "Technical"
 type Priority = "high" | "medium" | "low"
 type Status = "open" | "in-progress" | "resolved" | "closed"
 
 interface Reporter {
   name: string
-  department: Department
+  department: string
   avatar: string
 }
 
@@ -56,55 +57,8 @@ interface Report {
   tags: string[]
 }
 
-// Helper function to map store report to page report
-const mapStoreReportToPageReport = (storeReport: StoreReport): Report => {
-  // Map priority: "urgent" -> "high", "high" -> "high", "medium" -> "medium", "low" -> "low"
-  const priorityMap: Record<"urgent" | "high" | "medium" | "low", Priority> = {
-    urgent: "high",
-    high: "high",
-    medium: "medium",
-    low: "low",
-  }
-
-  // Map status: "in_progress" -> "in-progress"
-  const statusMap: Record<StoreReport["status"], Status> = {
-    open: "open",
-    in_progress: "in-progress",
-    resolved: "resolved",
-    closed: "closed",
-  }
-
-  // Extract department from tags or default to engineering
-  const getDepartmentFromTags = (tags?: string[]): Department => {
-    if (!tags || tags.length === 0) return "engineering"
-    const tag = tags[0].toLowerCase()
-    if (["engineering", "design", "product", "qa", "customer"].includes(tag)) {
-      return tag as Department
-    }
-    return "engineering"
-  }
-
-  const department = getDepartmentFromTags(storeReport.tags)
-
-  return {
-    id: storeReport.id,
-    title: storeReport.title,
-    description: storeReport.description || "",
-    reporter: {
-      name: storeReport.reporter.name,
-      department,
-      avatar: storeReport.reporter.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(storeReport.reporter.name)}`,
-    },
-    priority: priorityMap[storeReport.priority || "medium"],
-    status: statusMap[storeReport.status],
-    createdAt: storeReport.createdAt,
-    imageUrl: storeReport.imageUrl || "",
-    tags: storeReport.tags || [],
-  }
-}
-
 // กำหนดสีสำหรับแต่ละฝ่าย
-const departmentColors: Record<Department, {
+const departmentColors: Record<string, {
   bg: string
   border: string
   text: string
@@ -139,6 +93,30 @@ const departmentColors: Record<Department, {
     border: "border-pink-500/50",
     text: "text-pink-700 dark:text-pink-300",
     badge: "bg-pink-500"
+  },
+  Electrical: {
+    bg: "bg-yellow-500/10 dark:bg-yellow-500/20",
+    border: "border-yellow-500/50",
+    text: "text-yellow-700 dark:text-yellow-300",
+    badge: "bg-yellow-500"
+  },
+  Mechanical: {
+    bg: "bg-slate-500/10 dark:bg-slate-500/20",
+    border: "border-slate-500/50",
+    text: "text-slate-700 dark:text-slate-300",
+    badge: "bg-slate-500"
+  },
+  Civil: {
+    bg: "bg-amber-500/10 dark:bg-amber-500/20",
+    border: "border-amber-500/50",
+    text: "text-amber-700 dark:text-amber-300",
+    badge: "bg-amber-500"
+  },
+  Technical: {
+    bg: "bg-cyan-500/10 dark:bg-cyan-500/20",
+    border: "border-cyan-500/50",
+    text: "text-cyan-700 dark:text-cyan-300",
+    badge: "bg-cyan-500"
   }
 }
 
@@ -162,8 +140,9 @@ const statusConfig: Record<Status, { label: string, color: string }> = {
 
 export default function ReportPage() {
   const { reports: storeReports, updateReport } = useReportStore()
+  const { users } = useUserStore()
   const [searchQuery, setSearchQuery] = useState<string>("")
-  const [filterDepartment, setFilterDepartment] = useState<Department | "all">("all")
+  const [filterDepartment, setFilterDepartment] = useState<string | "all">("all")
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all")
   const [filterPriority, setFilterPriority] = useState<Priority | "all">("all")
   const [selectedReport, setSelectedReport] = useState<Report | null>(null)
@@ -171,8 +150,44 @@ export default function ReportPage() {
 
   // Map store reports to page reports
   const reports = useMemo(() => {
-    return storeReports.map(mapStoreReportToPageReport)
-  }, [storeReports])
+    return storeReports.map((storeReport): Report => {
+      // Map priority
+      const priorityMap: Record<"urgent" | "high" | "medium" | "low", Priority> = {
+        urgent: "high",
+        high: "high",
+        medium: "medium",
+        low: "low",
+      }
+
+      // Map status
+      const statusMap: Record<StoreReport["status"], Status> = {
+        open: "open",
+        in_progress: "in-progress",
+        resolved: "resolved",
+        closed: "closed",
+      }
+
+      // Find user to get department
+      const reporterUser = users.find(u => u.id === storeReport.reporter.id)
+      const department = reporterUser?.department || "Technical"
+
+      return {
+        id: storeReport.id,
+        title: storeReport.title,
+        description: storeReport.description || "",
+        reporter: {
+          name: storeReport.reporter.name,
+          department,
+          avatar: storeReport.reporter.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(storeReport.reporter.name)}`,
+        },
+        priority: priorityMap[storeReport.priority || "medium"],
+        status: statusMap[storeReport.status],
+        createdAt: storeReport.createdAt,
+        imageUrl: storeReport.imageUrl || "",
+        tags: storeReport.tags || [],
+      }
+    })
+  }, [storeReports, users])
 
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
@@ -276,20 +291,19 @@ export default function ReportPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            {/* <Select value={filterDepartment} onValueChange={(value) => setFilterDepartment(value as Department | "all")}>
+            <Select value={filterDepartment} onValueChange={(value) => setFilterDepartment(value)}>
               <SelectTrigger className="w-full lg:w-[180px] h-10">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="ฝ่าย" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                <SelectItem value="engineering">Engineering</SelectItem>
-                <SelectItem value="design">Design</SelectItem>
-                <SelectItem value="product">Product</SelectItem>
-                <SelectItem value="qa">QA</SelectItem>
-                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="Electrical">ช่างไฟฟ้า</SelectItem>
+                <SelectItem value="Mechanical">ช่างเครื่องกล</SelectItem>
+                <SelectItem value="Civil">ช่างโยธา</SelectItem>
+                <SelectItem value="Technical">ช่างเทคนิค</SelectItem>
               </SelectContent>
-            </Select> */}
+            </Select>
             <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as Status | "all")}>
               <SelectTrigger className="w-full lg:w-[180px] h-10">
                 <SelectValue placeholder="สถานะ" />
@@ -318,7 +332,7 @@ export default function ReportPage() {
         {/* Reports List / Reports box */}
         <div className="grid sm:grid-cols-3 gap-4">
           {filteredReports.map((report) => {
-            const deptColors = departmentColors[report.reporter.department]
+            const deptColors = departmentColors[report.reporter.department] || departmentColors.Technical
             const PriorityIcon = priorityConfig[report.priority].icon
 
             return (
@@ -369,13 +383,6 @@ export default function ReportPage() {
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                      {/* <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                        {report.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-[10px] sm:text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div> */}
                       <span className="text-[10px] sm:text-xs text-muted-foreground">
                         {new Date(report.createdAt).toLocaleDateString('th-TH', {
                           year: '2-digit',
@@ -443,7 +450,7 @@ export default function ReportPage() {
                     </Avatar>
                     <div>
                       <p className="font-medium">{selectedReport.reporter.name}</p>
-                      <p className={`text-sm ${departmentColors[selectedReport.reporter.department].text} font-semibold capitalize`}>
+                      <p className={`text-sm ${(departmentColors[selectedReport.reporter.department] || departmentColors.Technical).text} font-semibold capitalize`}>
                         {selectedReport.reporter.department}
                       </p>
                     </div>
@@ -466,29 +473,7 @@ export default function ReportPage() {
                         </p>
                       </div>
                     </div>
-                    {/* <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">ผู้รับผิดชอบ</p>
-                        <p className="text-sm font-medium">ยังไม่ได้กำหนด</p>
-                      </div>
-                    </div> */}
                   </div>
-
-                  {/* Tags */}
-                  {/* <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Tag className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm font-medium">แท็ก</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedReport.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div> */}
 
                   <Separator />
 

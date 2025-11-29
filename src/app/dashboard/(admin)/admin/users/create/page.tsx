@@ -169,36 +169,12 @@ export default function CreateUserPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-sm text-gray-500">บทบาท</Label>
-              <Select value={form.role} onValueChange={(value) => handleChange("role", value)}>
-                <SelectTrigger className="w-full mt-1">
-                  <SelectValue placeholder="เลือกบทบาท" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="lead_technician">Lead Technician</SelectItem>
-                  <SelectItem value="manager">CEO</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-sm text-gray-500">สถานะ</Label>
-              <Select value={form.status} onValueChange={(value) => handleChange("status", value)}>
-                <SelectTrigger className="w-full mt-1">
-                  <SelectValue placeholder="เลือกสถานะ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+           
+
             <div>
               <Label className="text-sm text-gray-500">อีเมลพนักงาน</Label>
               <Input
-                className="w-full border rounded px-3 py-2 mt-1"
+                className="w-full border rounded px-3 py-2 mt-1 "
                 value={form.employeeId}
                 onChange={(e) => handleChange("employeeId", e.target.value)}
                 placeholder="สร้างอีเมลพนักงาน"
@@ -218,7 +194,20 @@ export default function CreateUserPage() {
               </p>
             </div>
           </div>
-
+           <div>
+              <Label className="text-sm text-gray-500">บทบาท</Label>
+              <Select value={form.role} onValueChange={(value) => handleChange("role", value)}>
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="เลือกบทบาท" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="lead_technician">Lead Technician</SelectItem>
+                  <SelectItem value="manager">CEO</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           <div>
             <Label className="text-sm text-gray-500">ที่อยู่</Label>
             <Input

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Moon, Sun } from "lucide-react"
+import { Moon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Switch } from "@/components/ui/switch"
 
@@ -23,7 +23,7 @@ export function ModeToggle() {
 
   return (
     <div className="flex items-center gap-2">
-      <Moon className="w-5 h-5"/>
+      <Moon className="w-5 h-5" />
       <div className=" flex justify-between items-center w-full">
         <div className="w-full pr-8">Theme</div>
         <Switch checked={isDark} onCheckedChange={handleToggle} />

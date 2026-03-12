@@ -7,10 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { useJobStore, type Job } from "@/stores/features/jobStore";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Progress } from "../ui/progress";
 import {
-  ArrowLeft,
-  ArrowRight,
   Building,
   CircleCheck,
   CircleDotDashed,
@@ -23,7 +20,6 @@ import {
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
-  InputGroupButton,
 } from "../ui/input-group";
 import {
   Select,
@@ -33,14 +29,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-// import { SelectContent, SelectTrigger, SelectValue } from "@radix-ui/react-select";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
 // --- Icon Fix ---
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// @ts-expect-error - _getIconUrl is method on prototype
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconHome: "/mark-home.png",
   iconBuilding: "/mark-building.png",
-  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+  shadowUrl: markerShadow.src,
   iconSize: [40, 60],
   iconAnchor: [20, 60],
   popupAnchor: [0, -40],
@@ -62,7 +59,7 @@ interface LocationData {
 }
 
 // --- Helper: Map Job to LocationData ---
-const mapJobToLocationData = (job: Job, index: number): LocationData => {
+const mapJobToLocationData = (job: Job): LocationData => {
   // Map job status to location status
   const statusMap: Record<Job["status"], LocationStatus> = {
     pending: "pending",
@@ -74,7 +71,7 @@ const mapJobToLocationData = (job: Job, index: number): LocationData => {
   };
 
   // Determine nature from job type or default to "building"
-  const getNature = (type: "บ้าน" | "คอนโด" | null | undefined): string => {
+  const getNature = (type: string | null | undefined): string => {
     if (type === "บ้าน") {
       return "home";
     }
@@ -103,7 +100,7 @@ const statusColors: Record<LocationStatus, string> = {
   progress: "bg-blue-400",
   completed: "bg-green-400",
 };
-const statusIcons: Record<LocationStatus, any> = {
+const statusIcons: Record<LocationStatus, React.ReactNode> = {
   pending: <CircleDotDashed />,
   progress: <Clock2 />,
   completed: <CircleCheck />,
@@ -157,7 +154,7 @@ function Markers({ locations }: MarkersProps) {
         iconSize: [40, 60],
         iconAnchor: [20, 60],
         popupAnchor: [0, -50],
-        shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+        shadowUrl: markerShadow.src,
       });
 
       // ✅ ใช้ custom icon กับ marker
@@ -166,13 +163,25 @@ function Markers({ locations }: MarkersProps) {
 
       const popupContent = document.createElement("div");
       popupContent.innerHTML = `
-        <image src="${loc.locationImage}" alt="${loc.title}"/>
-        <h3>${loc.title}</h3>
-        <p>${loc.description}</p>
-        <p>สถานะ: ${loc.status}</p>
-        <p>ประเภท: ${loc.nature}</p>
+        <div class="flex flex-col gap-2 font-sans w-[230px] sm:w-[260px]">
+          <div class="relative w-full h-36 overflow-hidden rounded-md shadow-sm border border-border">
+            <img src="${loc.locationImage}" alt="${loc.title}" class="w-full h-full object-cover" />
+            <div class="absolute bottom-2 right-2 flex gap-1.5 z-10">
+              <span class="inline-flex rounded shadow text-[10px] items-center px-2 py-0.5 font-bold uppercase bg-background text-foreground backdrop-blur-md opacity-90">
+                ${loc.status}
+              </span>
+              <span class="inline-flex rounded shadow text-[10px] items-center px-2 py-0.5 font-bold uppercase ${loc.nature === 'building' ? 'bg-primary text-primary-foreground' : 'bg-amber-500 text-white'} backdrop-blur-md opacity-90">
+                ${loc.nature}
+              </span>
+            </div>
+          </div>
+          <div class="flex flex-col pb-1">
+            <h3 class="text-sm font-bold leading-tight !m-0 !mb-1 text-foreground line-clamp-2">${loc.title}</h3>
+            <p class="text-xs text-muted-foreground !line-clamp-3 !m-0">${loc.description}</p>
+          </div>
+        </div>
       `;
-      marker.bindPopup(popupContent);
+      marker.bindPopup(popupContent, { minWidth: 230, maxWidth: 280 });
       markers.push(marker);
 
       const statusCircle = L.circle(loc.position, {
@@ -204,7 +213,7 @@ export default function LeafletMapPage() {
   const locations = useMemo(() => {
     return jobs
       .filter((job) => job.location && job.location.lat != null && job.location.lng != null)
-      .map((job, index) => mapJobToLocationData(job, index));
+      .map((job) => mapJobToLocationData(job));
   }, [jobs]);
 
   // ✅ filter ทั้งชื่อ + nature
@@ -230,7 +239,7 @@ export default function LeafletMapPage() {
 
     // เปิด Popup ของ Marker
     setTimeout(() => {
-      map.eachLayer((layer: any) => {
+      map.eachLayer((layer: L.Layer) => {
         if (layer instanceof L.Marker) {
           const position = layer.getLatLng();
           if (

@@ -106,6 +106,7 @@ export default function EditProfilePage() {
   };
 
   const handleSave = async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatedData: any = {
       name: form.name.trim(),
       email: form.email.trim(),
@@ -140,8 +141,10 @@ export default function EditProfilePage() {
         const newImage = updatedData.imageUrl !== undefined ? updatedData.imageUrl : userToEdit.imageUrl;
 
         const updatedJobs = jobs.map((job) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const j = { ...job } as any;
           if (j.creator?.id === userId) j.creator = { ...j.creator, name: newName };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           if (Array.isArray(j.assignedEmployees)) j.assignedEmployees = j.assignedEmployees.map((u: any) => u.id === userId ? { ...u, name: newName, imageUrl: newImage } : u);
           if (j.leadTechnician && j.leadTechnician.id === userId) j.leadTechnician = { ...j.leadTechnician, name: newName, imageUrl: newImage };
           return j;
@@ -153,9 +156,10 @@ export default function EditProfilePage() {
 
       toast.success("บันทึกข้อมูลสำเร็จ");
       router.push('/dashboard/admin/users');
-    } catch (err) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
       console.error(err);
-      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      toast.error(err.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     }
   };
 

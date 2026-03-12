@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { AlertCircle, Send } from "lucide-react"
 import { useReportStore } from "@/stores/features/reportStore"
-import { useUserStore } from "@/stores/features/userStore"
+import { useSession } from "next-auth/react" // ✅ Changed to NextAuth
 import { toast } from "sonner"
 import { notificationHelpers } from "@/stores/notificationStore"
 
@@ -24,7 +24,8 @@ type Priority = "high" | "medium" | "low"
 
 export default function CreateReportPage() {
   const { addReport } = useReportStore()
-  const { currentUser } = useUserStore()
+  const { data: session } = useSession() // ✅ Use useSession
+  const currentUser = session?.user // ✅ Map to existing variable name
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -83,7 +84,7 @@ export default function CreateReportPage() {
       updatedAt: null,
       reporter: {
         id: currentUser.id,
-        name: currentUser.name,
+        name: currentUser.name || "Unknown", // Handle possibly undefined name
       },
       assignee: null,
       priority: priorityMap[priority as Priority] || "medium",

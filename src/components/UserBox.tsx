@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession, signOut } from "next-auth/react"; // ✅ Changed to NextAuth
 import { useNotificationStore } from "@/stores/notificationStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -10,16 +10,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { redirect, useRouter } from "next/navigation";
-import { Bell, ChevronsUpDown, History, LogOut, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, History, LogOut, User } from "lucide-react";
 import { Separator } from "./ui/separator";
 import { ModeToggle } from "./ModeToggle";
 import { getHistoryPathByRole, getNotificationPathByRole, getProfilePathByRole } from "@/lib/route-helper";
 
 export function UserBox() {
-  const { currentUser, logout } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
   const { getUnreadCountForUser } = useNotificationStore();
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -49,10 +50,10 @@ export function UserBox() {
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <Avatar className="h-8 w-8">
-            {currentUser.imageUrl ? (
-              <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
+            {currentUser.image ? (
+              <AvatarImage src={currentUser.image} alt={currentUser.name || ""} />
             ) : (
-              <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
+              <AvatarFallback>{currentUser.name?.[0]}</AvatarFallback>
             )}
           </Avatar>
         </DropdownMenuTrigger>
@@ -60,10 +61,10 @@ export function UserBox() {
         <DropdownMenuContent align="end" className="w-52 space-y-2 mt-3.5">
           <div className="flex gap-2 items-center p-2">
             <Avatar className="h-8 w-8">
-              {currentUser.imageUrl ? (
-                <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
+              {currentUser.image ? (
+                <AvatarImage src={currentUser.image} alt={currentUser.name || ""} />
               ) : (
-                <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
+                <AvatarFallback>{currentUser.name?.[0]}</AvatarFallback>
               )}
             </Avatar>
             <div className=" flex-col items-start leading-tight flex">
@@ -76,15 +77,15 @@ export function UserBox() {
           <Separator />
           <DropdownMenuItem onClick={handleProfile}>
             <User />
-            My Account
+            บัญชีของฉัน
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleHistory}>
             <History />
-            History
+            ประวัติการใช้งาน
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleNotification} className="relative">
             <Bell />
-            Notifications
+            การแจ้งเตือน
             {unreadCount > 0 && (
               <Badge
                 variant="destructive"
@@ -100,9 +101,9 @@ export function UserBox() {
             </DropdownMenu>
           </DropdownMenuItem>
           <Separator />
-          <DropdownMenuItem onClick={logout} variant="destructive">
+          <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })} variant="destructive">
             <LogOut />
-            Logout
+            ออกจากระบบ
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

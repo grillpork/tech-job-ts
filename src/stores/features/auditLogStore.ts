@@ -37,10 +37,10 @@ export interface AuditLog {
   details?: string; // รายละเอียดเพิ่มเติม
   changes?: {
     field: string;
-    oldValue: any;
-    newValue: any;
+    oldValue: unknown;
+    newValue: unknown;
   }[]; // เก็บการเปลี่ยนแปลง (สำหรับ update)
-  metadata?: Record<string, any>; // ข้อมูลเพิ่มเติม
+  metadata?: Record<string, unknown>; // ข้อมูลเพิ่มเติม
 }
 
 // Audit Log Store Interface

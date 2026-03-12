@@ -17,16 +17,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Grid3x3, List, Search, Filter, X, ExternalLink, User, Building } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, Clock, Grid3x3, List, Search, X, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 export interface Event {
   id: string
@@ -103,8 +95,8 @@ export function EventManager({
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
 
   // Define available priorities and statuses
-  const availablePriorities = ["urgent", "high", "medium", "low"]
-  const availableStatuses = ["pending", "in_progress", "pending_approval", "completed", "cancelled", "rejected"]
+  // const availablePriorities = ["urgent", "high", "medium", "low"]
+  // const availableStatuses = ["pending", "in_progress", "pending_approval", "completed", "cancelled", "rejected"]
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -159,13 +151,14 @@ export function EventManager({
   }, [events, searchQuery, selectedPriorities, selectedDepartments, selectedStatuses])
 
   const hasActiveFilters = selectedPriorities.length > 0 || selectedDepartments.length > 0 || selectedStatuses.length > 0
-
-  const clearFilters = () => {
-    setSelectedPriorities([])
-    setSelectedDepartments([])
-    setSelectedStatuses([])
-    setSearchQuery("")
-  }
+  /*
+    const clearFilters = () => {
+      setSelectedPriorities([])
+      setSelectedDepartments([])
+      setSelectedStatuses([])
+      setSearchQuery("")
+    }
+  */
 
   const handleCreateEvent = useCallback(() => {
     if (!newEvent.title || !newEvent.startTime || !newEvent.endTime) return
@@ -195,6 +188,7 @@ export function EventManager({
     })
   }, [newEvent, colors, categories, onEventCreate])
 
+  /*
   const handleUpdateEvent = useCallback(() => {
     if (!selectedEvent) return
 
@@ -213,6 +207,7 @@ export function EventManager({
     },
     [onEventDelete],
   )
+  */
 
   const handleDragStart = useCallback((event: Event) => {
     setDraggedEvent(event)
@@ -330,7 +325,7 @@ export function EventManager({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {/* Mobile: Select dropdown */}
           <div className="sm:hidden">
-            <Select value={view} onValueChange={(value: any) => setView(value)}>
+            <Select value={view} onValueChange={(value: "month" | "week" | "day" | "list") => setView(value)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -1233,17 +1228,20 @@ function EventCard({
         draggable
         onDragStart={() => onDragStart(event)}
         onDragEnd={onDragEnd}
-        onClick={() => onEventClick(event)}
+        onClick={(e) => {
+          e.stopPropagation()
+          onEventClick(event)
+        }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative cursor-pointer"
+        className="relative cursor-pointer group block w-full hover:z-[100]"
       >
         <div
           className={cn(
-            "rounded px-1.5 py-0.5 text-xs font-medium transition-all duration-300",
+            "rounded px-[4px] sm:px-1.5 py-[2px] text-[10px] sm:text-xs font-medium transition-all duration-300",
             colorClasses.bg,
-            "text-white truncate animate-in fade-in slide-in-from-top-1",
-            isHovered && "scale-105 shadow-lg z-10",
+            "text-white truncate block w-full animate-in fade-in slide-in-from-top-1",
+            isHovered && "scale-[1.02] shadow-sm z-10",
           )}
         >
           {event.title}
@@ -1456,8 +1454,9 @@ function MonthView({
   onDrop: (date: Date) => void
   getColorClasses: (color: string) => { bg: string; text: string }
 }) {
+  const [selectedDayInfo, setSelectedDayInfo] = useState<{ date: Date; events: Event[] } | null>(null)
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+  // const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
   const startDate = new Date(firstDayOfMonth)
   startDate.setDate(startDate.getDate() - startDate.getDay())
 
@@ -1495,6 +1494,7 @@ function MonthView({
     return eventStartDate.getTime() === dayDate.getTime()
   }
 
+  /*
   // Helper function to determine if event ends on this day
   const isEventEndDay = (event: Event, date: Date) => {
     const eventEnd = new Date(event.endTime)
@@ -1527,203 +1527,105 @@ function MonthView({
 
     return Math.min(remainingDays, daysUntilWeekEnd + 1)
   }
+  */
 
   return (
-    <Card className="overflow-hidden">
-      <div className="grid grid-cols-7 border-b">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="border-r p-2 text-center text-xs font-medium last:border-r-0 sm:text-sm">
-            <span className="hidden sm:inline">{day}</span>
-            <span className="sm:hidden">{day.charAt(0)}</span>
-          </div>
-        ))}
-      </div>
-      <div className="relative">
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7">
-          {days.map((day, index) => {
-            const isCurrentMonth = day.getMonth() === currentDate.getMonth()
-            const isToday = day.toDateString() === new Date().toDateString()
-
-            return (
-              <div
-                key={index}
-                className={cn(
-                  "min-h-20 border-b border-r p-1 transition-colors last:border-r-0 sm:min-h-24 sm:p-2 relative",
-                  !isCurrentMonth && "bg-muted/30",
-                  "hover:bg-accent/50",
-                )}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => onDrop(day)}
-              >
-                <div
-                  className={cn(
-                    "mb-1 flex h-5 w-5 items-center justify-center rounded-full text-xs sm:h-6 sm:w-6 sm:text-sm",
-                    isToday && "bg-primary text-primary-foreground font-semibold",
-                  )}
-                >
-                  {day.getDate()}
-                </div>
-                {/* Placeholder for events that start on this day */}
-                <div className="space-y-1 relative z-10" style={{ minHeight: '1.5rem' }}>
-                  {getEventsForDay(day)
-                    .filter(event => isEventStartDay(event, day))
-                    .slice(0, 3)
-                    .map((event) => (
-                      <div key={`placeholder-${event.id}`} style={{ height: '1.25rem' }} />
-                    ))}
-                </div>
-              </div>
-            )
-          })}
+    <>
+      <Card className="rounded-xl border bg-card text-card-foreground shadow">
+        <div className="grid grid-cols-7 border-b">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <div key={day} className="border-r p-2 text-center text-xs font-medium last:border-r-0 sm:text-sm">
+              <span className="hidden sm:inline">{day}</span>
+              <span className="sm:hidden">{day.charAt(0)}</span>
+            </div>
+          ))}
         </div>
-
-        {/* Events overlay - positioned absolutely to span multiple days */}
-        <div className="absolute inset-0 pointer-events-none" style={{ padding: '0.25rem' }}>
-          {(() => {
-            // Filter and prepare events
-            const visibleEvents = events.filter(event => {
-              const eventStart = new Date(event.startTime)
-              const eventEnd = new Date(event.endTime)
-              const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
-              const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
-
-              // Check if event overlaps with visible calendar days
-              const visibleStart = days[0]
-              const visibleEnd = days[days.length - 1]
-              const visibleStartDate = new Date(visibleStart.getFullYear(), visibleStart.getMonth(), visibleStart.getDate())
-              const visibleEndDate = new Date(visibleEnd.getFullYear(), visibleEnd.getMonth(), visibleEnd.getDate())
-
-              return eventEndDate >= visibleStartDate && eventStartDate <= visibleEndDate
-            })
-
-            // Group events by their start day index and calculate row positions
-            const eventRows = new Map<number, number[]>() // dayIndex -> array of row positions
-            const eventPositions = new Map<string, { row: number; dayIndex: number; span: number }>()
-
-            visibleEvents.forEach(event => {
-              const eventStart = new Date(event.startTime)
-              const eventEnd = new Date(event.endTime)
-              const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
-              const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
-
-              // Find the day index where event starts
-              const startDayIndex = days.findIndex(day => {
-                const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate())
-                return dayDate.getTime() === eventStartDate.getTime()
-              })
-
-              if (startDayIndex === -1) return
-
-              // Calculate how many days the event spans
-              const totalDays = Math.ceil((eventEndDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-              const remainingDays = days.length - startDayIndex
-              const visibleSpan = Math.min(totalDays, remainingDays)
-
-              // Find available row for this event
-              // Check all days this event spans to find conflicts
-              let row = 0
-              let hasConflict = true
-
-              while (hasConflict) {
-                hasConflict = false
-
-                // Check if this row conflicts with any existing event in the days this event spans
-                for (let dayOffset = 0; dayOffset < visibleSpan; dayOffset++) {
-                  const checkDayIndex = startDayIndex + dayOffset
-                  if (checkDayIndex >= days.length) break
-
-                  // Check all events to see if they conflict on this specific day
-                  eventPositions.forEach((pos, eventId) => {
-                    if (eventId === event.id) return
-
-                    // Check if events overlap in day range
-                    const posStartDay = pos.dayIndex
-                    const posEndDay = pos.dayIndex + pos.span - 1
-                    const currentStartDay = startDayIndex
-                    const currentEndDay = startDayIndex + visibleSpan - 1
-
-                    // Check if day ranges overlap
-                    if (!(currentStartDay > posEndDay || currentEndDay < posStartDay)) {
-                      // They overlap in day range, check if same row
-                      if (pos.row === row) {
-                        // Also check if they overlap on this specific day
-                        if (checkDayIndex >= posStartDay && checkDayIndex <= posEndDay) {
-                          hasConflict = true
-                        }
-                      }
-                    }
-                  })
-
-                  if (hasConflict) break
-                }
-
-                if (hasConflict) {
-                  row++
-                  // Limit to maximum rows to prevent infinite loop
-                  if (row > 10) {
-                    hasConflict = false
-                    break
-                  }
-                }
-              }
-
-              // Store this event's position
-              eventPositions.set(event.id, { row, dayIndex: startDayIndex, span: visibleSpan })
-            })
-
-            // Render events with calculated positions
-            return visibleEvents.map((event, eventIndex) => {
-              const position = eventPositions.get(event.id)
-              if (!position) return null
-
-              const { row, dayIndex, span } = position
-
-              const eventStart = new Date(event.startTime)
-              const eventEnd = new Date(event.endTime)
-              const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
-
-              // Calculate position
-              const dayWidth = 100 / 7 // 7 days in a week
-              const leftPercent = (dayIndex % 7) * dayWidth
-              const widthPercent = span * dayWidth
-
-              // Calculate row (which week)
-              const weekRow = Math.floor(dayIndex / 7)
-              const rowHeight = 95 // Approximate height per row in pixels (min-h-20 = 5rem = 80px)
-              const eventRowHeight = 20 // Height of each event row
-              const dateNumberHeight = 24 // Height for date number (h-6 = 1.5rem = 24px)
-              const spacingAfterDate = 12 // Spacing after date number to avoid overlap
-              const topOffset = weekRow * rowHeight + dateNumberHeight + spacingAfterDate + (row * eventRowHeight) // Offset to avoid overlapping with date number
+        <div>
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7">
+            {days.map((day, index) => {
+              const isCurrentMonth = day.getMonth() === currentDate.getMonth()
+              const isToday = day.toDateString() === new Date().toDateString()
+              const dayEvents = getEventsForDay(day)
+              const MAX_EVENTS = 4
 
               return (
                 <div
-                  key={`event-${event.id}-${eventIndex}`}
-                  style={{
-                    position: 'absolute',
-                    left: `${leftPercent}%`,
-                    width: `${widthPercent}%`,
-                    top: `${topOffset}px`,
-                    pointerEvents: 'auto',
-                    zIndex: 10 + eventIndex,
-                    padding: '0 0.125rem',
+                  key={index}
+                  onClick={() => {
+                    if (dayEvents.length > 0) {
+                      setSelectedDayInfo({ date: day, events: dayEvents })
+                    }
                   }}
+                  className={cn(
+                    "min-h-24 sm:min-h-32 border-b border-r p-1 transition-colors last:border-r-0 relative flex flex-col group cursor-pointer",
+                    !isCurrentMonth && "bg-muted/30",
+                    "hover:bg-accent/30 hover:z-50",
+                  )}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => onDrop(day)}
                 >
-                  <EventCard
-                    event={event}
-                    onEventClick={onEventClick}
-                    onDragStart={onDragStart}
-                    onDragEnd={onDragEnd}
-                    getColorClasses={getColorClasses}
-                    variant="compact"
-                  />
+                  <div
+                    className={cn(
+                      "shrink-0 mb-1 flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[10px] sm:text-xs font-medium transition-colors",
+                      isToday ? "bg-primary text-primary-foreground font-semibold" : "text-foreground group-hover:bg-primary/10",
+                    )}
+                  >
+                    {day.getDate()}
+                  </div>
+                  {/* Events list container within the cell */}
+                  <div className="flex flex-col gap-[2px] sm:gap-1 flex-1 relative z-0">
+                    {dayEvents.slice(0, MAX_EVENTS).map((event) => (
+                      <div key={`event-${event.id}-${day.getDate()}`} className="shrink-0 w-full">
+                        <EventCard
+                          event={event}
+                          onEventClick={onEventClick}
+                          onDragStart={onDragStart}
+                          onDragEnd={onDragEnd}
+                          getColorClasses={getColorClasses}
+                          variant="compact"
+                        />
+                      </div>
+                    ))}
+                    {dayEvents.length > MAX_EVENTS && (
+                      <div className="text-[10px] sm:text-xs text-muted-foreground pl-1 mt-0.5 font-medium truncate">
+                        + {dayEvents.length - MAX_EVENTS} งาน
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
-            })
-          })()}
+            })}
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      <Dialog open={!!selectedDayInfo} onOpenChange={(open) => !open && setSelectedDayInfo(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              รายการงานวันที่ {selectedDayInfo?.date.toLocaleDateString("th-TH", { dateStyle: "long" })}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {selectedDayInfo?.events.map((event) => (
+              <EventCard
+                key={`dialog-event-${event.id}`}
+                event={event}
+                onEventClick={(e) => {
+                  setSelectedDayInfo(null)
+                  onEventClick(e)
+                }}
+                onDragStart={() => { }}
+                onDragEnd={() => { }}
+                getColorClasses={getColorClasses}
+                variant="detailed"
+              />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -1757,6 +1659,7 @@ function WeekView({
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
   // Get events that start in this day and hour
+  /*
   const getEventsForDayAndHour = (date: Date, hour: number) => {
     return events.filter((event) => {
       const eventStart = new Date(event.startTime)
@@ -1768,6 +1671,7 @@ function WeekView({
       )
     })
   }
+  */
 
   // Calculate event position and height in hours
   const getEventStyle = (event: Event, day: Date) => {

@@ -109,7 +109,7 @@ const SignaturePadComponent = forwardRef<SignaturePadRef, SignaturePadComponentP
         pad.removeEventListener("endStroke", handleEndStroke);
         pad.removeEventListener("beginStroke", handleBeginStroke);
       };
-    }, [penColor, backgroundColor, height, width]);
+    }, [penColor, backgroundColor, height, width, onBegin, onEnd, saveSignature, getSignature, storageKey]);
 
     // expose API
     useImperativeHandle(ref, () => ({

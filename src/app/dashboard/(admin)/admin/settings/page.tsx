@@ -15,12 +15,7 @@ import {
   Lock,
   Palette,
   Database,
-  Globe,
-  Mail,
-  Shield,
-  Clock,
   Save,
-  AlertCircle,
   CheckCircle2,
 } from "lucide-react";
 
@@ -100,11 +95,10 @@ export default function SettingsPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors ${
-                      activeTab === tab.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted text-foreground"
-                    }`}
+                    className={`w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors ${activeTab === tab.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted text-foreground"
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     <span className="text-sm font-medium">{tab.label}</span>
@@ -187,7 +181,7 @@ export default function SettingsPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Business Hours</CardTitle>
-                    <CardDescription>Set your organization's working hours</CardDescription>
+                    <CardDescription>Set your organization&apos;s working hours</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">

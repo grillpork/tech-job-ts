@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import * as React from "react";
@@ -5,7 +6,7 @@ import { useEffect, useState, useCallback } from "react";
 import dayjs from "dayjs";
 import 'dayjs/locale/th';
 import useEmblaCarousel from 'embla-carousel-react';
-import { toast } from "sonner";
+// import { toast } from "sonner";
 
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
@@ -13,19 +14,16 @@ import { useInventoryStore } from "@/stores/features/inventoryStore";
 import { useSignatureStore } from "@/stores/features/signatureStore";
 
 // UI Components
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import {
   MapPin,
@@ -33,27 +31,24 @@ import {
   User,
   Phone,
   Hash,
-  FileText,
-  Briefcase,
   Building,
-  Users,
-  UserCheck,
-  Package,
-  History,
-  ImageIcon,
-  Paperclip,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Clock,
-  CalendarRange,
   CheckCircle2,
   AlertCircle,
   Building2,
   Receipt,
-  PenIcon,
-  Trash2
+  ImageIcon,
+  FileText,
+  Briefcase,
+  CalendarRange,
+  Paperclip,
+  ExternalLink,
+  Users,
+  UserCheck,
+  Package,
+  History
 } from "lucide-react";
 
 import dynamic from 'next/dynamic';
@@ -73,22 +68,6 @@ const MapRouting = dynamic(
     ssr: false,
   }
 );
-
-const getStatusVariant = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return 'default'; // Usually black/primary
-    case 'pending_approval':
-      return 'secondary';
-    case 'in_progress':
-      return 'outline'; // Often used for active states
-    case 'cancelled':
-    case 'rejected':
-      return 'destructive';
-    default:
-      return 'secondary';
-  }
-};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -126,6 +105,7 @@ function LocationImagesCarousel({ images }: { images: string[] }) {
     if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSelect = useCallback((emblaApi: any) => {
     setPrevBtnDisabled(!emblaApi.canScrollPrev());
     setNextBtnDisabled(!emblaApi.canScrollNext());
@@ -203,34 +183,10 @@ export default function JobViewPage() {
 
   const getJobById = useJobStore((state) => state.getJobById);
   const { inventories } = useInventoryStore();
-  const { getSignature, removeSignature } = useSignatureStore();
+  const { getSignature } = useSignatureStore();
   const job = getJobById(jobId);
 
-  // State เพื่อ force re-render เมื่อลบ signature
-  const [signatureDeleted, setSignatureDeleted] = useState(false);
-
-  // ดึง signature ที่ถูกต้องตาม jobId
-  const savedSignature = job && !signatureDeleted ? getSignature(`job-signature-${job.id}`) : undefined;
-  const displaySignature = job?.signature || savedSignature;
-
-  // Handler สำหรับลบ signature
-  const handleRemoveSignature = () => {
-    if (!job) return;
-
-    // ตรวจสอบว่ามี signature ที่บันทึกไว้หรือไม่
-    if (!savedSignature) {
-      toast.error("ไม่พบลายเซ็นที่บันทึกไว้");
-      return;
-    }
-
-    // ลบ signature จาก localStorage
-    removeSignature(`job-signature-${job.id}`);
-
-    // Update state เพื่อ force re-render
-    setSignatureDeleted(true);
-
-    toast.success("ลบลายเซ็นเรียบร้อยแล้ว");
-  };
+  // const displaySignature = job?.signature || (job ? getSignature(`job-signature-${job.id}`) : undefined);
 
   if (!job) {
     return (
@@ -748,7 +704,7 @@ export default function JobViewPage() {
             <CardContent>
               <div className="relative pl-4 border-l space-y-6">
                 {job.workLogs && job.workLogs.length > 0 ? (
-                  job.workLogs.map((log, idx) => (
+                  job.workLogs.map((log) => (
                     <div key={log.id} className="relative">
                       <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border bg-background ring-4 ring-background" />
                       <div className="flex flex-col gap-1">

@@ -1,7 +1,7 @@
 "use client";
 
-import { Bell, X } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Bell } from "lucide-react";
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { UserBox } from "@/components/UserBox";
@@ -14,10 +14,10 @@ import {
 } from "../ui/dropdown-menu";
 import { AppBreadcrumbs } from "../AppBreadcrumb";
 import { Menu } from "lucide-react";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import { useJobStore } from "@/stores/features/jobStore";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
-import { ModeToggle } from "../ModeToggle";
+
 import GlobalSearch from "../global/GlobalSearch";
 import Link from "next/link";
 
@@ -26,9 +26,11 @@ interface NavbarProps {
 }
 
 export default function Navbar({ onToggleSidebar }: NavbarProps) {
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
   const { notifications, markAsRead } = useNotificationStore();
-  const { jobs, getJobById } = useJobStore();
+  const { getJobById } = useJobStore();
   const { inventoryRequests } = useInventoryStore();
 
   // กรอง notification ตาม role ของผู้ใช้
@@ -53,17 +55,17 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
         if (jobIdMatch) {
           const jobId = jobIdMatch[1];
           const job = getJobById(jobId);
-          
+
           if (job) {
             // ตรวจสอบว่า user เกี่ยวข้องกับ job หรือไม่
             const isAssigned = job.assignedEmployees?.some((emp) => emp.id === currentUser.id);
             const isCreator = job.creator?.id === currentUser.id;
             const isLead = job.leadTechnician?.id === currentUser.id;
-            
+
             if (isAssigned || isCreator || isLead) {
               return true;
             }
-            
+
             // สำหรับ inventory request ตรวจสอบว่า user เป็นคนสร้าง request หรือไม่
             if (notification.type.startsWith("inventory_request_")) {
               const request = inventoryRequests.find((req) => req.jobId === jobId);
@@ -78,7 +80,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
       // ถ้าไม่มี link หรือไม่พบ job ให้ไม่แสดง (ยกเว้น system notification)
       return false;
     });
-  }, [notifications, currentUser, jobs, getJobById, inventoryRequests]);
+  }, [notifications, currentUser, getJobById, inventoryRequests]);
 
   // คำนวณ unread count จาก filtered notifications
   const unreadCount = useMemo(() => {
@@ -88,7 +90,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   return (
     <header className="w-full py-2 bg-background flex items-center justify-between px-4  relative z-50">
 
-       {/* ☰ ปุ่มเปิด sidebar (เฉพาะมือถือ) */}
+      {/* ☰ ปุ่มเปิด sidebar (เฉพาะมือถือ) */}
       <button
         className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-900 cursor-pointer"
         onClick={onToggleSidebar}
@@ -98,12 +100,12 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
       {/* Left Section */}
       <div className="hidden lg:flex items-center gap-3">
-        <AppBreadcrumbs/>
+        <AppBreadcrumbs />
       </div>
 
       <div className="flex items-center gap-4">
         {/* Right Section */}
-        <GlobalSearch/>
+        <GlobalSearch />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild className="hidden md:flex ">
@@ -114,7 +116,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               )}
             </Button>
           </DropdownMenuTrigger>
-  
+
           <DropdownMenuContent className=" w-fit md:w-64 p-2 mt-3" align="end">
             <div className="flex justify-between items-center mb-2 px-2">
               <h2 className="font-semibold">Notifications</h2>
@@ -128,7 +130,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                 </Button>
               )}
             </div>
-  
+
             <div className="space-y-1 max-h-64 overflow-y-auto">
               <AnimatePresence>
                 {filteredNotifications.length > 0 ? (
@@ -136,12 +138,11 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                     <motion.div
                       key={n.id}
                       initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0  }}
+                      animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
                       transition={{ delay: 0.1 * i }}
-                      className={`p-2 rounded hover:bg-muted cursor-pointer transition-colors ${
-                        n.read ? "bg-muted/30" : "bg-muted/60 border-l-2 border-primary"
-                      }`}
+                      className={`p-2 rounded hover:bg-muted cursor-pointer transition-colors ${n.read ? "bg-muted/30" : "bg-muted/60 border-l-2 border-primary"
+                        }`}
                       onClick={() => {
                         markAsRead(n.id);
                         if (n.link) {
@@ -179,7 +180,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                 )}
               </AnimatePresence>
             </div>
-  
+
             {filteredNotifications.length > 5 && (
               <DropdownMenuItem asChild className="mt-2">
                 <Link

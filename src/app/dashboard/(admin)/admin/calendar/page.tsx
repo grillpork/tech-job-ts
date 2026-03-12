@@ -4,10 +4,13 @@ import { EventManager, type Event } from "@/components/ui/event-manager"
 import { useMemo } from "react"
 import { useJobStore } from "@/stores/features/jobStore"
 import { useUserStore } from "@/stores/features/userStore"
+import { useSession } from "next-auth/react"
 
 export default function EventManagerDemo() {
   const jobs = useJobStore((s) => s.jobs)
-  const currentUser = useUserStore((s) => s.currentUser)
+  const { data: session } = useSession()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentUser = session?.user as any
 
   // Map Job -> Event shape expected by EventManager
   const jobEvents: Event[] = useMemo(() => {
@@ -87,7 +90,7 @@ export default function EventManagerDemo() {
         departments: job.departments || (job.department ? [job.department] : []),
       } as Event
     })
-  }, [jobs])
+  }, [jobs, currentUser])
 
   return (
     <div className="container mx-auto p-4 sm:p-6">
@@ -98,7 +101,6 @@ export default function EventManagerDemo() {
           events={jobEvents}
           onEventCreate={(event) => console.log("Created:", event)}
           onEventUpdate={(id, event) => console.log("Updated:", id, event)}
-          onEventDelete={(id) => console.log("Deleted:", id)}
           categories={["Meeting", "Task", "Reminder", "Personal", "Job"]}
           availableTags={["Important", "Urgent", "Work", "Personal", "Team", "Client"]}
           defaultView="month"

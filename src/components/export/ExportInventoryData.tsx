@@ -16,7 +16,7 @@ export default function ExportInventoryData() {
   // Prepare data: Filter approved requests and flatten items
   const getExportData = () => {
     const approvedRequests = inventoryRequests.filter(req => req.status === 'approved');
-    
+
     return approvedRequests.flatMap(req => {
       const job = getJobById(req.jobId);
       return req.requestedItems.map(item => {
@@ -123,12 +123,13 @@ export default function ExportInventoryData() {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const finalYTable = (doc as any).lastAutoTable.finalY;
     currentY = finalYTable + 10;
 
     // --- Summary ---
     const totalSum = data.reduce((sum, item) => sum + item.total, 0);
-    
+
     doc.setFontSize(12);
     doc.text(`รวมมูลค่าการเบิกจ่ายทั้งหมด: ${totalSum.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท`, doc.internal.pageSize.width - pageMargin, currentY, { align: "right" });
 
@@ -172,7 +173,7 @@ export default function ExportInventoryData() {
     const totalSum = data.reduce((sum, item) => sum + item.total, 0);
     const footer = ["", "", "", "", "", "", "", "Grand Total", totalSum];
 
-    const makeRow = (arr: any[]) => arr.map(escapeCSV).join(",");
+    const makeRow = (arr: (string | number)[]) => arr.map(escapeCSV).join(",");
 
     const allData = [headers, ...rows, footer];
     const csvContent = allData.map(makeRow).join("\n");

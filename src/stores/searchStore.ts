@@ -1,11 +1,12 @@
-// --- แก้ใน searchStore.ts ---
+import { type User } from "@/lib/types/user";
+import { type Job } from "@/stores/features/jobStore";
 import { useUserStore } from "@/stores/features/userStore";
 import { useJobStore } from "@/stores/features/jobStore";
 import { create } from "zustand";
 
 type SearchResults = {
-  users: any[];
-  jobs: any[];
+  users: User[];
+  jobs: Job[];
 };
 
 type SearchStore = {
@@ -17,7 +18,7 @@ type SearchStore = {
   searchJobsAndUsers: (query: string) => void;
 };
 
-export const useSearchStore = create<SearchStore>((set, get) => ({
+export const useSearchStore = create<SearchStore>((set) => ({
   open: false,
   query: "",
   results: { users: [], jobs: [] },

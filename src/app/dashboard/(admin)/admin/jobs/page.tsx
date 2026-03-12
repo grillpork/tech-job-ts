@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Plus, Pencil, Search, MoreHorizontal, Calendar as CalendarIcon, Filter, X, Trash2 } from "lucide-react";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/global/DataTable";
-import type { Column } from "@/components/global/DataTable";
+// import type { Column } from "@/components/global/DataTable";
 import { Job } from "@/lib/types/job";
 import { useJobStore } from "@/stores/features/jobStore";
 import { useUserStore } from '@/stores/features/userStore';
@@ -75,10 +76,11 @@ const JobsList = () => {
     completionRequests,
     approveCompletionRequest,
     rejectCompletionRequest,
-    getCompletionRequestByJobId
   } = useJobStore(); // 6. ดึงข้อมูล jobs, reorderJobs และ deleteJob จาก store
   const users = useUserStore((s) => s.users);
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentUser = session?.user as any;
   const { inventories, updateInventory } = useInventoryStore();
 
   // 7. ลบ state ทั้งหมดที่เกี่ยวกับ Dialog (isFormOpen, editingItem, formData, etc.)
@@ -368,6 +370,7 @@ const JobsList = () => {
   // ===========================
   // 11. นิยาม Columns สำหรับ Jobs List
   // ===========================
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columns: any[] = [
     {
       key: "title",
@@ -407,6 +410,7 @@ const JobsList = () => {
       render: (row: Job) => {
         const creatorId = row.creator?.id;
         // Prefer live user data from user store so profile updates (imageUrl) reflect here
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const user = users.find((u: any) => u.id === creatorId) || MOCK_USERS.find((u: any) => u.id === creatorId);
         const initials = (user?.name || row.creator?.name || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
         return (
@@ -433,6 +437,7 @@ const JobsList = () => {
       render: (row: Job) => {
         const leadTechnicianId = row.leadTechnician?.id;
         // Prefer live user data from user store so profile updates (imageUrl) reflect here
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const user = users.find((u: any) => u.id === leadTechnicianId) || MOCK_USERS.find((u: any) => u.id === leadTechnicianId);
         const initials = (user?.name || row.leadTechnician?.name || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
         return (
@@ -465,6 +470,7 @@ const JobsList = () => {
             <div className="flex -space-x-2">
               {visible.map((u) => {
                 // lookup live user by id to reflect profile changes
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
                 const displayName = live?.name ?? u.name;
                 const img = live?.imageUrl ?? u.imageUrl;
@@ -498,6 +504,7 @@ const JobsList = () => {
                     </TooltipTrigger>
                     <TooltipContent>
                       {assignedUsers.slice(3).map((u) => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
                         return live?.name ?? u.name;
                       }).join(", ")}
@@ -857,6 +864,7 @@ const JobsList = () => {
                       <div className="flex items-center gap-2">
                         {item.assignedEmployees && item.assignedEmployees.length > 0 ? (
                           item.assignedEmployees.map((u) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             const live = users.find((x: any) => x.id === u.id) || MOCK_USERS.find((x: any) => x.id === u.id);
                             const displayName = live?.name ?? u.name;
                             const img = live?.imageUrl ?? u.imageUrl;

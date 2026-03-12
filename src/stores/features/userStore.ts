@@ -3,29 +3,18 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { User } from "@/lib/types/user";
-import { MOCK_USERS } from "@/lib/mocks/user";
-import { useAuditLogStore } from "./auditLogStore";
 
-interface Credentials {
-  email: string;
-  password: string;
-}
 
 interface UserStoreState {
   users: User[];
-  currentUser: User | null;
-  isAuthenticated: boolean;
-  isHydrated: boolean;
-
-  login: (credentials: Credentials) => Promise<boolean>;
-  logout: () => void;
-  switchUserById: (userId: string) => void;
-
-  createUser: (userData: Omit<User, "id" | "imageUrl"> & { imageUrl?: string | null }) => void;
-  updateUser: (userId: string, updatedData: Partial<Omit<User, "id">>) => void;
-  deleteUser: (userId: string) => void;
+  fetchUsers: () => Promise<void>;
+  
+  // Management Actions
+  // Management Actions
+  createUser: (userData: Omit<User, "id" | "imageUrl"> & { imageUrl?: string | null }) => Promise<void>;
+  updateUser: (userId: string, updatedData: Partial<Omit<User, "id">>) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
   getUserById: (userId: string) => User | undefined;
-  resetUsers: () => void;
   reorderUsers: (userIdOrder: string[]) => void;
 }
 
@@ -33,222 +22,90 @@ export const useUserStore = create<UserStoreState>()(
   persist(
     immer((set, get) => ({
       users: [],
-      currentUser: null,
-      isAuthenticated: false,
-      isHydrated: false,
 
-      login: async ({ email, password }) => {
-        console.log("UserStore: Attempting login with:", { email, password });
-        const allUsers = get().users;
-        const foundUser = allUsers.find((u) => u.email === email && u.password === password);
-
-        if (foundUser) {
-          set((state) => {
-            state.isAuthenticated = true;
-            state.currentUser = foundUser;
+      createUser: async (userData) => {
+        try {
+          // 1. Call API
+          const res = await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userData),
           });
-          console.log(`✅ UserStore: User ${foundUser.name} (${foundUser.role}) logged in.`);
-          return true;
-        } else {
+
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to create user");
+          }
+
+          const newUser = await res.json();
+
+          // 2. Update Local State
           set((state) => {
-            state.isAuthenticated = false;
-            state.currentUser = null;
+            state.users.push(newUser);
           });
-          console.warn("❌ UserStore: Login failed: Invalid credentials.");
-          return false;
+          console.log("✅ UserStore: User created:", newUser.name);
+        } catch (error) {
+          console.error("❌ UserStore: Create user failed", error);
+          throw error; // Re-throw for UI handling
         }
       },
 
-      logout: () => {
-        set((state) => {
-          state.isAuthenticated = false;
-          state.currentUser = null;
-        });
-        console.log("👋 UserStore: User logged out.");
-      },
+      updateUser: async (userId, updatedData) => {
+        try {
+           // 1. Call API (Using PUT/PATCH to specific ID if exists, or query param)
+           // We will create /api/users/[id] route next.
+           const res = await fetch(`/api/users?id=${userId}`, { // Using query param for now if folders complex, OR assume dynamic route
+             method: "PATCH", 
+             headers: { "Content-Type": "application/json" },
+             body: JSON.stringify(updatedData),
+           });
 
-      switchUserById: (userId: string) => {
-        const user = get().users.find((u) => u.id === userId);
-        if (user) {
+           // Note: Ideally use /api/users/${userId}, but for simplicity in file creation I might just use one route file with params if simpler. 
+           // actually, better to use standard REST: /api/users/${userId}
+           // But I'll stick to /api/users with a method to handle updates if I don't want to make new folder yet? 
+           // No, best practice: I will implement DELETE/PATCH in /api/users/route.ts handling ID from searchParams if easier, or create the folder.
+           // Let's use `/api/users?id=${userId}` for simplicity in `route.ts` modification.
+
+           if (!res.ok) {
+             const errorData = await res.json().catch(() => ({}));
+             throw new Error(errorData.error || errorData.message || "Failed to update user");
+           }
+           
+           const updatedUser = await res.json();
+
           set((state) => {
-            state.currentUser = user;
-            state.isAuthenticated = true;
+            const index = state.users.findIndex((u) => u.id === userId);
+            if (index !== -1) {
+              state.users[index] = { ...state.users[index], ...updatedUser };
+            }
           });
-          console.log(`🔄 UserStore: Switched to user: ${user.name} (${user.role})`);
-        } else {
-          console.warn(`⚠️ UserStore: User with ID ${userId} not found for switching.`);
+          console.log("✅ UserStore: User updated:", userId);
+        } catch (error) {
+           console.error("❌ UserStore: Update user failed", error);
         }
       },
 
-      createUser: (userData) => {
-        if (get().users.some((u) => u.email === userData.email)) {
-          console.error("❌ UserStore: Cannot create user, email already exists.");
-          throw new Error("Email already exists");
-        }
+      deleteUser: async (userId) => {
+        try {
+          const res = await fetch(`/api/users?id=${userId}`, {
+            method: "DELETE",
+          });
 
-        let newUserId: string | null = null;
-        set((state) => {
-          const newUser: User = {
-            id: crypto.randomUUID(),
-            imageUrl: userData.imageUrl || null,
-            ...userData,
-            password: userData.password || "password123",
-          };
-          newUserId = newUser.id;
-          state.users.push(newUser);
-        });
-        console.log("✅ UserStore: User created:", userData.name);
-        
-        // ✅ บันทึก audit log
-        if (newUserId) {
-          try {
-            const currentUser = get().currentUser;
-            if (currentUser) {
-              useAuditLogStore.getState().addAuditLog({
-                action: "create",
-                entityType: "user",
-                entityId: newUserId,
-                entityName: userData.name,
-                performedBy: {
-                  id: currentUser.id,
-                  name: currentUser.name,
-                  role: currentUser.role,
-                },
-                details: `เพิ่มผู้ใช้ใหม่: ${userData.name} (${userData.email})`,
-              });
-            }
-          } catch (error) {
-            console.error("Failed to log audit:", error);
-          }
+          if (!res.ok) throw new Error("Failed to delete user");
+
+          set((state) => {
+            state.users = state.users.filter((user) => user.id !== userId);
+          });
+           console.log("✅ UserStore: User deleted:", userId);
+        } catch (error) {
+           console.error("❌ UserStore: Delete user failed", error);
         }
       },
 
-      updateUser: (userId, updatedData) => {
-        const currentUser = get().users.find((u) => u.id === userId);
-        if (!currentUser) {
-          console.warn(`⚠️ UserStore: User with ID ${userId} not found for update.`);
-          return;
-        }
-
-        if (
-          updatedData.email &&
-          get().users.some((u) => u.email === updatedData.email && u.id !== userId)
-        ) {
-          console.error("❌ UserStore: Cannot update user, email already exists.");
-          return;
-        }
-
-        const oldUserData = { ...currentUser };
-
-        set((state) => {
-          const userIndex = state.users.findIndex((user) => user.id === userId);
-          if (userIndex !== -1) {
-            const currentUserData = state.users[userIndex];
-            state.users[userIndex] = {
-              ...currentUserData,
-              ...updatedData,
-              password:
-                updatedData.password === ""
-                  ? currentUserData.password
-                  : updatedData.password || currentUserData.password,
-            };
-            if (state.currentUser?.id === userId) {
-              state.currentUser = state.users[userIndex];
-            }
-            console.log("✅ UserStore: User updated:", state.users[userIndex].name);
-          }
-        });
-
-        const updatedUser = get().users.find((u) => u.id === userId);
-
-        // ✅ บันทึก audit log
-        if (updatedUser && oldUserData) {
-          try {
-            const currentUser = get().currentUser;
-            if (currentUser) {
-              const changes: { field: string; oldValue: any; newValue: any }[] = [];
-              if (updatedData.name && updatedData.name !== oldUserData.name) {
-                changes.push({
-                  field: "name",
-                  oldValue: oldUserData.name,
-                  newValue: updatedData.name,
-                });
-              }
-              if (updatedData.email && updatedData.email !== oldUserData.email) {
-                changes.push({
-                  field: "email",
-                  oldValue: oldUserData.email,
-                  newValue: updatedData.email,
-                });
-              }
-              if (updatedData.role && updatedData.role !== oldUserData.role) {
-                changes.push({
-                  field: "role",
-                  oldValue: oldUserData.role,
-                  newValue: updatedData.role,
-                });
-              }
-
-              useAuditLogStore.getState().addAuditLog({
-                action: "update",
-                entityType: "user",
-                entityId: updatedUser.id,
-                entityName: updatedUser.name,
-                performedBy: {
-                  id: currentUser.id,
-                  name: currentUser.name,
-                  role: currentUser.role,
-                },
-                details: `แก้ไขข้อมูลผู้ใช้: ${updatedUser.name}`,
-                changes: changes.length > 0 ? changes : undefined,
-              });
-            }
-          } catch (error) {
-            console.error("Failed to log audit:", error);
-          }
-        }
-      },
-
-      deleteUser: (userId) => {
-        const userToDelete = get().users.find((u) => u.id === userId);
-        
-        set((state) => {
-          if (state.currentUser?.id === userId) {
-            console.warn("⚠️ UserStore: Cannot delete current logged-in user.");
-            return;
-          }
-          state.users = state.users.filter((user) => user.id !== userId);
-        });
-        console.log(`🗑️ UserStore: User with ID ${userId} deleted.`);
-        
-        // ✅ บันทึก audit log
-        if (userToDelete) {
-          try {
-            const currentUser = get().currentUser;
-            if (currentUser) {
-              useAuditLogStore.getState().addAuditLog({
-                action: "delete",
-                entityType: "user",
-                entityId: userToDelete.id,
-                entityName: userToDelete.name,
-                performedBy: {
-                  id: currentUser.id,
-                  name: currentUser.name,
-                  role: currentUser.role,
-                },
-                details: `ลบผู้ใช้: ${userToDelete.name} (${userToDelete.email})`,
-              });
-            }
-          } catch (error) {
-            console.error("Failed to log audit:", error);
-          }
-        }
-      },
       reorderUsers: (userIdOrder: string[]) => {
         set((state) => {
           const idSet = new Set(userIdOrder);
-          // Keep users that are in new order first, in that order, then append any missing users
-          const ordered: any[] = [];
+          const ordered: User[] = [];
           for (const id of userIdOrder) {
             const u = state.users.find((x) => x.id === id);
             if (u) ordered.push(u);
@@ -264,13 +121,17 @@ export const useUserStore = create<UserStoreState>()(
         return get().users.find((user) => user.id === userId);
       },
 
-      resetUsers: () => {
-        set((state) => {
-          state.users = MOCK_USERS;
-          state.currentUser = null;
-          state.isAuthenticated = false;
-        });
-        console.log("♻️ UserStore: Reset users to MOCK_USERS.");
+
+      fetchUsers: async () => {
+        try {
+          const res = await fetch('/api/users');
+          if (!res.ok) throw new Error('Failed to fetch users');
+          const users = await res.json();
+          set({ users });
+          console.log("✅ UserStore: Fetched users from API.");
+        } catch (error) {
+           console.error("❌ UserStore: Failed to fetch users", error);
+        }
       },
     })),
     {
@@ -279,43 +140,15 @@ export const useUserStore = create<UserStoreState>()(
 
       onRehydrateStorage: () => (state) => {
         console.log("🔄 UserStore: onRehydrateStorage triggered.");
-
-        if (!state || !state.users || state.users.length === 0) {
-          console.log("🧩 UserStore: No users found in persisted state. Loading MOCK_USERS...");
-          (state as UserStoreState).users = MOCK_USERS;
-        } else {
-          console.log(
-            `📦 UserStore: Found persisted users (${state.users.length}). Keeping existing data.`
-          );
-        }
-
         if (state) {
-          (state as UserStoreState).isHydrated = true;
-          console.log("✅ UserStore: Store hydrated successfully.");
-        } else {
-          console.warn("⚠️ UserStore: onRehydrateStorage called with null state.");
+          state.fetchUsers();
+          console.log("✅ UserStore: Store hydrated and fetch triggered.");
         }
       },
 
-      migrate: (persistedState, version) => {
-        if (version === 0) {
-          const state = persistedState as any;
-          if (typeof state.isAuthenticated === "undefined") state.isAuthenticated = false;
-          if (typeof state.currentUser === "undefined") state.currentUser = null;
-          if (typeof state.isHydrated === "undefined") state.isHydrated = false;
-          if (state.users) {
-            state.users = state.users.map((user: User) => ({
-              ...user,
-              email: user.email || `migrated-${user.id.substring(0, 4)}@example.com`,
-              password: user.password || "password123",
-              role:
-                user.role &&
-                ["manager", "lead_technician", "employee", "admin"].includes(user.role)
-                  ? user.role
-                  : "employee",
-            }));
-          }
-        }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      migrate: (persistedState, _version) => {
+        // Simplified migration as authentication is removed
         return persistedState as UserStoreState;
       },
       version: 1,

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import * as React from "react";
@@ -121,6 +123,7 @@ function LocationImagesCarousel({ images }: { images: string[] }) {
     if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSelect = useCallback((emblaApi: any) => {
     setPrevBtnDisabled(!emblaApi.canScrollPrev());
     setNextBtnDisabled(!emblaApi.canScrollNext());
@@ -179,8 +182,8 @@ function LocationImagesCarousel({ images }: { images: string[] }) {
               <button
                 key={index}
                 className={`h-1.5 rounded-full transition-all ${selectedIndex === index
-                    ? 'w-4 bg-white'
-                    : 'w-1.5 bg-white/50'
+                  ? 'w-4 bg-white'
+                  : 'w-1.5 bg-white/50'
                   }`}
                 onClick={() => emblaApi?.scrollTo(index)}
               />

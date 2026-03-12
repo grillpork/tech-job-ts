@@ -5,6 +5,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-001",
     name: "ปั๊มน้ำแบบพกพา PW-200",
+    imageUrl: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=300",
     status: "พร้อมใช้",
     type: "ต้องคืน",
     quantity: 4,
@@ -15,6 +16,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-002",
     name: 'สายยางแรงดัน 3/4" x 20ม.',
+    imageUrl: "https://images.unsplash.com/photo-1416879598555-46e31969e125?auto=format&fit=crop&q=80&w=300",
     status: "ใกล้หมด",
     type: "ไม่ต้องคืน",
     quantity: 15,
@@ -25,6 +27,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-003",
     name: 'วาล์วน้ำ 1" แบบเกลียว',
+    imageUrl: "https://images.unsplash.com/photo-1605389659021-f0ce969de367?auto=format&fit=crop&q=80&w=300",
     status: "พร้อมใช้",
     type: "ไม่ต้องคืน",
     quantity: 25,
@@ -35,6 +38,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-004",
     name: "หลอดไฟ LED 18W (Daylight)",
+    imageUrl: "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=300",
     status: "ใกล้หมด",
     type: "ไม่ต้องคืน",
     quantity: 40,
@@ -45,6 +49,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-005",
     name: "ชุดเครื่องมือช่าง 46 ชิ้น",
+    imageUrl: "https://images.unsplash.com/photo-1542887800-faca7261a86a?auto=format&fit=crop&q=80&w=300",
     status: "ใกล้หมด",
     type: "ต้องคืน",
     quantity: 6,
@@ -55,6 +60,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-006",
     name: "ฟิลเตอร์แอร์ ขนาดกลาง",
+    imageUrl: "https://images.unsplash.com/photo-1580983546051-787e9ec8be98?auto=format&fit=crop&q=80&w=300",
     status: "พร้อมใช้",
     type: "ไม่ต้องคืน",
     quantity: 12,
@@ -65,6 +71,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-007",
     name: "ถังดับเพลิงเคมี 6kg",
+    imageUrl: "https://images.unsplash.com/photo-1563811802-995bcbbd26e4?auto=format&fit=crop&q=80&w=300",
     status: "พร้อมใช้",
     type: "ต้องคืน",
     quantity: 10,
@@ -75,6 +82,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-008",
     name: "สว่านไฟฟ้า 13mm (Hand Drill)",
+    imageUrl: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&q=80&w=300",
     status: "ใกล้หมด",
     type: "ต้องคืน",
     quantity: 5,
@@ -85,6 +93,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
   {
     id: "inv-009",
     name: "แบตเตอรี่สำรอง 12V 7Ah",
+    imageUrl: "https://images.unsplash.com/photo-1620247547926-d18fc2726330?auto=format&fit=crop&q=80&w=300",
     status: "หมด",
     type: "ไม่ต้องคืน",
     quantity: 2,

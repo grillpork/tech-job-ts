@@ -2,19 +2,24 @@
 
 import React, { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
+// import { useSession } from "next-auth/react";
 import { useUserStore } from "@/stores/features/userStore";
 import { useJobStore } from "@/stores/features/jobStore";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MOCK_USERS } from "@/lib/mocks/user";
-import { Edit, ArrowLeft, Briefcase, CheckCircle2, Timer, CalendarClock, Facebook, Github, MessageCircle } from "lucide-react";
+import { ArrowLeft, Briefcase, CheckCircle2, Timer, CalendarClock, Facebook, Github, MessageCircle } from "lucide-react";
+// import { Card, CardHeader } from "@/components/ui/card"; // Assuming Card and CardHeader are from ui/card
 
 export default function UserProfileViewPage() {
   const router = useRouter();
   const params = useParams();
   const userId = params?.userId as string;
 
-  const { users, currentUser } = useUserStore();
+  const { users } = useUserStore();
+  // const { data: session } = useSession();
+  //
+  // const currentUser = session?.user as any;
   const { jobs } = useJobStore();
 
   const user = users.find((u) => u.id === userId);
@@ -30,7 +35,8 @@ export default function UserProfileViewPage() {
           const createdByUser = job.creator?.id === user.id;
           const leading = job.leadTechnician?.id === user.id;
           const assigned =
-            job.assignedEmployees?.some((member: any) => member.id === user.id) ?? false;
+            //
+            job.assignedEmployees?.some((member: any) => member.id === user.id) ?? false; // eslint-disable-line @typescript-eslint/no-explicit-any
           return createdByUser || leading || assigned;
         })
         .sort((a, b) => {
@@ -56,9 +62,8 @@ export default function UserProfileViewPage() {
       case "lead_technician":
         return "หัวหน้าแผนก";
       case "manager":
-        return "ผู้จัดการแผนก";
       case "admin":
-        return "ผู้ดูแลระบบ";
+        return "ผู้จัดการแผนก";
       case "employee":
         return "สมาชิกทีม";
       default:
@@ -127,6 +132,7 @@ export default function UserProfileViewPage() {
   const collaborators = useMemo(() => {
     const map = new Map<string, { id: string; name: string; imageUrl?: string | null; department?: string | null; role?: string | null }>();
     userJobs.forEach((job) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       job.assignedEmployees?.forEach((member: any) => {
         if (member.id !== user?.id && !map.has(member.id)) {
           map.set(member.id, member);
@@ -138,15 +144,6 @@ export default function UserProfileViewPage() {
     });
     return Array.from(map.values()).slice(0, 6);
   }, [userJobs, user]);
-
-  if (!user) {
-    return (
-      <div className="p-6 flex flex-col items-center justify-center h-[50vh]">
-        <p className="text-lg text-gray-600 mb-4">ไม่พบข้อมูลผู้ใช้</p>
-        <Button onClick={() => router.push('/dashboard/admin/users')}>กลับไปหน้ารายชื่อผู้ใช้</Button>
-      </div>
-    );
-  }
 
   const employmentDuration = useMemo(() => {
     if (!user?.joinedAt) return "-";
@@ -175,12 +172,21 @@ export default function UserProfileViewPage() {
     return parts.join(" ");
   }, [user?.joinedAt]);
 
+  if (!user) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center h-[50vh]">
+        <p className="text-lg text-gray-600 mb-4">ไม่พบข้อมูลผู้ใช้</p>
+        <Button onClick={() => router.push('/dashboard/admin/users')}>กลับไปหน้ารายชื่อผู้ใช้</Button>
+      </div>
+    );
+  }
+
   const coverImage =
     user.coverImageUrl ||
     "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80";
 
   // Check if the current logged-in user is an admin
-  const isAdmin = currentUser?.role === 'admin';
+  // const isAdmin = currentUser?.role === 'admin';
 
   return (
     <div className="p-4 sm:p-6">
@@ -214,9 +220,11 @@ export default function UserProfileViewPage() {
                   <div className="relative block">
                     <div className="relative -mt-8">
                       <div className="h-28 w-28 rounded-full ring-4 ring-white dark:ring-[#141414] shadow-2xl overflow-hidden bg-white">
-                        <Avatar className="h-full w-full rounded-full">
-                          {user.imageUrl ? (
-                            <AvatarImage src={user.imageUrl} alt={user.name} />
+                        <Avatar className="h-20 w-20 border-4 border-white dark:border-[#1a1d29] shadow-lg">
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          {user?.imageUrl && (user as any).imageUrl.trim() ? (
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            <AvatarImage src={(user as any).imageUrl.trim()} alt={user?.name || "User"} />
                           ) : (
                             <AvatarFallback>
                               {(user.name || "")
@@ -394,16 +402,20 @@ export default function UserProfileViewPage() {
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{person.name}</p>
                           <p className="text-xs text-gray-500">
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             {(person as any).department || user?.department || "ทีมทั่วไป"} •{" "}
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             {formatRoleLabel((person as any).role ?? undefined)}
                           </p>
                           {(() => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             const detail = (person as any).status
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
                               ? (person as any).status
                               : allUsers.find((u) => u.id === person.id)?.status;
                             const statusLabel = formatStatusLabel(detail ?? null);
                             return statusLabel ? (
-                              <p className={`text-xs ${getStatusClasses(detail ?? null)}`}>{statusLabel}</p>
+                              <p className={`text - xs ${getStatusClasses(detail ?? null)} `}>{statusLabel}</p>
                             ) : null;
                           })()}
                         </div>

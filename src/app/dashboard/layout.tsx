@@ -5,18 +5,17 @@ import { ClientAuthGuard } from "@/components/ClientAuthGuard";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card } from "@/components/ui/card";
+
 import { usePathname } from "next/navigation";
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
   // ✅ ตรวจขนาดจอหลังจาก mount แล้ว
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => { }; // setIsMobile(window.innerWidth < 1024); // No longer needed
     handleResize(); // เรียกครั้งแรก
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -63,19 +62,19 @@ export default function DashboardLayout({
         {/* Main content (ขวา) */}
         <div className="flex flex-col flex-1">
           <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
-            
+
           <main className="flex-1 overflow-y-auto">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={pathname}
-                  initial={{ opacity: 0, y: 20, filter: "blur(20px)" }}
-                  animate={{ opacity: 1, y: 0 , filter: "blur(0px)"  }}
-                  transition={{ duration: 0.25 }}
-                  className="h-full"
-                >
-                  {children}
-                </motion.div>
-              </AnimatePresence>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 20, filter: "blur(20px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ duration: 0.25 }}
+                className="h-full"
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>

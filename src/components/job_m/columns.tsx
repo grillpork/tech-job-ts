@@ -106,7 +106,10 @@ export const columns: ColumnDef<Job>[] = [
   {
     accessorKey: "department",
     header: "Department",
-    cell: ({ row }) => row.original.department || "Not Assigned",
+    cell: ({ row }) => {
+      const depts = row.original.departments;
+      return Array.isArray(depts) ? depts.join(", ") : (depts || "Not Assigned");
+    },
   },
   {
     accessorKey: "creator",
@@ -171,7 +174,7 @@ export const columns: ColumnDef<Job>[] = [
       }
       try {
         return format(new Date(startDate), "yyyy-MM-dd");
-      } catch (error) {
+      } catch {
         return <span>Invalid Date</span>;
       }
     },

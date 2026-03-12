@@ -1,0 +1,102 @@
+═══════════════════════════════════════════════════════════════════════════════
+แผนงานพัฒนา Backend & Database สำหรับทีม 5 คน (TECH JOB System)
+═══════════════════════════════════════════════════════════════════════════════
+
+เป้าหมาย: พัฒนาระบบหลังบ้าน (Backend) และฐานข้อมูล (Database) ให้รองรับการทำงานของ Frontend ที่มีอยู่แล้ว 
+โดยแบ่งงานให้ทีม 5 คน ทำงานขนานกันได้ราบรื่น
+
+───────────────────────────────────────────────────────────────────────────────
+1. Technology Stack (เครื่องมือที่เราจะใช้)
+───────────────────────────────────────────────────────────────────────────────
+เพื่อให้ทุกคนในทีมเข้าใจตรงกัน:
+• Framework: Next.js (App Router) - เขียน Backend ผ่าน API Routes & Server Actions
+• Language: TypeScript - บังคับใช้ Type เพื่อลดข้อผิดพลาด
+• Database: PostgreSQL (แนะนำ Supabase หรือ Neon) - เพื่อให้ทั้ง 5 คนเชื่อมต่อ DB เดียวกันได้ Real-time
+• ORM: Prisma - ใช้คุยกับ Database (Schema มีอยู่แล้ว)
+• Auth: NextAuth.js (v4) - ใช้จัดการ Login/Logout/Session
+• Storage: Cloudinary หรือ Supabase Storage - สำหรับเก็บรูปภาพและไฟล์ (ไม่แนะนำให้เก็บ Base64 ลง DB โดยตรงใน Production)
+
+───────────────────────────────────────────────────────────────────────────────
+2. การแบ่งหน้าที่ (Roles & Responsibilities) - ทีม 5 คน
+───────────────────────────────────────────────────────────────────────────────
+
+👨‍💻 คนที่ 1: Team Lead / DevOps / Security (คุณ - "หัวหน้าทีม")
+------------------------------------------------------------
+หน้าที่: วางโครงสร้างหลัก, ความปลอดภัย, และ Database Setup
+• Database Setup: สร้าง Project ใน Cloud DB (Supabase/Neon) แล้วแจก Connection String ให้เพื่อน
+• Auth System: 
+  - ตั้งค่า NextAuth.js ให้สมบูรณ์ (Login/Logout)
+  - จัดการ Session และ Token
+• Middleware & Security:
+  - สร้าง Middleware ป้องกัน Route (Admin vs Employee)
+  - ทำ Role-Based Access Control (RBAC) ตรวจสิทธิ์การเรียก API
+• Config: จัดการไฟล์ .env และ CORS
+• Code Review: ตรวจสอบ Code ของเพื่อนก่อนรวมร่าง (Merge)
+
+👨‍💻 คนที่ 2: Job & Task Manager (เจ้าพ่อระบบงาน)
+------------------------------------------------------------
+หน้าที่: ดูแลหัวใจหลักของระบบ คือ "งาน" (Jobs) และ "งานย่อย" (Tasks)
+• Models ที่รับผิดชอบ: Job, Task
+• Backend API Tasks:
+  - POST /api/jobs: สร้างงานใหม่ + Assign คน (Logic ข้อ 7)
+  - GET /api/jobs: ดึงรายการงาน พร้อมระบบ Filter/Search/Sort/Pagination
+  - PATCH /api/jobs/[id]/status: อัปเดตสถานะงาน (Pending -> In Progress -> Done)
+  - PUT /api/jobs/[id]/tasks: จัดการ Checklist งานย่อย (ติ๊กถูก/ยกเลิก)
+  - ระบบ Auto-Numbering: สร้าง Job ID อัตโนมัติ (เช่น JOB-2024-001)
+
+👨‍💻 คนที่ 3: User & Dashboard Analyst (เจ้าพ่อข้อมูลคนและสถิติ)
+------------------------------------------------------------
+หน้าที่: ดูแลข้อมูลผู้ใช้งานและหน้ารายงานภาพรวม
+• Models ที่รับผิดชอบ: User, WorkLog, สถิติรวม
+• Backend API Tasks:
+  - GET /api/dashboard/stats: คำนวณตัวเลขและกราฟหน้า Dashboard (Logic ข้อ 2)
+    * ต้องเขียน Query เก่งๆ เพื่อดึงข้อมูล: งานค้าง, กราฟย้อนหลัง 180 วัน, ฯลฯ
+  - CRUD /api/users: เพิ่ม/ลบ/แก้ไข/ปิดบัญชี พนักงาน (Logic ข้อ 3-4)
+  - GET /api/users/profile/[id]: ดึงข้อมูล Profile + งานที่เกี่ยวข้อง (Logic ข้อ 5)
+  - GET /api/audit-logs: ดึง Log การทำงานย้อนหลัง (ใครทำอะไร เมื่อไหร่)
+
+👨‍💻 คนที่ 4: Inventory & Assets (ฝ่ายพัสดุ)
+------------------------------------------------------------
+หน้าที่: จัดการของในคลัง และการตัดสต็อกเมื่อใช้อะไหล่ในงาน
+• Models ที่รับผิดชอบ: Inventory
+• Backend API Tasks:
+  - CRUD /api/inventory: เพิ่มสินค้า, แก้ไขจำนวน, ตัดยอด
+  - Transaction Logic: 
+    * เมื่อ Job มีการใช้อะไหล่ (usedInventory) ต้องเขียน Logic ตัด Stock ในตาราง Inventory จริงๆ
+    * ต้องแม่นเรื่อง Database Transaction (ถ้าตัดของไม่ผ่าน ต้องยกเลิกการบันทึกงาน)
+  - Low Stock Alert: API แจ้งเตือนเมื่อของใกล้หมด
+
+👨‍💻 คนที่ 5: Special Features & Files (หน่วยรบพิเศษ)
+------------------------------------------------------------
+หน้าที่: จัดการฟีเจอร์พิเศษ, ไฟล์แนบ, และรายงานปัญหา
+• Models ที่รับผิดชอบ: Report, การจัดการไฟล์ (Attachments)
+• Backend API Tasks:
+  - Image/File Upload Service: 
+    * เปลี่ยนระบบ Base64 เป็น API อัปโหลดไฟล์ขึ้น Cloud Store แล้วส่ง URL กลับมาเก็บใน DB
+  - POST /api/reports: ส่งรายงานแจ้งปัญหา/บั๊ก (Logic ข้อ 2.6)
+  - PDF Generation: สร้าง API รับ Job ID แล้ว Gen ไฟล์ PDF ใบงาน (Job Sheet) ให้ดาวน์โหลด
+  - Signature: API บันทึก/แปลงรูปลายเซ็นลูกค้า
+
+───────────────────────────────────────────────────────────────────────────────
+3. ขั้นตอนการทำงาน (Workflow)
+───────────────────────────────────────────────────────────────────────────────
+1. Database Synchronization (วันแรก)
+   - Lead สร้าง Cloud DB -> รัน `npx prisma db push`
+   - ทุกคนเอา Connection String ใส่ .env -> รัน `npx prisma generate`
+
+2. API Specification (คุยก่อนทำ)
+   - ตกลง Format JSON ระหว่าง Frontend กับ Backend (Request ส่งอะไรไป / Response ตอบอะไรกลับมา)
+
+3. Development (แยกย้ายทำ)
+   - เขียน code ใน `src/app/api/...`
+   - หากแก้ Schema (เช่นเพิ่ม Field) ต้องแจ้งทีมให้ `prisma generate` ใหม่
+
+4. Integration (โรงงานประกอบร่าง)
+   - เอา Frontend มาต่อกับ API (ใช้ React Query / fetch)
+
+───────────────────────────────────────────────────────────────────────────────
+4. ข้อแนะนำเพิ่มเติม (Best Practices)
+───────────────────────────────────────────────────────────────────────────────
+• Validation: ใช้ `zod` ตรวจสอบข้อมูลขาเข้าทุกครั้ง ก่อนส่งให้ DB
+• Error Handling: ตอบกลับด้วย JSON ที่มี format ชัดเจน เช่น { success: false, message: "..." }
+• Logs: บันทึก AuditLog ทุกครั้งที่มีการ แก้ไข/ลบ ข้อมูลสำคัญ

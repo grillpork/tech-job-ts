@@ -1,6 +1,6 @@
 "use client";
 
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -16,13 +16,17 @@ export function ClientAuthGuard({
   allowedRoles,
   redirectPath = "/login",
 }: ClientAuthGuardProps) {
-  const { isAuthenticated, currentUser, isHydrated } = useUserStore();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
+  const isLoading = status === "loading";
+  const isAuthenticated = status === "authenticated";
+  const currentUser = session?.user;
+
   useEffect(() => {
-    if (!isHydrated) return;
+    if (isLoading) return;
 
     // ❌ ยังไม่ได้ล็อกอิน
     if (!isAuthenticated) {
@@ -47,7 +51,7 @@ export function ClientAuthGuard({
         case "admin":
         case "manager":
         case "lead_technician":
-          newRedirectPath = "/dashboard/admin/dashboard"; 
+          newRedirectPath = "/dashboard/admin/dashboard";
           break;
         case "employee":
           newRedirectPath = "/dashboard/employee/dashboard";
@@ -74,29 +78,33 @@ export function ClientAuthGuard({
         let redirectTo = "/dashboard";
         switch (userRole) {
           case "employee":
-            redirectTo = "/dashboard/employee";
+            redirectTo = "/dashboard/employee/dashboard"; // Fixed path to match dashboard structure
             break;
           default:
-            redirectTo = "/dashboard";
+            redirectTo = "/dashboard/admin/dashboard";
         }
 
-        setIsRedirecting(true);
-        router.replace(redirectTo);
+        // Avoid redirect loop if already on target (basic check)
+        if (pathname !== redirectTo) { // Simplified check
+          setIsRedirecting(true);
+          router.replace(redirectTo);
+        }
         return;
       }
     }
-  }, [isHydrated, isAuthenticated, currentUser, allowedRoles, redirectPath, router, pathname]);
+  }, [isLoading, isAuthenticated, currentUser, allowedRoles, redirectPath, router, pathname]);
 
-  if (!isHydrated || isRedirecting) {
+  if (isLoading || isRedirecting) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2 text-muted-foreground">
-          Checking authentication and permissions...
+          กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...
         </span>
       </div>
     );
   }
+
 
   return <>{children}</>;
 }

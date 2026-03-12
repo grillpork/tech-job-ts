@@ -3,11 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import { useJobStore } from "@/stores/features/jobStore";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight,
@@ -17,9 +15,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  TrendingUp,
   ClipboardList,
-  MapPin,
   Bell,
   Settings,
   BarChart3
@@ -31,7 +27,9 @@ dayjs.locale("th");
 
 export default function EmployeeWelcomePage() {
   const router = useRouter();
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
   const { jobs } = useJobStore();
   const [greeting, setGreeting] = useState("");
 

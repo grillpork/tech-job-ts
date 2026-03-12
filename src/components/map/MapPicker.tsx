@@ -1,7 +1,6 @@
 // src/components/MapPicker.tsx
 "use client";
 
-// @ts-ignore: allow side-effect import of CSS without type declarations
 import 'leaflet/dist/leaflet.css';
 import * as L from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -10,8 +9,6 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Crosshair, MapPin } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const resolveIcon = (icon: string | { src: string }) =>
@@ -44,45 +41,25 @@ export function MapPicker({ initialPosition, onPositionChange, disabled = false 
   }, [initialPosition]);
 
   const MapEvents = () => {
-    useMapEvents({
+    const map = useMapEvents({
       click: (e) => {
         if (disabled) return;
-        const newPos = { 
-          ...(position || {}), 
-          lat: e.latlng.lat, 
+        const newPos = {
+          ...(position || {}),
+          lat: e.latlng.lat,
           lng: e.latlng.lng,
           name: position?.name || null
         };
         setPosition(newPos);
         onPositionChange(newPos);
       },
-      // Optional: ถ้าต้องการให้ Map เปลี่ยนเมื่อมีการเคลื่อนย้ายแผนที่ด้วย
-      // moveend: (e) => {
-      //   if (!position) { // ถ้ายังไม่มีตำแหน่งถูกเลือก
-      //     const center = e.target.getCenter();
-      //     const newPos = { lat: center.lat, lng: center.lng, name: position?.name || null };
-      //     setPosition(newPos);
-      //     onPositionChange(newPos);
-      //   }
-      // }
     });
+
+    useEffect(() => {
+      mapRef.current = map;
+    }, [map]);
+
     return null;
-  };
-
-  const handleManualLatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const lat = parseFloat(e.target.value);
-    if (!position || isNaN(lat)) return;
-    const newPos = { ...position, lat: lat };
-    setPosition(newPos);
-    onPositionChange(newPos);
-  };
-
-  const handleManualLngChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const lng = parseFloat(e.target.value);
-    if (!position || isNaN(lng)) return;
-    const newPos = { ...position, lng: lng };
-    setPosition(newPos);
-    onPositionChange(newPos);
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,6 +70,7 @@ export function MapPicker({ initialPosition, onPositionChange, disabled = false 
     onPositionChange(newPos);
   };
 
+  /*
   const handleLocateMe = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
@@ -110,6 +88,7 @@ export function MapPicker({ initialPosition, onPositionChange, disabled = false 
       alert("Geolocation is not supported by your browser.");
     }
   };
+  */
 
   return (
     <div>
@@ -130,7 +109,6 @@ export function MapPicker({ initialPosition, onPositionChange, disabled = false 
           zoom={position ? 13 : 6}
           scrollWheelZoom={!disabled}
           style={{ height: '100%', width: '100%' }}
-          whenCreated={(map) => { mapRef.current = map; }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

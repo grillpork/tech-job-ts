@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import { useUserStore } from "@/stores/features/userStore";
 import { useJobStore } from "@/stores/features/jobStore";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import  Cropper  from "react-easy-crop";
+import Cropper from "react-easy-crop";
 import {
   Dialog,
   DialogContent,
@@ -20,9 +21,11 @@ import { MOCK_USERS } from "@/lib/mocks/user";
 
 const ProfilePage: React.FC = () => {
   const router = useRouter();
-  const { currentUser, users, switchUserById, logout, resetUsers, updateUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
+  const { users, updateUser } = useUserStore(); // ✅ Keep users and updateUser from store
   const { jobs } = useJobStore();
-  const searchParams = useSearchParams();
 
   const userJobs = useMemo(() => {
     if (!currentUser) return [];
@@ -51,16 +54,16 @@ const ProfilePage: React.FC = () => {
   }, [users]);
 
   const formatRoleLabel = (role?: string | null) => {
-    if (!role) return "Team member";
+    if (!role) return "สมาชิกทีม";
     switch (role) {
       case "lead_technician":
-        return "Head of department";
+        return "หัวหน้าแผนก";
       case "manager":
-        return "Department manager";
+        return "ผู้จัดการแผนก";
       case "admin":
-        return "Administrator";
+        return "ผู้ดูแลระบบ";
       case "employee":
-        return "Team member";
+        return "สมาชิกทีม";
       default:
         return role
           .replace(/_/g, " ")
@@ -72,13 +75,13 @@ const ProfilePage: React.FC = () => {
     if (!status) return null;
     switch (status) {
       case "active":
-        return "Active";
+        return "ใช้งาน";
       case "on_site":
-        return "On site";
+        return "ปฏิบัติงานนอกสถานที่";
       case "training":
-        return "Training";
+        return "ฝึกอบรม";
       case "on_leave":
-        return "On leave";
+        return "ลางาน";
       default:
         return status
           .replace(/_/g, " ")
@@ -125,7 +128,7 @@ const ProfilePage: React.FC = () => {
   }, [allUsers, currentUser]);
 
   const collaborators = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; imageUrl?: string | null; department?: string | null; role?: string | null }>();
+    const map = new Map<string, { id: string; name: string; imageUrl?: string | null; department?: string | null; role?: string | null; status?: string | null }>();
     userJobs.forEach((job) => {
       job.assignedEmployees?.forEach((member) => {
         if (member.id !== currentUser?.id && !map.has(member.id)) {
@@ -138,39 +141,8 @@ const ProfilePage: React.FC = () => {
     });
     return Array.from(map.values()).slice(0, 6);
   }, [userJobs, currentUser]);
-  const places = useMemo(() => {
-    const set = new Set<string>();
-    userJobs.forEach((job) => {
-      job.departments?.forEach((dept) => {
-        if (dept) set.add(dept);
-      });
-    });
-    if (currentUser?.department) set.add(currentUser.department);
-    return Array.from(set);
-  }, [userJobs, currentUser]);
 
-  useEffect(() => {
-    // Ensure mock users are loaded into the store if empty (helps in dev)
-    if (!users || users.length === 0) {
-      resetUsers();
-    }
-
-    // If URL contains ?id=..., switch to that user automatically
-    const id = searchParams?.get?.("id");
-    if (id) {
-      // avoid unnecessary switch if already the same
-      if (!users || users.length === 0 || (currentUser && currentUser.id !== id)) {
-        // Try switching — switchUserById will warn if not found
-        switchUserById(id);
-      }
-    }
-
-    // If no currentUser after loading mocks, default to admin user (TCH-0001) if present
-    if ((!currentUser || !currentUser.id) && users && users.length > 0) {
-      const preferred = users.find((u) => u.employeeId === "TCH-0001") || users.find((u) => u.id === "user-admin-1") || users[0];
-      if (preferred) switchUserById(preferred.id);
-    }
-  }, [users, resetUsers, searchParams, switchUserById, currentUser]);
+  // Removed places calculation as it was unused
 
   // image cropper state
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -178,11 +150,11 @@ const ProfilePage: React.FC = () => {
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isCropOpen, setIsCropOpen] = useState(false);
   const [editingTarget, setEditingTarget] = useState<"avatar" | "cover" | null>(null);
 
-  const onCropComplete = (_: any, croppedPixels: any) => {
+  const onCropComplete = (_: unknown, croppedPixels: { x: number; y: number; width: number; height: number }) => {
     setCroppedAreaPixels(croppedPixels);
   };
 
@@ -190,12 +162,12 @@ const ProfilePage: React.FC = () => {
     new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.addEventListener('load', () => resolve(img));
-      img.addEventListener('error', (e) => reject(e));
+      img.addEventListener('error', (e: Event) => reject(e));
       img.setAttribute('crossOrigin', 'anonymous'); // needed for cross-origin images
       img.src = url;
     });
 
-  const getCroppedImg = async (imageSrc: string, pixelCrop: any) => {
+  const getCroppedImg = async (imageSrc: string, pixelCrop: { x: number; y: number; width: number; height: number }) => {
     const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
     canvas.width = pixelCrop.width;
@@ -375,7 +347,7 @@ const ProfilePage: React.FC = () => {
                       >
                         Manage your account
                       </Button>
-                     
+
                     </div>
                   </div>
 
@@ -391,9 +363,8 @@ const ProfilePage: React.FC = () => {
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">
                   <div
-                    className={`relative w-72 ${
-                      editingTarget === "cover" ? "h-44 rounded-2xl" : "h-72 rounded-full"
-                    } overflow-hidden bg-gray-100 dark:bg-gray-800`}
+                    className={`relative w-72 ${editingTarget === "cover" ? "h-44 rounded-2xl" : "h-72 rounded-full"
+                      } overflow-hidden bg-gray-100 dark:bg-gray-800`}
                   >
                     {previewSrc && (
                       <Cropper
@@ -438,21 +409,10 @@ const ProfilePage: React.FC = () => {
                           } else {
                             updateUser(currentUser.id, { imageUrl: croppedDataUrl });
                           }
-                          switchUserById(currentUser.id);
                           toast.success(successMessage);
                         } catch (err) {
-                          try {
-                            const croppedDataUrl = await getCroppedImg(previewSrc, croppedAreaPixels);
-                            if (editingTarget === "cover") {
-                              (useUserStore as any).getState()?.updateUser?.(currentUser.id, { coverImageUrl: croppedDataUrl });
-                            } else {
-                              (useUserStore as any).getState()?.updateUser?.(currentUser.id, { imageUrl: croppedDataUrl });
-                            }
-                            (useUserStore as any).getState()?.switchUserById?.(currentUser.id);
-                            toast.success(successMessage);
-                          } catch (_e) {
-                            toast && toast.error && toast.error("ไม่สามารถบันทึกรูปได้");
-                          }
+                          console.error(err);
+                          toast.error("ไม่สามารถบันทึกรูปได้");
                         }
                         setIsCropOpen(false);
                         setPreviewSrc(null);
@@ -600,12 +560,12 @@ const ProfilePage: React.FC = () => {
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{person.name}</p>
                               <p className="text-xs text-gray-500">
-                                {(person as any).department || currentUser?.department || "General team"} •{" "}
-                                {formatRoleLabel((person as any).role ?? undefined)}
+                                {person.department || currentUser?.department || "General team"} •{" "}
+                                {formatRoleLabel(person.role ?? undefined)}
                               </p>
                               {(() => {
-                                const detail = (person as any).status
-                                  ? (person as any).status
+                                const detail = person.status
+                                  ? person.status
                                   : allUsers.find((u) => u.id === person.id)?.status;
                                 const statusLabel = formatStatusLabel(detail ?? null);
                                 return statusLabel ? (
@@ -614,6 +574,7 @@ const ProfilePage: React.FC = () => {
                               })()}
                             </div>
                           </div>
+
                         ))}
                       </div>
                     ) : (
@@ -623,7 +584,7 @@ const ProfilePage: React.FC = () => {
                 </div>
 
                 <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-lg">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">About me</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">เกี่ยวกับฉัน</h2>
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{currentUser?.bio ?? "ยังไม่มีข้อมูล"}</p>
                   {currentUser?.skills?.length ? (
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -649,13 +610,3 @@ const ProfilePage: React.FC = () => {
 };
 export default ProfilePage;
 
-
-// Small stat helper component
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="text-center">
-      <div className="text-lg font-semibold text-gray-900 dark:text-white">{value}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-    </div>
-  );
-}

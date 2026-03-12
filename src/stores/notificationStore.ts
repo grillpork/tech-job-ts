@@ -198,7 +198,8 @@ export const notificationHelpers = {
   reportSubmitted: (
     reportTitle: string,
     reporterName: string,
-    reportId: string
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _reportId: string
   ) => {
     useNotificationStore.getState().addNotification({
       type: "report_submitted",
@@ -212,7 +213,8 @@ export const notificationHelpers = {
   reportAssigned: (
     reportTitle: string,
     assigneeName: string,
-    reportId: string
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _reportId: string
   ) => {
     useNotificationStore.getState().addNotification({
       type: "report_assigned",
@@ -226,7 +228,8 @@ export const notificationHelpers = {
   reportResolved: (
     reportTitle: string,
     resolverName: string,
-    reportId: string
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _reportId: string
   ) => {
     useNotificationStore.getState().addNotification({
       type: "report_resolved",

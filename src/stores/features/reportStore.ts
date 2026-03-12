@@ -40,6 +40,7 @@ interface ReportStore {
   clearAll: () => void;
   reorderReports: (orderedIds: string[]) => void;
   getReportById: (id: string) => Report | undefined;
+  fetchReports: () => Promise<void>;
 }
 
 export const useReportStore = create<ReportStore>()(
@@ -82,17 +83,26 @@ export const useReportStore = create<ReportStore>()(
       getReportById: (id: string) => {
         return get().reports.find((r) => r.id === id);
       },
+
+      fetchReports: async () => {
+        try {
+          const res = await fetch("/api/reports");
+          if (res.ok) {
+            const reports = await res.json();
+            set({ reports });
+          }
+        } catch (error) {
+          console.error("Failed to fetch reports:", error);
+        }
+      },
     }),
     {
       name: "report-storage",
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        if (!state.reports || state.reports.length === 0) {
-          console.log("ReportStore: Loading MOCK_REPORTS...");
-          (state as ReportStore).reports = MOCK_REPORTS;
-        }
         (state as ReportStore).isHydrated = true;
+        (state as ReportStore).fetchReports();
       },
       version: 1,
     }

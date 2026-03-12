@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Search, Briefcase, User, Boxes } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -22,7 +23,8 @@ export default function GlobalSearch() {
   const [query, setQuery] = React.useState("");
 
   const router = useRouter();
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
 
   const { jobs } = useJobStore();
   const { users } = useUserStore();
@@ -30,15 +32,15 @@ export default function GlobalSearch() {
 
   const role = currentUser?.role;
 
-  const rolePermissions: Record<string, string[]> = {
+  const rolePermissions: Record<string, string[]> = React.useMemo(() => ({
     admin: ["jobs", "users", "inventory"],
     manager: ["jobs", "users", "inventory"],
     lead_technician: ["jobs", "users"],
     employee: ["jobs"],
-  };
+  }), []);
 
-  const canSearch = (type: string) =>
-    role ? rolePermissions[role]?.includes(type) : false;
+  const canSearch = React.useCallback((type: string) =>
+    role ? rolePermissions[role]?.includes(type) : false, [role, rolePermissions]);
 
   const safeQuery = (query ?? "").toLowerCase();
   const hasQuery = safeQuery.trim().length > 0;
@@ -47,30 +49,30 @@ export default function GlobalSearch() {
     () =>
       hasQuery && canSearch("jobs")
         ? (jobs ?? []).filter((j) =>
-            (j?.title ?? "").toLowerCase().includes(safeQuery)
-          )
+          (j?.title ?? "").toLowerCase().includes(safeQuery)
+        )
         : [],
-    [safeQuery, jobs, role]
+    [safeQuery, jobs, canSearch, hasQuery]
   );
 
   const filteredUsers = React.useMemo(
     () =>
       hasQuery && canSearch("users")
         ? (users ?? []).filter((u) =>
-            (u?.name ?? "").toLowerCase().includes(safeQuery)
-          )
+          (u?.name ?? "").toLowerCase().includes(safeQuery)
+        )
         : [],
-    [safeQuery, users, role]
+    [safeQuery, users, canSearch, hasQuery]
   );
 
   const filteredInventories = React.useMemo(
     () =>
       hasQuery && canSearch("inventory")
         ? (inventories ?? []).filter((i) =>
-            (i?.name ?? "").toLowerCase().includes(safeQuery)
-          )
+          (i?.name ?? "").toLowerCase().includes(safeQuery)
+        )
         : [],
-    [safeQuery, inventories, role]
+    [safeQuery, inventories, canSearch, hasQuery]
   );
 
   React.useEffect(() => {
@@ -102,7 +104,7 @@ export default function GlobalSearch() {
         className="flex items-center w-9 h-9 sm:w-fit sm:h-fit gap-2 rounded-full"
       >
         <Search className="w-4 h-4" />
-        <span className="hidden sm:inline text-sm">Search...</span>
+        <span className="hidden sm:inline text-sm">ค้นหา...</span>
         <kbd className="ml-auto text-xs text-muted-foreground hidden sm:inline">
           ⌘K
         </kbd>
@@ -114,7 +116,7 @@ export default function GlobalSearch() {
         onOpenChange={setOpen}
       >
         <CommandInput
-          placeholder="Search job, user, or inventory..."
+          placeholder="ค้นหางาน, ผู้ใช้ หรือสินค้า..."
           value={query}
           onValueChange={setQuery}
         />
@@ -125,11 +127,11 @@ export default function GlobalSearch() {
             </div>
           ) : (
             <>
-              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandEmpty>ไม่พบผลลัพธ์</CommandEmpty>
 
               {/* Jobs */}
               {filteredJobs.length > 0 && (
-                <CommandGroup heading="Jobs">
+                <CommandGroup heading="งาน">
                   {filteredJobs.map((job) => (
                     <CommandItem
                       key={job.id}
@@ -145,7 +147,7 @@ export default function GlobalSearch() {
 
               {/* Users */}
               {filteredUsers.length > 0 && (
-                <CommandGroup heading="Users">
+                <CommandGroup heading="ผู้ใช้">
                   {filteredUsers.map((user) => (
                     <CommandItem
                       key={user.id}
@@ -161,7 +163,7 @@ export default function GlobalSearch() {
 
               {/* Inventories */}
               {filteredInventories.length > 0 && (
-                <CommandGroup heading="Inventorys">
+                <CommandGroup heading="สินค้า">
                   {filteredInventories.map((item) => (
                     <CommandItem
                       key={item.id}

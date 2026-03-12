@@ -4,13 +4,13 @@ import * as React from "react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { MoreHorizontal, Search, User, Calendar, X, ImageIcon, Upload, Trash2, Plus } from "lucide-react";
+import { MoreHorizontal, Search, User, Calendar, X, ImageIcon, Plus } from "lucide-react";
 import { toast } from "sonner";
 import SignaturePad, { SignaturePadRef } from "@/components/signature/SignaturePad";
 
 // Zustand Store
 import { useJobStore } from "@/stores/features/jobStore";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import { useSignatureStore } from "@/stores/features/signatureStore";
 
 // UI Components
@@ -54,9 +54,11 @@ export default function JobManagementPage() {
   const router = useRouter();
 
   const allJobs = useJobStore((state) => state.jobs);
-  const updateJob = useJobStore((state) => state.updateJob);
+  // const updateJob = useJobStore((state) => state.updateJob);
   const requestJobCompletion = useJobStore((state) => state.requestJobCompletion);
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
   const { saveSignature, removeSignature } = useSignatureStore();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -206,19 +208,14 @@ export default function JobManagementPage() {
           signatureRef.current.clear();
         }
 
-      } catch (error) {
-        toast.error("เกิดข้อผิดพลาดในการส่งคำขอจบงาน");
+      } catch {
+        toast.error("เกิดข้อผิดพลาดในการโหลดลายเซ็น");
       } finally {
         setIsCompleting(false);
       }
     }
   };
 
-
-  const handleEditJob = (e: React.MouseEvent, jobId: string) => {
-    e.stopPropagation(); // 10. หยุด event click ไม่ให้ลามไปถึง row
-    router.push(`/dashboard/employee/jobs/${jobId}/edit`);
-  };
 
   // กรองเฉพาะงานที่ถูกมอบหมายให้ employee คนนี้
   const assignedJobs = allJobs.filter((job) => {
@@ -280,9 +277,6 @@ export default function JobManagementPage() {
                     onView={(id) =>
                       router.push(`/dashboard/employee/jobs/${id}`)
                     }
-                    onEdit={(id) =>
-                      router.push(`/dashboard/employee/jobs/edit/${id}`)
-                    }
                     onDelete={handleComplete}
                     showCompleteButton={true}
                   />
@@ -308,9 +302,6 @@ export default function JobManagementPage() {
                     job={job}
                     onView={(id) =>
                       router.push(`/dashboard/employee/jobs/${id}`)
-                    }
-                    onEdit={(id) =>
-                      router.push(`/dashboard/employee/jobs/edit/${id}`)
                     }
                     onDelete={handleComplete}
                     showCompleteButton={false}
@@ -520,18 +511,13 @@ export default function JobManagementPage() {
 interface JobCardProps {
   job: Job;
   onView: (id: string) => void;
-  onEdit: (id: string) => void;
   onDelete: (job: Job) => void;
   showCompleteButton?: boolean;
 }
 
-function JobCard({ job, onView, onEdit, onDelete, showCompleteButton = true }: JobCardProps) {
-  const router = useRouter();
+function JobCard({ job, onView, onDelete, showCompleteButton = true }: JobCardProps) {
+  // const router = useRouter(); // Removed unused router
   const employees = job.assignedEmployees;
-  const handleEditJob = (e: React.MouseEvent, jobId: string) => {
-    e.stopPropagation(); // 10. หยุด event click ไม่ให้ลามไปถึง row
-    router.push(`/dashboard/employee/jobs/${jobId}/edit`);
-  };
 
   return (
     <Card className="flex flex-col justify-between shadow-sm hover:scale-105 hover:shadow-lg transition-all">

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Bell, X, Clock, User, MessageSquare, UserPlus, Briefcase, FileText, Package, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Bell, X, Clock, MessageSquare, UserPlus, Briefcase, FileText, Package, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useNotificationStore, type NotificationType } from '@/stores/notificationStore';
-import { useUserStore } from '@/stores/features/userStore';
-import { useRouter } from 'next/navigation';
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
+
 
 interface TypeConfig {
   label: string;
@@ -14,8 +14,10 @@ interface TypeConfig {
 }
 
 const NotificationsPage: React.FC = () => {
-  const router = useRouter();
-  const { currentUser } = useUserStore();
+
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
   const {
     getNotificationsForUser,
     getUnreadCountForUser,

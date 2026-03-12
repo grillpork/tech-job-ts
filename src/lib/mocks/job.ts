@@ -1,5 +1,5 @@
 import { Job, Attachment } from "../types/job";
-import { MOCK_USERS } from "./user";
+// import { User } from "../types/user";
 
 export const MOCK_JOBS: Job[] = [
   // {

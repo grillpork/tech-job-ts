@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -10,10 +10,6 @@ import {
   Users,
   Briefcase,
   FileText,
-  Settings,
-  ChevronRight,
-  Bell,
-  User,
   Calendar,
   ToolCase,
   PanelLeftClose,
@@ -28,15 +24,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { motion } from "framer-motion";
-import { Separator } from "@radix-ui/react-dropdown-menu";
+
 
 export default function Sidebar() {
-  const { currentUser, logout } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
   // ✅ เมนูตาม role
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const roleMenus: Record<string, { name: string; href: string; icon: any }[]> =
   {
     admin: [

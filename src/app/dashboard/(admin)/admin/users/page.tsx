@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { DataTable } from "@/components/global/DataTable";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUserStore } from "@/stores/features/userStore";
-import { useJobStore } from "@/stores/features/jobStore";
+// import { useJobStore } from "@/stores/features/jobStore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, User, Edit, Trash2, UserX, Shield, KeyRound, Search } from "lucide-react";
+import { MoreHorizontal, User, Edit, Trash2, UserX, Search } from "lucide-react";
 import {
 
 } from "@/components/ui/dialog";
@@ -35,10 +35,11 @@ import {
 export default function UsersPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
-  const { users, currentUser, isAuthenticated, updateUser, deleteUser, reorderUsers } = useUserStore();
+  const { users, updateUser, deleteUser, reorderUsers } = useUserStore();
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Dialog state
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
 
   // Role mapping for Thai labels
@@ -89,12 +90,13 @@ export default function UsersPage() {
 
   // Keep viewUser in sync with latest user data from store
 
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columns: any = [
     {
       key: "name",
       label: "ชื่อ",
       // sortable: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       render: (row: any) => {
         const initials = (row?.name || "")
           .split(" ")
@@ -133,6 +135,7 @@ export default function UsersPage() {
       key: "department",
       label: "แผนก",
       // sortable: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       render: (row: any) => {
         const dept = row?.department;
         return (
@@ -146,18 +149,21 @@ export default function UsersPage() {
       key: "role",
       label: "บทบาท",
       // sortable: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       render: (row: any) => roleLabels[row.role] || row.role
     },
     {
       key: "status",
       label: "สถานะ",
       // sortable: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       render: (row: any) => statusLabels[row.status] || row.status
     },
     {
       key: "actions",
       label: "การดำเนินการ",
       align: "center",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       render: (row: any) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -171,17 +177,17 @@ export default function UsersPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>การจัดการ</DropdownMenuLabel>
             <DropdownMenuItem onClick={(e) => {
               e.stopPropagation();
               router.push(`/dashboard/admin/users/${row.id}`);
             }}>
               <User className="mr-2 h-4 w-4" />
-              View Profile
+              ดูโปรไฟล์
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => handleEditUser(e, row.id)}>
               <Edit className="mr-2 h-4 w-4" />
-              Edit user
+              แก้ไขข้อมูล
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -189,7 +195,7 @@ export default function UsersPage() {
               className="text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete user
+              ลบผู้ใช้
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={(e) => {
@@ -199,7 +205,7 @@ export default function UsersPage() {
               className="text-orange-600"
             >
               <UserX className="mr-2 h-4 w-4" />
-              {row.status === "active" ? "Deactivate" : "Activate"} account
+              {row.status === "active" ? "ระงับ" : "เปิดใช้งาน"} บัญชี
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -208,6 +214,7 @@ export default function UsersPage() {
   ];
 
   // Handler สำหรับ reorder users
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleRowReorder = useCallback((newOrder: any[]) => {
     const ids = newOrder.map((d) => d.id);
     reorderUsers(ids);
@@ -225,7 +232,7 @@ export default function UsersPage() {
         {/* HEADER SECTION */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-            Manage Users
+            จัดการผู้ใช้
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             จัดการบัญชีผู้ใช้ทั้งหมดในระบบ
@@ -237,7 +244,7 @@ export default function UsersPage() {
           <Link href="/dashboard/admin/users/create">
             <Button className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto">
               <User className="h-4 w-4 mr-2" />
-              Add New User
+              เพิ่มผู้ใช้ใหม่
             </Button>
           </Link>
         </div>
@@ -277,6 +284,7 @@ export default function UsersPage() {
           onPageChange={setPage}
           onRowsPerPageChange={setRowsPerPage}
           onRowReorder={handleRowReorder}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onRowClick={(row: any) => router.push(`/dashboard/admin/users/${row.id}`)}
           showCheckbox={false}
         />
@@ -334,14 +342,14 @@ export default function UsersPage() {
                       className="text-gray-700 dark:text-gray-300 hover:text-blue-600 cursor-pointer"
                     >
                       <Edit className="h-4 w-4 mr-2" />
-                      Edit user
+                      แก้ไขข้อมูล
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={(e) => handleDeleteUser(e, user.id)}
                       className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Delete user
+                      ลบผู้ใช้
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -349,26 +357,26 @@ export default function UsersPage() {
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Department</p>
+                  <p className="text-gray-600 dark:text-gray-400 mb-1">แผนก</p>
                   <p className="text-gray-900 dark:text-white">
-                    {user.department || 'None'}
+                    {user.department || 'ไม่ระบุ'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Role</p>
+                  <p className="text-gray-600 dark:text-gray-400 mb-1">บทบาท</p>
                   <p className="text-gray-900 dark:text-white">
                     {roleLabels[user.role] || user.role || '-'}
                   </p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Status</p>
+                  <p className="text-gray-600 dark:text-gray-400 mb-1">สถานะ</p>
                   <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${user.status === 'active'
                     ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                     : user.status === 'inactive'
                       ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                       : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                     }`}>
-                    {user.status ? (statusLabels[user.status] || user.status) : 'Undefined'}
+                    {user.status ? (statusLabels[user.status] || user.status) : 'ไม่ระบุ'}
                   </span>
                 </div>
               </div>
@@ -391,23 +399,26 @@ export default function UsersPage() {
 
 
       {/* Delete Confirmation Dialog */}
+      {/* VIEW DIALOG REMOVED AS IT WAS EMPTY IN SOURCE */}
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
         <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md bg-card border-gray-200 dark:border-gray-800 z-50 fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>ยืนยันการลบ?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user account
+              การดำเนินการนี้ไม่สามารถยกเลิกได้ ระบบจะลบบัญชีผู้ใช้
               <span className="font-medium text-foreground"> {userToDelete?.name} </span>
-              and remove their data from our servers.
+              และข้อมูลที่เกี่ยวข้องออกจากระบบอย่างถาวร
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setUserToDelete(null)}>ยกเลิก</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               onClick={confirmDeleteUser}
             >
-              Delete
+              ลบ
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

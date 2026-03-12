@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import { useUserStore } from "@/stores/features/userStore";
 import { useJobStore } from "@/stores/features/jobStore";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -22,9 +23,22 @@ import { MOCK_USERS } from "@/lib/mocks/user";
 
 const ProfilePage: React.FC = () => {
   const router = useRouter();
-  const { currentUser, users, switchUserById, logout, resetUsers, updateUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const { users, updateUser } = useUserStore(); // ✅ Keep users and updateUser
   const { jobs } = useJobStore();
   const searchParams = useSearchParams();
+
+  // Determine which user to display: URL param 'id' or current session user
+  const displayedUser = useMemo(() => {
+    const id = searchParams?.get("id");
+    if (id && users) {
+      return users.find((u) => u.id === id) || session?.user;
+    }
+    return session?.user;
+  }, [searchParams, users, session]);
+
+  // Use displayedUser as currentUser for the rest of the component
+  const currentUser = displayedUser;
 
   const userJobs = useMemo(() => {
     if (!currentUser) return [];
@@ -140,17 +154,7 @@ const ProfilePage: React.FC = () => {
     });
     return Array.from(map.values()).slice(0, 6);
   }, [userJobs, currentUser]);
-  const places = useMemo(() => {
-    const set = new Set<string>();
-    userJobs.forEach((job) => {
-      job.departments?.forEach((dept) => {
-        if (dept) set.add(dept);
-      });
-    });
-    if (currentUser?.department) set.add(currentUser.department);
-    return Array.from(set);
 
-  }, [userJobs, currentUser]);
 
   const employmentDuration = useMemo(() => {
     if (!currentUser?.joinedAt) return "-";
@@ -179,39 +183,18 @@ const ProfilePage: React.FC = () => {
     return parts.join(" ");
   }, [currentUser?.joinedAt]);
 
-  useEffect(() => {
-    // Ensure mock users are loaded into the store if empty (helps in dev)
-    if (!users || users.length === 0) {
-      resetUsers();
-    }
-
-    // If URL contains ?id=..., switch to that user automatically
-    const id = searchParams?.get?.("id");
-    if (id) {
-      // avoid unnecessary switch if already the same
-      if (!users || users.length === 0 || (currentUser && currentUser.id !== id)) {
-        // Try switching — switchUserById will warn if not found
-        switchUserById(id);
-      }
-    }
-
-    // If no currentUser after loading mocks, default to admin user (TCH-0001) if present
-    if ((!currentUser || !currentUser.id) && users && users.length > 0) {
-      const preferred = users.find((u) => u.employeeId === "TCH-0001") || users.find((u) => u.id === "user-admin-1") || users[0];
-      if (preferred) switchUserById(preferred.id);
-    }
-  }, [users, resetUsers, searchParams, switchUserById, currentUser]);
-
   // image cropper state
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isCropOpen, setIsCropOpen] = useState(false);
   const [editingTarget, setEditingTarget] = useState<"avatar" | "cover" | null>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onCropComplete = (_: any, croppedPixels: any) => {
     setCroppedAreaPixels(croppedPixels);
   };
@@ -225,6 +208,7 @@ const ProfilePage: React.FC = () => {
       img.src = url;
     });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getCroppedImg = async (imageSrc: string, pixelCrop: any) => {
     const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
@@ -456,19 +440,22 @@ const ProfilePage: React.FC = () => {
                           } else {
                             updateUser(currentUser.id, { imageUrl: croppedDataUrl });
                           }
-                          switchUserById(currentUser.id);
+                          // switchUserById removed
                           toast.success(successMessage);
-                        } catch (err) {
+                        } catch {
                           try {
                             const croppedDataUrl = await getCroppedImg(previewSrc, croppedAreaPixels);
                             if (editingTarget === "cover") {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
                               (useUserStore as any).getState()?.updateUser?.(currentUser.id, { coverImageUrl: croppedDataUrl });
                             } else {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
                               (useUserStore as any).getState()?.updateUser?.(currentUser.id, { imageUrl: croppedDataUrl });
                             }
-                            (useUserStore as any).getState()?.switchUserById?.(currentUser.id);
+                            // switchUserById removed
                             toast.success(successMessage);
-                          } catch (_e) {
+                          } catch {
+                            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                             toast && toast.error && toast.error("ไม่สามารถบันทึกรูปได้");
                           }
                         }
@@ -652,11 +639,15 @@ const ProfilePage: React.FC = () => {
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{person.name}</p>
                               <p className="text-xs text-gray-500">
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {(person as any).department || currentUser?.department || "ทีมทั่วไป"} •{" "}
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {formatRoleLabel((person as any).role ?? undefined)}
                               </p>
                               {(() => {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 const detail = (person as any).status
+                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                   ? (person as any).status
                                   : allUsers.find((u) => u.id === person.id)?.status;
                                 const statusLabel = formatStatusLabel(detail ?? null);

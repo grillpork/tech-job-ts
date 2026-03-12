@@ -108,7 +108,8 @@ export default function CreateUserPage() {
 
       toast.success("สร้างบัญชีผู้ใช้สำเร็จ");
       router.push("/dashboard/admin/users");
-    } catch (error: any) {
+      //
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       if (error.message === "Email already exists") {
         toast.error("อีเมลนี้มีอยู่ในระบบแล้ว");
       } else {
@@ -169,7 +170,7 @@ export default function CreateUserPage() {
                 </SelectContent>
               </Select>
             </div>
-           
+
 
             <div>
               <Label className="text-sm text-gray-500">อีเมลพนักงาน</Label>
@@ -194,20 +195,20 @@ export default function CreateUserPage() {
               </p>
             </div>
           </div>
-           <div>
-              <Label className="text-sm text-gray-500">บทบาท</Label>
-              <Select value={form.role} onValueChange={(value) => handleChange("role", value)}>
-                <SelectTrigger className="w-full mt-1">
-                  <SelectValue placeholder="เลือกบทบาท" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="lead_technician">Lead Technician</SelectItem>
-                  <SelectItem value="manager">CEO</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label className="text-sm text-gray-500">บทบาท</Label>
+            <Select value={form.role} onValueChange={(value) => handleChange("role", value)}>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="เลือกบทบาท" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="employee">Employee</SelectItem>
+                <SelectItem value="lead_technician">Lead Technician</SelectItem>
+                <SelectItem value="manager">CEO</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label className="text-sm text-gray-500">ที่อยู่</Label>
             <Input

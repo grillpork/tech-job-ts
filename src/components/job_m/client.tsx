@@ -15,7 +15,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DataTable } from './data-table';
@@ -40,14 +39,14 @@ function useMediaQuery(query: string) {
     // เพื่อความปลอดภัยสูงสุด (max compatibility) ใช้แบบนี้ก็ได้ครับ
     try {
       media.addEventListener('change', listener);
-    } catch (e) {
+    } catch {
       media.addListener(listener);
     }
 
     return () => {
       try {
         media.removeEventListener('change', listener);
-      } catch (e) {
+      } catch {
         media.removeListener(listener);
       }
     };

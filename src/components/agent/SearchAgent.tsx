@@ -8,7 +8,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 
 interface ChatMessage {
   id: number;
@@ -18,7 +18,9 @@ interface ChatMessage {
 }
 
 const SearchAI = () => {
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
@@ -49,14 +51,14 @@ const SearchAI = () => {
       }
 
       const raw = await res.text();
-      
+
       if (!raw || raw.trim() === "") {
         throw new Error("Response body is empty");
       }
 
       try {
         return JSON.parse(raw);
-      } catch (error) {
+      } catch {
         throw new Error("Response is not JSON: " + raw);
       }
     },
@@ -144,7 +146,7 @@ const SearchAI = () => {
   };
 
   const handlePresetClick = (question: string) => {
-    const fakeEvent = { preventDefault: () => {} } as FormEvent;
+    const fakeEvent = { preventDefault: () => { } } as FormEvent;
     handleSubmit(fakeEvent, question);
   };
 
@@ -176,7 +178,7 @@ const SearchAI = () => {
       <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth">
         <AnimatePresence initial={false}>
           {messages.length === 0 ? (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="flex flex-col items-center justify-center h-full text-center space-y-6 mt-10"
@@ -190,7 +192,7 @@ const SearchAI = () => {
                   ผมคือ AI Assistant ที่พร้อมช่วยคุณค้นหาข้อมูลงาน, สถานะโปรเจกต์, หรือข้อมูลคลังสินค้า
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl mt-8">
                 {FAQ_PRESETS.map((q, idx) => (
                   <motion.button
@@ -217,13 +219,13 @@ const SearchAI = () => {
                 <Avatar className="w-8 h-8 mt-1 border shadow-sm">
                   {msg.sender === "user" ? (
                     <>
-                      <AvatarImage src={currentUser?.imageUrl || ""} />
+                      <AvatarImage src={currentUser?.image || ""} />
                       <AvatarFallback><UserIcon className="w-4 h-4" /></AvatarFallback>
                     </>
                   ) : (
                     <>
                       <AvatarFallback className="bg-primary/10"><Bot className="w-4 h-4 text-primary" /></AvatarFallback>
-                    </> 
+                    </>
                   )}
                 </Avatar>
 
@@ -249,7 +251,7 @@ const SearchAI = () => {
         </AnimatePresence>
 
         {isTyping && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex gap-3"
@@ -278,10 +280,10 @@ const SearchAI = () => {
             className="pr-12 py-6 rounded-full shadow-sm border-muted-foreground/20 focus-visible:ring-primary/20 bg-background/50"
             disabled={mutation.isPending}
           />
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             size="icon"
-            className="absolute right-1.5 w-9 h-9 rounded-full shadow-md transition-all hover:scale-105" 
+            className="absolute right-1.5 w-9 h-9 rounded-full shadow-md transition-all hover:scale-105"
             disabled={!input.trim() || mutation.isPending}
           >
             <Send className="w-4 h-4" />

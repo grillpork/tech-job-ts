@@ -9,16 +9,16 @@ import { ExternalLink, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // แก้ไขปัญหา Icon เริ่มต้นของ Leaflet
-import "leaflet/dist/images/marker-icon-2x.png";
-import "leaflet/dist/images/marker-icon.png";
-import "leaflet/dist/images/marker-shadow.png";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-// @ts-ignore
+// @ts-expect-error - _getIconUrl is not in types
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconUrl: require("leaflet/dist/images/marker-icon.png").default,
-  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png").default,
-  shadowUrl: require("leaflet/dist/images/marker-shadow.png").default,
+  iconUrl: markerIcon.src,
+  iconRetinaUrl: markerIcon2x.src,
+  shadowUrl: markerShadow.src,
 });
 
 // สร้าง custom icons
@@ -52,7 +52,7 @@ const RoutingMachine = ({ waypoints, onRouteFound }: RoutingMachineProps) => {
   useEffect(() => {
     if (!map || waypoints.length < 2) return;
 
-    // @ts-ignore - Leaflet Routing Machine types
+    // @ts-expect-error - Leaflet Routing Machine types
     const routingControl = L.Routing.control({
       waypoints: waypoints.map(([lat, lng]) => L.latLng(lat, lng)),
       routeWhileDragging: false,
@@ -65,15 +65,15 @@ const RoutingMachine = ({ waypoints, onRouteFound }: RoutingMachineProps) => {
         extendToWaypoints: true,
         missingRouteTolerance: 0,
       },
-      createMarker: function (_i: any, _waypoint: any, _n: any) {
+      createMarker: function () {
         // ไม่สร้าง marker ผ่าน routing control เพราะเราจะสร้างเอง
-        return null as any;
+        return null;
       },
     });
 
     routingControl.addTo(map);
 
-    routingControl.on('routesfound', (e: any) => {
+    routingControl.on('routesfound', (e: { routes: { summary: { totalDistance: number; totalTime: number } }[] }) => {
       const routes = e.routes;
       if (routes && routes.length > 0) {
         const summary = routes[0].summary;
@@ -93,7 +93,6 @@ const RoutingMachine = ({ waypoints, onRouteFound }: RoutingMachineProps) => {
 
     return () => {
       try {
-        // @ts-ignore
         if (routingControl) {
           // ป้องกัน error จากการพยายาม update map ที่ถูก destroy ไปแล้ว
           routingControl.getPlan().setWaypoints([]);

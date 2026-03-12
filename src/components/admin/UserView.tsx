@@ -3,7 +3,9 @@
 import React from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-export default function UserView({ user }: { user: any }) {
+import { User } from "@/lib/types/user";
+
+export default function UserView({ user }: { user: User }) {
   const initials = (user?.name || "")
     .split(" ")
     .map((n: string) => n[0])
@@ -45,11 +47,11 @@ export default function UserView({ user }: { user: any }) {
       <div className="grid grid-cols-2 gap-2">
         <div>
           <div className="text-xs text-muted-foreground">Role</div>
-          <div className="font-medium">{roleLabels[user?.role] || user?.role || "-"}</div>
+          <div className="font-medium">{roleLabels[user?.role || ""] || user?.role || "-"}</div>
         </div>
         <div>
           <div className="text-xs text-muted-foreground">Status</div>
-          <div className="font-medium">{statusLabels[user?.status] || user?.status || "-"}</div>
+          <div className="font-medium">{statusLabels[user?.status || ""] || user?.status || "-"}</div>
         </div>
         <div className="col-span-2">
           <div className="text-xs text-muted-foreground">ID</div>

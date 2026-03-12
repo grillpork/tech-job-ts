@@ -24,12 +24,13 @@ type User = {
   status?: string;
   imageUrl?: string | null;
   password?: string;
+  department?: string;
 };
 
 export default function UserForm({ user, onClose }: { user?: User; onClose: () => void }) {
   const { createUser, updateUser } = useUserStore();
   const isEditMode = !!user?.id;
-  
+
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: user || {
       name: "",
@@ -38,12 +39,14 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
       status: "active",
       imageUrl: null,
       password: "",
+      department: "",
     },
   });
 
   const roleValue = watch("role");
   const statusValue = watch("status");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSubmit = (values: any) => {
     if (isEditMode && user?.id) {
       // แก้ไขผู้ใช้
@@ -55,7 +58,7 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
         toast.error("กรุณากรอกชื่อและอีเมล");
         return;
       }
-      
+
       const newUser = {
         name: values.name,
         email: values.email,
@@ -65,9 +68,9 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
         password: values.password || "password123",
         department: values.department || null,
       };
-      
+
       createUser(newUser);
-      
+
       // ✅ สร้าง notification เมื่อสร้างผู้ใช้สำเร็จ
       const createdUser = useUserStore.getState().users.find(u => u.email === values.email);
       if (createdUser) {
@@ -76,7 +79,7 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
           createdUser.id
         );
       }
-      
+
       toast.success("สร้างบัญชีผู้ใช้สำเร็จ");
     }
     onClose();
@@ -88,10 +91,10 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
         <Label htmlFor="name">
           ชื่อ <span className="text-red-500">*</span>
         </Label>
-        <Input 
+        <Input
           id="name"
-          className="mt-1" 
-          {...register("name", { required: true })} 
+          className="mt-1"
+          {...register("name", { required: true })}
           placeholder="กรอกชื่อผู้ใช้"
         />
       </div>
@@ -100,11 +103,11 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
         <Label htmlFor="email">
           อีเมล <span className="text-red-500">*</span>
         </Label>
-        <Input 
+        <Input
           id="email"
-          type="email" 
-          className="mt-1" 
-          {...register("email", { required: true })} 
+          type="email"
+          className="mt-1"
+          {...register("email", { required: true })}
           placeholder="example@company.com"
           disabled={isEditMode}
         />
@@ -147,11 +150,11 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
       {!isEditMode && (
         <div>
           <Label htmlFor="password">รหัสผ่าน</Label>
-          <Input 
+          <Input
             id="password"
-            type="password" 
-            className="mt-1" 
-            {...register("password")} 
+            type="password"
+            className="mt-1"
+            {...register("password")}
             placeholder="เว้นว่างไว้จะใช้รหัสผ่านเริ่มต้น: password123"
           />
           <p className="text-xs text-muted-foreground mt-1">
@@ -162,20 +165,20 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
 
       <div>
         <Label htmlFor="imageUrl">URL รูปภาพ</Label>
-        <Input 
+        <Input
           id="imageUrl"
-          className="mt-1" 
-          {...register("imageUrl")} 
+          className="mt-1"
+          {...register("imageUrl")}
           placeholder="https://example.com/image.jpg"
         />
       </div>
 
       <div>
         <Label htmlFor="department">แผนก/ฝ่าย</Label>
-        <Input 
+        <Input
           id="department"
-          className="mt-1" 
-          {...register("department")} 
+          className="mt-1"
+          {...register("department")}
           placeholder="เช่น ช่างไฟฟ้า, ช่างประปา"
         />
       </div>

@@ -96,10 +96,11 @@ export function MultiSelect({ options, selected, onSelectedChange, placeholder =
               {availableOptions
                 .filter(option => option.label.toLowerCase().includes(inputValue.toLowerCase()))
                 .map((option) => {
+                  // Cast option to any if we can't easily fix keys in `CommandItem` wrapper or library issues
                   return (
                     <CommandItem
                       key={option.value}
-                      onMouseDown={(e : any) => {
+                      onMouseDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                       }}

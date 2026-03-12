@@ -1,0 +1,46 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Pass dummy values for build-time static rendering
+        # They will be overridden by the runtime .env
+        DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+        NEXTAUTH_SECRET: "dummy_secret_for_build"
+    container_name: tech-job-ts-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - tech-job-net
+
+  # Optional: Local PostgreSQL Database (if you want to stop using Neon remotely)
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: tech-job-ts-db
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_USER: admin
+  #     POSTGRES_PASSWORD: adminpassword
+  #     POSTGRES_DB: techjobdb
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - tech-job-net
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U admin -d techjobdb"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  tech-job-net:
+    driver: bridge

@@ -1,0 +1,174 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+// (Note: SQLite does not support native enums, Prisma simulates them)
+
+// --- Models ---
+
+model User {
+  id                  String    @id @default(uuid())
+  name                String
+  email               String?   @unique
+  role                String    @default("employee") // admin, manager, lead_technician, employee
+  department          String?
+  imageUrl            String?
+  password            String?
+  phone               String?
+  bio                 String?
+  skills              String?   // JSON string or comma separated
+  joinedAt            DateTime? @default(now())
+  address             String?
+  linkedin            String?
+  employeeId          String?
+  github              String?
+  employmentType      String?
+  status              String?   @default("active")
+  
+  // Extra profile fields
+  accountTier         String?
+  referralCode        String?
+  accountProgressTier String?
+  facebook            String?
+  lineId              String?
+  
+  // Relations
+  createdJobs         Job[]     @relation("JobCreator")
+  leadJobs            Job[]     @relation("JobLead")
+  assignedJobs        Job[]     @relation("JobAssigned")
+  
+  reportedIssues      Report[]  @relation("ReportReporter")
+  assignedIssues      Report[]  @relation("ReportAssignee")
+  
+  updatedWorkLogs     WorkLog[]
+}
+
+model Job {
+  id                  String    @id @default(uuid())
+  title               String
+  description         String?
+  status              String    @default("pending") // pending, in_progress, etc.
+  departments         String?   // JSON: string[]
+  type                String?
+  priority            String?
+  
+  // Relations
+  creatorId           String
+  creator             User      @relation("JobCreator", fields: [creatorId], references: [id])
+  
+  leadTechnicianId    String?
+  leadTechnician      User?     @relation("JobLead", fields: [leadTechnicianId], references: [id])
+  
+  assignedEmployees   User[]    @relation("JobAssigned")
+  
+  tasks               Task[]
+  usedInventory       String?   // JSON: {id, qty}[]
+  
+  createdAt           DateTime  @default(now())
+  startDate           DateTime?
+  endDate             DateTime?
+  
+  location            String?   // JSON: {lat, lng, name}
+  locationImages      String?   // JSON: string[]
+  beforeImages        String?   // JSON: string[]
+  afterImages         String?   // JSON: string[]
+  attachments         String?   // JSON: Attachment[]
+  
+  customerType        String?
+  customerName        String?
+  customerPhone       String?
+  customerCompanyName String?
+  customerTaxId       String?
+  customerAddress     String?
+  
+  signature           String?
+  rejectionReason     String?
+  
+  workLogs            WorkLog[]
+  reports             Report[]
+}
+
+model Task {
+  id          String  @id @default(uuid())
+  jobId       String
+  job         Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  description String
+  details     String?
+  isCompleted Boolean @default(false)
+  order       Int     @default(0)
+}
+
+model WorkLog {
+  id          String   @id @default(uuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  updatedById String
+  updatedBy   User     @relation(fields: [updatedById], references: [id])
+  status      String
+  note        String
+  createdAt   DateTime @default(now())
+}
+
+model Inventory {
+  id          String   @id @default(uuid())
+  name        String
+  imageUrl    String?
+  quantity    Int      @default(0)
+  location    String?
+  status      String   @default("พร้อมใช้")
+  type        String   @default("ไม่ต้องคืน")
+  price       Float    @default(0)
+  requireFrom String?
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  type        String   // bug, request, incident
+  status      String   @default("open")
+  priority    String?  // low, medium, high, urgent
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime? @updatedAt
+  
+  reporterId  String
+  reporter    User     @relation("ReportReporter", fields: [reporterId], references: [id])
+  
+  assigneeId  String?
+  assignee    User?    @relation("ReportAssignee", fields: [assigneeId], references: [id])
+  
+  relatedJobId String?
+  relatedJob   Job?    @relation(fields: [relatedJobId], references: [id])
+  
+  relatedInventoryId String?
+  
+  attachments String?  // JSON
+  tags        String?  // JSON: string[]
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  entityType  String
+  entityId    String
+  entityName  String
+  
+  performedById String
+  performedByName String
+  performedByRole String
+  
+  timestamp   DateTime @default(now())
+  details     String?
+  changes     String?  // JSON
+  metadata    String?  // JSON
+}

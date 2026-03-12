@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useNotificationStore, NotificationType } from "@/stores/notificationStore";
 import { useJobStore } from "@/stores/features/jobStore";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import {
   Card,
   CardContent,
@@ -28,7 +28,6 @@ import {
   Package,
   CheckCircle2,
   XCircle,
-  Clock,
   AlertCircle,
   Bell,
   BellOff,
@@ -157,15 +156,15 @@ const getTypeConfig = (type: NotificationType): TypeConfig => {
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { currentUser } = useUserStore();
-  const { 
-    notifications, 
-    markAsRead, 
-    markAllAsRead,
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
+  const {
+    notifications,
+    markAsRead,
     deleteNotification,
-    unreadCount 
   } = useNotificationStore();
-  const { jobs, getJobById } = useJobStore();
+  const { getJobById } = useJobStore();
   const { inventoryRequests } = useInventoryStore();
 
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
@@ -197,11 +196,11 @@ export default function NotificationsPage() {
         if (jobIdMatch) {
           const jobId = jobIdMatch[1];
           const job = getJobById(jobId);
-          
+
           if (job) {
             // ตรวจสอบว่า user ถูก assign งานหรือไม่
             const isAssigned = job.assignedEmployees?.some((emp) => emp.id === currentUser.id);
-            
+
             // ถ้าไม่ได้ถูก assign ให้ไม่แสดง notification
             if (!isAssigned) {
               return false;
@@ -225,18 +224,18 @@ export default function NotificationsPage() {
       // ถ้าไม่มี link หรือไม่พบ job ให้ไม่แสดง (ยกเว้น system notification)
       return false;
     });
-    
+
     // Filter by read status
     if (filter === "read") filtered = filtered.filter((n) => n.read);
     if (filter === "unread") filtered = filtered.filter((n) => !n.read);
 
     // Filter by type (job or inventory)
     if (typeFilter === "job") {
-      filtered = filtered.filter((n) => 
+      filtered = filtered.filter((n) =>
         n.type.startsWith("job_") || n.type === "task_assigned"
       );
     } else if (typeFilter === "inventory") {
-      filtered = filtered.filter((n) => 
+      filtered = filtered.filter((n) =>
         n.type.startsWith("inventory_")
       );
     }
@@ -248,7 +247,7 @@ export default function NotificationsPage() {
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
-  }, [notifications, currentUser, jobs, getJobById, inventoryRequests, filter, typeFilter, sortOrder]);
+  }, [notifications, currentUser, getJobById, inventoryRequests, filter, typeFilter, sortOrder]);
 
   // คำนวณ unread count จาก filtered notifications
   const filteredUnreadCount = useMemo(() => {
@@ -308,7 +307,7 @@ export default function NotificationsPage() {
         <Select
           value={filter}
           onValueChange={(val) => {
-            setFilter(val as any);
+            setFilter(val as "all" | "unread" | "read");
             setPage(1);
           }}
         >
@@ -325,7 +324,7 @@ export default function NotificationsPage() {
         <Select
           value={typeFilter}
           onValueChange={(val) => {
-            setTypeFilter(val as any);
+            setTypeFilter(val as "all" | "job" | "inventory");
             setPage(1);
           }}
         >
@@ -341,7 +340,7 @@ export default function NotificationsPage() {
 
         <Select
           value={sortOrder}
-          onValueChange={(val) => setSortOrder(val as any)}
+          onValueChange={(val) => setSortOrder(val as "desc" | "asc")}
         >
           <SelectTrigger className="w-36">
             <SelectValue placeholder="เรียงตาม" />
@@ -369,7 +368,7 @@ export default function NotificationsPage() {
             {paginatedNotifications.map((n) => {
               const typeConfig = getTypeConfig(n.type);
               const Icon = typeConfig.icon;
-              
+
               return (
                 <motion.div
                   key={n.id}
@@ -379,9 +378,8 @@ export default function NotificationsPage() {
                   transition={{ duration: 0.15 }}
                 >
                   <Card
-                    className={`${
-                      n.read ? "bg-muted/30" : "bg-muted/60 border-primary/20"
-                    } hover:shadow-md transition-all cursor-pointer relative group`}
+                    className={`${n.read ? "bg-muted/30" : "bg-muted/60 border-primary/20"
+                      } hover:shadow-md transition-all cursor-pointer relative group`}
                     onClick={() => handleNotificationClick(n)}
                   >
                     <CardHeader className="pb-3">
@@ -390,8 +388,8 @@ export default function NotificationsPage() {
                           <Icon className={`h-5 w-5 ${typeConfig.textColor}`} />
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={`text-xs ${typeConfig.textColor} border-current/20`}
                           >
                             {typeConfig.label}

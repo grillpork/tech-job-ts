@@ -8,10 +8,7 @@ import { format, parseISO } from "date-fns";
 import {
   User,
   Clock,
-  Building,
-  Wrench,
   Users,
-  Calendar,
   ClipboardList,
   Scroll,
   Archive,
@@ -28,7 +25,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuditLogStore, type AuditLog, type AuditAction, type AuditEntityType } from "@/stores/features/auditLogStore";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 
 // --- 1. Types ---
 const ACTION_ICONS: Record<AuditAction, React.ElementType> = {
@@ -115,7 +112,8 @@ export default function HistoryPage() {
   const [filterAction, setFilterAction] = useState<AuditAction | "all">("all");
   const [filterEntity, setFilterEntity] = useState<AuditEntityType | "all">("all");
   const { auditLogs } = useAuditLogStore();
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
 
   // ✅ กรองและเรียง audit logs - แสดงเฉพาะของ user ที่ล็อกอินอยู่
   const filteredLogs = useMemo(() => {

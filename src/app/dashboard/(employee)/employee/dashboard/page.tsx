@@ -5,8 +5,6 @@ import { useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -21,12 +19,11 @@ import NumberFlow from "@number-flow/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
   Select,
@@ -36,28 +33,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  CheckCheck,
-  CircleDotDashed,
-  Clock,
-  TrendingUp,
-  TrendingDown,
   ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
-  Award,
-  Target,
-  BarChart3,
-  PieChart as PieChartIcon,
-  Activity,
-  ChartArea,
-  CalendarClock,
-  ClipboardCheck,
-  ListTodo,
+  MapPin,
+  CalendarCheck,
+  AlertCircle
 } from "lucide-react";
-import { useUserStore } from "@/stores/features/userStore";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import { useJobStore } from "@/stores/features/jobStore";
-import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, parseISO } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { format, subDays, eachDayOfInterval, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
 
 const chartConfig = {
@@ -77,7 +60,9 @@ const COLORS = {
 
 export default function EmployeeDashboardPage() {
   const router = useRouter();
-  const { currentUser } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
   const { jobs } = useJobStore();
   const [timeRange, setTimeRange] = useState("30d");
 
@@ -86,7 +71,7 @@ export default function EmployeeDashboardPage() {
     if (!currentUser) return [];
 
     return jobs.filter((job) => {
-      const isAssigned = job.assignedEmployees?.some((emp) => emp.id === currentUser.id);
+      const isAssigned = job.assignedEmployees?.some((emp: { id: string; }) => emp.id === currentUser.id);
       const isCreator = job.creator?.id === currentUser.id;
       const isLead = job.leadTechnician?.id === currentUser.id;
       return !!(isAssigned || isCreator || isLead);
@@ -231,24 +216,24 @@ export default function EmployeeDashboardPage() {
   }, [filteredJobs]);
 
   // Summary stats for header
-  const summaryStats = useMemo(() => [
-    { label: "งานที่ดำเนินการ", value: stats.inProgress, change: stats.inProgressChange },
-    { label: "งานที่เสร็จสิ้น", value: stats.completed, change: stats.completedChange },
-    { label: "อัตราความสำเร็จ", value: stats.completionRate, change: stats.completedChange, isPercent: true },
-  ], [stats]);
+  // const summaryStats = useMemo(() => [
+  //   { label: "งานที่ดำเนินการ", value: stats.inProgress, change: stats.inProgressChange },
+  //   { label: "งานที่เสร็จสิ้น", value: stats.completed, change: stats.completedChange },
+  //   { label: "อัตราความสำเร็จ", value: stats.completionRate, change: stats.completedChange, isPercent: true },
+  // ], [stats]);
 
   // Quick actions
   const quickActions = useMemo(() => [
     {
       title: "ดูงานของฉัน",
       description: "ตรวจสอบงานที่ได้รับมอบหมาย",
-      icon: CalendarClock,
+      icon: CalendarCheck,
       onClick: () => router.push("/dashboard/employee/jobs"),
     },
     {
       title: "ดูปฏิทินงาน",
       description: "รายการงานที่รอดำเนินการ",
-      icon: ListTodo,
+      icon: MapPin,
       onClick: () => router.push("/dashboard/employee/calendar"),
     },
   ], [router]);
@@ -315,8 +300,8 @@ export default function EmployeeDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {(["completed", "in_progress", "pending"] as const).map((key) => {
           const value = key === "completed" ? stats.completed : key === "in_progress" ? stats.inProgress : stats.pending;
-          const change = key === "completed" ? stats.completedChange : key === "in_progress" ? stats.inProgressChange : 0;
-          const isUp = change >= 0;
+          // const change = key === "completed" ? stats.completedChange : key === "in_progress" ? stats.inProgressChange : 0;
+          // const isUp = change >= 0;
 
           return (
             <Card
@@ -376,7 +361,7 @@ export default function EmployeeDashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <ChartArea className="h-5 w-5 text-primary" />
+                  <AlertCircle className="h-5 w-5 text-primary" />
                   แนวโน้มงาน
                 </CardTitle>
                 <CardDescription>ความคืบหน้าของงานในแต่ละวัน</CardDescription>
@@ -409,13 +394,7 @@ export default function EmployeeDashboardPage() {
                     tickMargin={10}
                     className="text-xs text-muted-foreground font-medium"
                   />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        className="w-[150px]"
-                      />
-                    }
-                  />
+                  <ChartTooltip />
                   {(["completed", "in_progress", "pending"] as const).map((key) => (
                     <Area
                       key={key}
@@ -501,7 +480,8 @@ export default function EmployeeDashboardPage() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    label={({ percent }: any) => `${(percent * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -591,6 +571,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // Helper Function: คำนวณเวลาเฉลี่ยในการทำงานเสร็จ
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function calculateAvgCompletionTime(jobs: any[]): number {
   const completedJobs = jobs.filter(
     (job) => job.status === "completed" && job.startDate && job.endDate

@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react"; // ✅ Changed to NextAuth
 import { useUserStore } from "@/stores/features/userStore";
 import { useJobStore } from "@/stores/features/jobStore";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,10 @@ import { Label } from "@/components/ui/label";
 
 const EditProfilePage: React.FC = () => {
   const router = useRouter();
-  const { currentUser, updateUser, switchUserById } = useUserStore();
+  const { data: session } = useSession(); // ✅ Use useSession
+  const currentUser = session?.user; // ✅ Map to existing variable name
+
+  const { updateUser } = useUserStore(); // ✅ Keep updateUser from store
   const { jobs } = useJobStore();
 
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -80,6 +84,7 @@ const EditProfilePage: React.FC = () => {
   };
 
   const handleSave = async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatedData: any = {
       name: form.name.trim(),
       email: form.email.trim(),
@@ -97,7 +102,6 @@ const EditProfilePage: React.FC = () => {
 
     try {
       updateUser(currentUser.id, updatedData);
-      switchUserById(currentUser.id);
 
       // Propagate name/image to jobs for immediate UI consistency
       try {
@@ -106,8 +110,10 @@ const EditProfilePage: React.FC = () => {
         const newImage = updatedData.imageUrl !== undefined ? updatedData.imageUrl : currentUser.imageUrl;
 
         const updatedJobs = jobs.map((job) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const j = { ...job } as any;
           if (j.creator?.id === userId) j.creator = { ...j.creator, name: newName };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           if (Array.isArray(j.assignedEmployees)) j.assignedEmployees = j.assignedEmployees.map((u: any) => u.id === userId ? { ...u, name: newName, imageUrl: newImage } : u);
           if (j.leadTechnician && j.leadTechnician.id === userId) j.leadTechnician = { ...j.leadTechnician, name: newName, imageUrl: newImage };
           return j;
@@ -118,7 +124,7 @@ const EditProfilePage: React.FC = () => {
       }
 
       toast.success("Profile saved");
-      router.push('/dashboard/admin/profile');
+      router.push('/dashboard/employee/profile');
     } catch (err) {
       console.error(err);
       toast.error("Failed to save profile");
@@ -136,14 +142,14 @@ const EditProfilePage: React.FC = () => {
                 {form.imageUrl ? (
                   <AvatarImage src={form.imageUrl} alt={form.name} />
                 ) : (
-                  <AvatarFallback>{(form.name || "").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{(form.name || "").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback>
                 )}
               </Avatar>
             </div>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e)=>onFile(e.target.files?.[0] ?? null)} />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
             <div className="mt-3 flex flex-col gap-2 w-full">
               <Button variant="outline" onClick={() => fileRef.current?.click()}>Change Photo</Button>
-              <Button variant="ghost" onClick={() => { setForm((s)=>({...s, imageUrl: ''})); if (fileRef.current) fileRef.current.value = ''; }}>Remove Photo</Button>
+              <Button variant="ghost" onClick={() => { setForm((s) => ({ ...s, imageUrl: '' })); if (fileRef.current) fileRef.current.value = ''; }}>Remove Photo</Button>
             </div>
           </div>
 
@@ -161,7 +167,7 @@ const EditProfilePage: React.FC = () => {
               <p className="text-xs text-gray-500">Update your personal and account information. Changes are saved to the local store.</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => router.push('/dashboard/admin/profile')}>Cancel</Button>
+              <Button variant="ghost" onClick={() => router.push('/dashboard/employee/profile')}>Cancel</Button>
               <Button onClick={handleSave}>Save Changes</Button>
             </div>
           </div>
@@ -169,50 +175,50 @@ const EditProfilePage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <Label>Name</Label>
-              <Input value={form.name} onChange={(e)=>handleChange('name', e.target.value)} className="mt-1" />
+              <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1" />
 
               <Label className="mt-4">Email</Label>
-              <Input value={form.email} onChange={(e)=>handleChange('email', e.target.value)} className="mt-1" />
+              <Input value={form.email} onChange={(e) => handleChange('email', e.target.value)} className="mt-1" />
 
               <Label className="mt-4">Role</Label>
-              <Input value={form.role} onChange={(e)=>handleChange('role', e.target.value)} className="mt-1" />
+              <Input value={form.role} onChange={(e) => handleChange('role', e.target.value)} className="mt-1" />
 
               <Label className="mt-4">Department</Label>
-              <Input value={form.department} onChange={(e)=>handleChange('department', e.target.value)} className="mt-1" />
+              <Input value={form.department} onChange={(e) => handleChange('department', e.target.value)} className="mt-1" />
 
               <Label className="mt-4">Phone</Label>
-              <Input value={form.phone} onChange={(e)=>handleChange('phone', e.target.value)} className="mt-1" />
+              <Input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1" />
             </div>
 
             <div>
               <Label>Address</Label>
-              <Input value={form.address} onChange={(e)=>handleChange('address', e.target.value)} className="mt-1" />
+              <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1" />
 
               <Label className="mt-4">GitHub</Label>
-              <Input value={form.github} onChange={(e)=>handleChange('github', e.target.value)} className="mt-1" />
+              <Input value={form.github} onChange={(e) => handleChange('github', e.target.value)} className="mt-1" />
 
               <Label className="mt-4">LinkedIn</Label>
-              <Input value={form.linkedin} onChange={(e)=>handleChange('linkedin', e.target.value)} className="mt-1" />
+              <Input value={form.linkedin} onChange={(e) => handleChange('linkedin', e.target.value)} className="mt-1" />
 
               <Label className="mt-4">Employment Type</Label>
-              <Input value={form.employmentType} onChange={(e)=>handleChange('employmentType', e.target.value)} className="mt-1" />
+              <Input value={form.employmentType} onChange={(e) => handleChange('employmentType', e.target.value)} className="mt-1" />
             </div>
           </div>
 
           <div className="mt-6">
             <Label>Bio</Label>
-            <textarea value={form.bio} onChange={(e)=>handleChange('bio', e.target.value)} className="w-full mt-1 p-2 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#191919]" rows={4} />
+            <textarea value={form.bio} onChange={(e) => handleChange('bio', e.target.value)} className="w-full mt-1 p-2 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#191919]" rows={4} />
           </div>
 
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <Label>Skills (comma separated)</Label>
-              <Input value={form.skills} onChange={(e)=>handleChange('skills', e.target.value)} className="mt-1" />
+              <Input value={form.skills} onChange={(e) => handleChange('skills', e.target.value)} className="mt-1" />
             </div>
 
             <div>
               <Label>Account Tier</Label>
-              <Input value={form.accountTier} onChange={(e)=>handleChange('accountTier', e.target.value)} className="mt-1" />
+              <Input value={form.accountTier} onChange={(e) => handleChange('accountTier', e.target.value)} className="mt-1" />
             </div>
           </div>
         </section>

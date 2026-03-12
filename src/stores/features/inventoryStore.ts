@@ -2,8 +2,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { MOCK_INVENTORIES } from "@/lib/mocks/inventory";
-import { useAuditLogStore } from "./auditLogStore";
-import { useUserStore } from "./userStore";
+
 import { notificationHelpers } from "@/stores/notificationStore";
 import { useJobStore } from "./jobStore";
 
@@ -54,6 +53,7 @@ interface InventoryStore {
   ) => void;
   getInventoryRequestByJobId: (jobId: string) => InventoryRequest | undefined;
   getInventoryRequestStatus: (jobId: string) => InventoryRequestStatus;
+  fetchInventory: () => Promise<void>;
 }
 
 export const useInventoryStore = create<InventoryStore>()(
@@ -71,30 +71,11 @@ export const useInventoryStore = create<InventoryStore>()(
         };
         set((state) => ({ inventories: [...state.inventories, newItem] }));
         
-        // ✅ บันทึก audit log
-        try {
-          const currentUser = useUserStore.getState().currentUser;
-          if (currentUser) {
-            useAuditLogStore.getState().addAuditLog({
-              action: "create",
-              entityType: "inventory",
-              entityId: newItem.id,
-              entityName: newItem.name,
-              performedBy: {
-                id: currentUser.id,
-                name: currentUser.name,
-                role: currentUser.role,
-              },
-              details: `เพิ่มสินค้า: ${newItem.name} (จำนวน: ${newItem.quantity})`,
-            });
-          }
-        } catch (error) {
-          console.error("Failed to log audit:", error);
-        }
+        // TODO: Move Audit Log to Server Action / API
       },
 
       updateInventory: (item) => {
-        const oldItem = get().inventories.find((inv) => inv.id === item.id);
+        // const oldItem = get().inventories.find((inv) => inv.id === item.id);
         
         set((state) => ({
           inventories: state.inventories.map((inv) =>
@@ -107,59 +88,13 @@ export const useInventoryStore = create<InventoryStore>()(
           ),
         }));
         
-        // ✅ บันทึก audit log
-        try {
-          const currentUser = useUserStore.getState().currentUser;
-          if (currentUser && oldItem) {
-            const changes: { field: string; oldValue: any; newValue: any }[] = [];
-            if (item.name !== oldItem.name) changes.push({ field: "name", oldValue: oldItem.name, newValue: item.name });
-            if (item.quantity !== oldItem.quantity) changes.push({ field: "quantity", oldValue: oldItem.quantity, newValue: item.quantity });
-            if (item.status !== oldItem.status) changes.push({ field: "status", oldValue: oldItem.status, newValue: item.status });
-            
-            useAuditLogStore.getState().addAuditLog({
-              action: "update",
-              entityType: "inventory",
-              entityId: item.id,
-              entityName: item.name,
-              performedBy: {
-                id: currentUser.id,
-                name: currentUser.name,
-                role: currentUser.role,
-              },
-              details: `แก้ไขสินค้า: ${item.name}`,
-              changes: changes.length > 0 ? changes : undefined,
-            });
-          }
-        } catch (error) {
-          console.error("Failed to log audit:", error);
-        }
+        // TODO: Move Audit Log to Server Action / API
       },
 
       deleteInventory: (id) => {
-        const item = get().inventories.find((inv) => inv.id === id);
+        // const item = get().inventories.find((inv) => inv.id === id);
         
-        // ✅ บันทึก audit log ก่อนลบ
-        if (item) {
-          try {
-            const currentUser = useUserStore.getState().currentUser;
-            if (currentUser) {
-              useAuditLogStore.getState().addAuditLog({
-                action: "delete",
-                entityType: "inventory",
-                entityId: item.id,
-                entityName: item.name,
-                performedBy: {
-                  id: currentUser.id,
-                  name: currentUser.name,
-                  role: currentUser.role,
-                },
-                details: `ลบสินค้า: ${item.name}`,
-              });
-            }
-          } catch (error) {
-            console.error("Failed to log audit:", error);
-          }
-        }
+
         
         set((state) => ({
           inventories: state.inventories.filter((inv) => inv.id !== id),
@@ -222,60 +157,64 @@ export const useInventoryStore = create<InventoryStore>()(
       },
 
       updateInventoryRequestStatus: (requestId, status, updatedBy, note) => {
-        let updatedRequest: InventoryRequest | null = null;
+        const currentRequests = get().inventoryRequests;
+        const targetIndex = currentRequests.findIndex(r => r.id === requestId);
         
+        if (targetIndex === -1) return;
+
+        const req = currentRequests[targetIndex];
+        const updateData: Partial<InventoryRequest> = {
+          status,
+          note: note !== undefined ? note : req.note,
+        };
+
+        if (status === "approved") {
+          updateData.approvedBy = updatedBy;
+          updateData.approvedAt = new Date().toISOString();
+          updateData.rejectedBy = null;
+          updateData.rejectedAt = null;
+        } else if (status === "rejected") {
+          updateData.rejectedBy = updatedBy;
+          updateData.rejectedAt = new Date().toISOString();
+          updateData.approvedBy = null;
+          updateData.approvedAt = null;
+        }
+
+        const updatedRequest = { ...req, ...updateData };
+
         set((state) => ({
-          inventoryRequests: state.inventoryRequests.map((req) => {
-            if (req.id === requestId) {
-              const updateData: Partial<InventoryRequest> = {
-                status,
-                note: note !== undefined ? note : req.note,
-              };
-
-              if (status === "approved") {
-                updateData.approvedBy = updatedBy;
-                updateData.approvedAt = new Date().toISOString();
-                updateData.rejectedBy = null;
-                updateData.rejectedAt = null;
-              } else if (status === "rejected") {
-                updateData.rejectedBy = updatedBy;
-                updateData.rejectedAt = new Date().toISOString();
-                updateData.approvedBy = null;
-                updateData.approvedAt = null;
-              }
-
-              updatedRequest = { ...req, ...updateData };
-              return updatedRequest;
-            }
-            return req;
-          }),
+          inventoryRequests: state.inventoryRequests.map((r, i) => 
+            i === targetIndex ? updatedRequest : r
+          ),
         }));
         
         // ✅ สร้าง notification
-        if (updatedRequest) {
-          try {
-            const job = useJobStore.getState().getJobById(updatedRequest.jobId);
-            if (job) {
-              if (status === "approved") {
-                notificationHelpers.inventoryRequestApproved(
-                  job.title,
-                  updatedBy.name,
-                  requestId,
-                  updatedRequest.jobId
-                );
-              } else if (status === "rejected") {
-                notificationHelpers.inventoryRequestRejected(
-                  job.title,
-                  updatedBy.name,
-                  requestId,
-                  updatedRequest.jobId,
-                  note || undefined
-                );
-              }
+        // No strict check needed for updatedRequest existence as we derived it from valid index
+        try {
+          // Check if method exists to avoid circular calls if any problem, but standard call is fine
+          // Access jobStore via getState to avoid circular dependencies if imports are tricky, 
+          // but we imported useJobStore.
+          const job = useJobStore.getState().getJobById(updatedRequest.jobId);
+          if (job) {
+            if (status === "approved") {
+              notificationHelpers.inventoryRequestApproved(
+                job.title,
+                updatedBy.name,
+                requestId,
+                updatedRequest.jobId
+              );
+            } else if (status === "rejected") {
+              notificationHelpers.inventoryRequestRejected(
+                job.title,
+                updatedBy.name,
+                requestId,
+                updatedRequest.jobId,
+                note || undefined
+              );
             }
-          } catch (error) {
-            console.error("Failed to create notification:", error);
           }
+        } catch (error) {
+          console.error("Failed to create notification:", error);
         }
       },
 
@@ -287,17 +226,30 @@ export const useInventoryStore = create<InventoryStore>()(
         const request = get().inventoryRequests.find((req) => req.jobId === jobId);
         return request?.status || "pending";
       },
+
+      fetchInventory: async () => {
+        try {
+          const res = await fetch('/api/inventory');
+          if (res.ok) {
+            const data = await res.json();
+            set({ inventories: data });
+             console.log("✅ InventoryStore: Fetched from API.");
+          }
+        } catch (e) {
+          console.error("Failed to fetch inventory", e);
+        }
+      },
     }),
     {
       name: "inventory-storage",
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
-        if (!state) return;
-        if (!state.inventories || state.inventories.length === 0) {
-          console.log("InventoryStore: Loading MOCK_INVENTORIES...");
-          (state as InventoryStore).inventories = MOCK_INVENTORIES;
+        if (state) {
+          state.isHydrated = true;
+          // Trigger fetch
+          state.fetchInventory();
+          console.log("✅ InventoryStore: Hydrated and fetch triggered.");
         }
-        (state as InventoryStore).isHydrated = true;
       },
     }
   )

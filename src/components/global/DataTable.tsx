@@ -48,6 +48,7 @@ const AnimatedTableRow = motion(TableRow);
 export function DataTable<T extends { id: string | number }>({
   columns,
   data,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   totalRows,
   currentPage,
   rowsPerPage,
@@ -121,7 +122,7 @@ export function DataTable<T extends { id: string | number }>({
     try {
       e.dataTransfer.setData("text/plain", String(id));
       e.dataTransfer.effectAllowed = "move";
-    } catch (err) {
+    } catch {
       // ignore
     }
   };
@@ -154,6 +155,7 @@ export function DataTable<T extends { id: string | number }>({
   };
 
   // Animation variants
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -299,7 +301,7 @@ export function DataTable<T extends { id: string | number }>({
           <TableBody>
             <AnimatePresence mode="popLayout">
               {paginatedData.length > 0 ? (
-                paginatedData.map((row, index) => (
+                paginatedData.map((row) => (
                   <AnimatedTableRow
                     key={String(row.id)}
                     variants={rowVariants}
@@ -309,8 +311,11 @@ export function DataTable<T extends { id: string | number }>({
                     whileHover="hover"
                     layout
                     draggable={!!onRowReorder}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onDragStart={(e: any) => onRowReorder && handleDragStart(e, row.id)}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onDragOver={(e: any) => onRowReorder && handleDragOver(e)}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onDrop={(e: any) => onRowReorder && handleDrop(e, row.id)}
                     onClick={() => onRowClick && onRowClick(row)}
                     className={onRowReorder ? "cursor-grab" : onRowClick ? "cursor-pointer" : undefined}

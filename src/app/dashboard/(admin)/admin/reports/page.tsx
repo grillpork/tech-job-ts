@@ -11,9 +11,7 @@ import {
   Clock,
   Filter,
   Search,
-  Calendar,
-  User,
-  Tag
+  Calendar
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -35,7 +33,7 @@ import { useReportStore, type Report as StoreReport } from "@/stores/features/re
 import { useUserStore } from "@/stores/features/userStore"
 
 // Types
-type Department = "engineering" | "design" | "product" | "qa" | "customer" | "Electrical" | "Mechanical" | "Civil" | "Technical"
+// type Department = "engineering" | "design" | "product" | "qa" | "customer" | "Electrical" | "Mechanical" | "Civil" | "Technical"
 type Priority = "high" | "medium" | "low"
 type Status = "open" | "in-progress" | "resolved" | "closed"
 
@@ -169,7 +167,19 @@ export default function ReportPage() {
 
       // Find user to get department
       const reporterUser = users.find(u => u.id === storeReport.reporter.id)
-      const department = reporterUser?.department || "Technical"
+      let department = reporterUser?.department || "Technical"
+
+      // Map Thai department names to English keys
+      const departmentMap: Record<string, string> = {
+        "ไฟฟ้า": "Electrical",
+        "เครื่องกล": "Mechanical",
+        "โยธา": "Civil",
+        "เทคนิค": "Technical"
+      }
+
+      if (department && departmentMap[department]) {
+        department = departmentMap[department]
+      }
 
       return {
         id: storeReport.id,
@@ -183,7 +193,7 @@ export default function ReportPage() {
         priority: priorityMap[storeReport.priority || "medium"],
         status: statusMap[storeReport.status],
         createdAt: storeReport.createdAt,
-        imageUrl: storeReport.imageUrl || "",
+        imageUrl: storeReport.attachments?.[0]?.url || "",
         tags: storeReport.tags || [],
       }
     })

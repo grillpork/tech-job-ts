@@ -3,11 +3,12 @@
 import { EventManager, type Event } from "@/components/ui/event-manager"
 import { useMemo } from "react"
 import { useJobStore } from "@/stores/features/jobStore"
-import { useUserStore } from "@/stores/features/userStore"
+import { useSession } from "next-auth/react" // ✅ Changed to NextAuth
 
 export default function EventManagerDemo() {
   const jobs = useJobStore((s) => s.jobs)
-  const currentUser = useUserStore((s) => s.currentUser)
+  const { data: session } = useSession() // ✅ Use useSession
+  const currentUser = session?.user // ✅ Map to existing variable name
 
   // Map Job -> Event shape expected by EventManager
   const jobEvents: Event[] = useMemo(() => {
@@ -60,7 +61,7 @@ export default function EventManagerDemo() {
         departments: job.departments || (job.department ? [job.department] : []),
       } as Event
     })
-  }, [jobs])
+  }, [jobs, currentUser])
 
   return (
     <div className="container mx-auto p-4 sm:p-6">

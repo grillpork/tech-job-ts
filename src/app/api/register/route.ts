@@ -3,6 +3,36 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+/**
+ * @swagger
+ * /api/register:
+ *   post:
+ *     summary: Register a new user
+ *     description: Creates a new user account with employee role.
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Registered user without password
+ *       400:
+ *         description: Missing required fields
+ *       409:
+ *         description: User already exists
+ */
 export async function POST(req: Request) {
   try {
     const { name, email, password } = await req.json();

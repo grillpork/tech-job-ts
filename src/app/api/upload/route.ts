@@ -2,6 +2,25 @@ import { NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
+/**
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Upload a file
+ *     description: Uploads a file to the server and returns its public URL.
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Successfully uploaded file
+ */
 export async function POST(request: Request) {
   try {
     const data = await request.formData();

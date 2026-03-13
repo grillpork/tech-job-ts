@@ -1,6 +1,25 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * @swagger
+ * /api/reports:
+ *   get:
+ *     summary: Get all reports
+ *     description: Returns a list of reports. Configurable via status and type queries.
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Array of reports
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -27,6 +46,18 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @swagger
+ * /api/reports:
+ *   post:
+ *     summary: Create a new report
+ *     description: Create a report or issue. Requires title, type, and reporterId.
+ *     responses:
+ *       201:
+ *         description: The created report
+ *       400:
+ *         description: Missing required fields
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

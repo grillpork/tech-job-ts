@@ -3,6 +3,20 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
+/**
+ * @swagger
+ * /api/jobs/export:
+ *   get:
+ *     summary: Export jobs to CSV
+ *     description: Exports a list of jobs to a CSV formatted file. Requires Admin or Manager role.
+ *     responses:
+ *       200:
+ *         description: CSV file contents
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
 export async function GET() {
   try {
     // 1. Check Authentication and Role for Security

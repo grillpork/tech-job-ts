@@ -74,6 +74,22 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
+/**
+ * @swagger
+ * /api/auth/{nextauth}:
+ *   post:
+ *     summary: NextAuth operations
+ *     description: Handles authentication operations (login, logout, session)
+ *     responses:
+ *       200:
+ *         description: Success
+ *   get:
+ *     summary: NextAuth operations
+ *     description: Handles session checks and callbacks
+ *     responses:
+ *       200:
+ *         description: Success
+ */
 const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

@@ -2,6 +2,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * @swagger
+ * /api/jobs/{id}:
+ *   get:
+ *     summary: Get a standard job by ID
+ *     description: Returns a single job by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Job object corresponding to the ID
+ *       404:
+ *         description: Job not found
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -47,6 +65,24 @@ export async function GET(
   }
 }
 
+/**
+ * @swagger
+ * /api/jobs/{id}:
+ *   put:
+ *     summary: Update an existing job
+ *     description: Updates an existing job by ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: The updated job
+ *       404:
+ *         description: Job not found
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -179,6 +215,22 @@ export async function PUT(
   }
 }
 
+/**
+ * @swagger
+ * /api/jobs/{id}:
+ *   delete:
+ *     summary: Delete a job by ID
+ *     description: Deletes a specific job.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success message
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

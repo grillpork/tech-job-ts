@@ -30,6 +30,16 @@ const jobSchema = z.object({
 }).passthrough();
 
 
+/**
+ * @swagger
+ * /api/jobs:
+ *   get:
+ *     summary: Get all jobs
+ *     description: Returns a list of all jobs with related data.
+ *     responses:
+ *       200:
+ *         description: Array of jobs
+ */
 export async function GET() {
   try {
     const jobs = await prisma.job.findMany({
@@ -71,6 +81,20 @@ export async function GET() {
   }
 }
 
+/**
+ * @swagger
+ * /api/jobs:
+ *   post:
+ *     summary: Create a new job
+ *     description: Creates a new job. Requires Admin or Manager role.
+ *     responses:
+ *       200:
+ *         description: The newly created job
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
 export async function POST(request: Request) {
   try {
     // 1. Check Authentication and Role (RBAC)

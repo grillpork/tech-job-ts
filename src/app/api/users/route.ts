@@ -2,6 +2,16 @@ import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Get all users
+ *     description: Returns a list of all users ordered by join date.
+ *     responses:
+ *       200:
+ *         description: Array of users
+ */
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
@@ -28,6 +38,16 @@ export async function GET() {
   }
 }
 
+/**
+ * @swagger
+ * /api/users:
+ *   post:
+ *     summary: Create a new user
+ *     description: Adds a new user to the database.
+ *     responses:
+ *       200:
+ *         description: The newly created user
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -67,6 +87,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/users:
+ *   patch:
+ *     summary: Update a user
+ *     description: Updates an existing user's information.
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: The updated user
+ */
 export async function PATCH(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -114,6 +150,22 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/users:
+ *   delete:
+ *     summary: Delete a user
+ *     description: Removes a user from the database.
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success message
+ */
 export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

@@ -2,6 +2,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * @swagger
+ * /api/inventory:
+ *   get:
+ *     summary: Get all inventory items
+ *     description: Returns a list of all inventory items ordered by name.
+ *     responses:
+ *       200:
+ *         description: Array of inventory items
+ */
 export async function GET() {
   try {
     const items = await prisma.inventory.findMany({

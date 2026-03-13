@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * @swagger
+ * /api/reports/{id}:
+ *   get:
+ *     summary: Get a report by ID
+ *     description: Retrieve a single report by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: The report object
+ *       404:
+ *         description: Report not found
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -26,6 +44,22 @@ export async function GET(
   }
 }
 
+/**
+ * @swagger
+ * /api/reports/{id}:
+ *   put:
+ *     summary: Update an existing report
+ *     description: Update an existing report by ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: The updated report
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -63,6 +97,22 @@ export async function PUT(
   }
 }
 
+/**
+ * @swagger
+ * /api/reports/{id}:
+ *   delete:
+ *     summary: Delete a report
+ *     description: Delete an existing report by ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success message
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * @swagger
+ * /api/dashboard/stats:
+ *   get:
+ *     summary: Get dashboard statistics
+ *     description: Returns aggregated statistics for the dashboard, such as job counts and inventory alerts.
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics object
+ */
 export async function GET() {
   try {
     const defaultLowStockThreshold = 10;

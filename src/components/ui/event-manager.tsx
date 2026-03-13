@@ -1321,32 +1321,42 @@ function EventCard({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          "cursor-pointer rounded-lg p-3 transition-all duration-300",
-          colorClasses.bg,
-          "text-white animate-in fade-in slide-in-from-left-2",
-          isHovered && "scale-[1.03] shadow-2xl ring-2 ring-white/50",
+          "cursor-pointer rounded-xl sm:rounded-2xl p-4 sm:p-5 transition-all duration-300 relative flex flex-col gap-3 group",
+          "bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800/80 shadow-sm hover:shadow-md",
+          isHovered && "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1e1e1e] -translate-y-0.5"
         )}
       >
-        <div className="font-semibold">{event.title}</div>
-        {event.description && <div className="mt-1 text-sm opacity-90 line-clamp-2">{event.description}</div>}
-        <div className="mt-2 flex items-center gap-2 text-xs opacity-80">
-          <Clock className="h-3 w-3" />
-          {formatTime(event.startTime)} - {formatTime(event.endTime)}
-        </div>
-        {isHovered && (
-          <div className="mt-2 flex flex-wrap gap-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-            {event.category && (
-              <Badge variant="secondary" className="text-xs">
-                {event.category}
-              </Badge>
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex flex-col flex-1 min-w-0 pr-2 space-y-1">
+            <div className="font-semibold text-gray-900 dark:text-gray-100 text-[15px] sm:text-base leading-snug">
+              {event.title}
+            </div>
+            {event.description && (
+               <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                 {event.description}
+               </div>
             )}
-            {event.tags?.map((tag) => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                {tag}
-              </Badge>
+          </div>
+          
+          <Badge className={cn("text-[10px] sm:text-xs font-medium px-2.5 py-0.5 rounded-full text-white border-0 shadow-none shrink-0", colorClasses.bg)}>
+            {event.category || event.priority || "ทั่วไป"}
+          </Badge>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-1.5 pt-3 border-t border-gray-100 dark:border-gray-800/60">
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
+             <Clock className="h-3.5 w-3.5 text-gray-400" />
+             {formatTime(event.startTime)} - {formatTime(event.endTime)}
+          </div>
+          
+          <div className="flex flex-wrap gap-1.5 items-center justify-end">
+            {(event.departments?.length ? event.departments : (event.status ? [event.status] : [])).map((item) => (
+               <Badge key={item} variant="secondary" className="text-[10px] font-medium rounded text-gray-600 bg-gray-100 dark:bg-white/10 dark:text-gray-300 hover:bg-gray-200 border-none shrink-0">
+                 {item}
+               </Badge>
             ))}
           </div>
-        )}
+        </div>
       </div>
     )
   }
@@ -1601,27 +1611,48 @@ function MonthView({
       </Card>
 
       <Dialog open={!!selectedDayInfo} onOpenChange={(open) => !open && setSelectedDayInfo(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              รายการงานวันที่ {selectedDayInfo?.date.toLocaleDateString("th-TH", { dateStyle: "long" })}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 mt-4">
-            {selectedDayInfo?.events.map((event) => (
-              <EventCard
-                key={`dialog-event-${event.id}`}
-                event={event}
-                onEventClick={(e) => {
-                  setSelectedDayInfo(null)
-                  onEventClick(e)
-                }}
-                onDragStart={() => { }}
-                onDragEnd={() => { }}
-                getColorClasses={getColorClasses}
-                variant="detailed"
-              />
-            ))}
+        <DialogContent className="max-w-2xl w-11/12 max-h-[85vh] overflow-hidden p-0 sm:rounded-2xl border-0 shadow-2xl bg-white dark:bg-[#141414]">
+          <div className="sticky top-0 z-10 bg-white/95 dark:bg-[#141414]/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800/60 px-6 py-5">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2.5 text-gray-900 dark:text-white">
+                <div className="bg-teal-100 dark:bg-teal-900/40 p-1.5 rounded-lg text-teal-600 dark:text-teal-400">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                รายการงานวันที่ {selectedDayInfo?.date.toLocaleDateString("th-TH", { dateStyle: "long" })}
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          
+          <div className="p-6 overflow-y-auto max-h-[calc(85vh-85px)] bg-gray-50/50 dark:bg-[#191919]/50">
+            {selectedDayInfo?.events && selectedDayInfo.events.length > 0 ? (
+              <div className="space-y-3.5 pb-4">
+                {selectedDayInfo.events.map((event, idx) => (
+                  <div key={`dialog-event-${event.id}`} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
+                    <EventCard
+                      event={event}
+                      onEventClick={(e) => {
+                        setSelectedDayInfo(null)
+                        onEventClick(e)
+                      }}
+                      onDragStart={() => { }}
+                      onDragEnd={() => { }}
+                      getColorClasses={getColorClasses}
+                      variant="detailed"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-4">
+                  <Calendar className="h-10 w-10 text-gray-400 dark:text-gray-500" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">ไม่มีงานในวันนี้</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                  คุณสามารถเพิ่มงานใหม่ได้หรือตรวจสอบวันอื่นๆในปฏิทิน
+                </p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

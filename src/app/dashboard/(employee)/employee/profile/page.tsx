@@ -265,92 +265,88 @@ const ProfilePage: React.FC = () => {
                 className="sr-only"
                 onChange={handleImageChange("cover")}
               />
-              <div className="relative block mt-3 z-10 px-6 sm:px-10 pt-6 pb-4">
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col lg:flex-row lg:items-end gap-6 ">
-                    <div className="flex items-end gap-4">
-                      <label className="relative block">
-                        <input
-                          ref={(el) => {
-                            fileInputRef.current = el;
-                          }}
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          onChange={handleImageChange("avatar")}
-                        />
+              <div className="relative z-10 w-full min-h-[180px] flex items-center px-6 sm:px-10 py-6 sm:py-8 mt-4 sm:mt-0">
+                <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-center gap-6 w-full sm:w-auto text-center sm:text-left">
+                    <label className="relative block group">
+                      <input
+                        ref={(el) => {
+                          fileInputRef.current = el;
+                        }}
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleImageChange("avatar")}
+                      />
 
-                        <div className="relative -mt-8">
-                          <div className="h-28 w-28  cursor-pointer rounded-full ring-4 ring-white dark:ring-[#141414] shadow-2xl overflow-hidden bg-white ">
-                            <Avatar className="h-full w-full rounded-full">
-                              {currentUser?.imageUrl ? (
-                                <AvatarImage src={currentUser.imageUrl} alt={currentUser?.name} />
-                              ) : (
-                                <AvatarFallback>
-                                  {(currentUser?.name || "")
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .slice(0, 2)
-                                    .toUpperCase()}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                          </div>
-                          <div className="absolute inset-0 flex items-center justify-center rounded-full transition-opacity opacity-0 hover:opacity-100">
-                            <div className="absolute inset-0 rounded-full bg-black/30 backdrop-blur-sm" />
-                            <div className="relative z-10 p-2 bg-white/80 dark:bg-black/60 rounded-full">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5 text-black dark:text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M3 7h4l2-3h6l2 3h4v11a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 11a3 3 0 100 6 3 3 0 000-6z"
-                                />
-                              </svg>
-                            </div>
+                      <div className="relative">
+                        <div className="h-28 w-28 cursor-pointer rounded-full ring-4 ring-white/50 dark:ring-black/50 shadow-2xl overflow-hidden bg-white">
+                          <Avatar className="h-full w-full rounded-full">
+                            {currentUser?.imageUrl ? (
+                              <AvatarImage src={currentUser.imageUrl} alt={currentUser?.name} />
+                            ) : (
+                              <AvatarFallback>
+                                {(currentUser?.name || "")
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .slice(0, 2)
+                                  .toUpperCase()}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center rounded-full transition-opacity opacity-0 group-hover:opacity-100">
+                          <div className="absolute inset-0 rounded-full bg-black/30 backdrop-blur-sm" />
+                          <div className="relative z-10 p-2 bg-white/80 dark:bg-black/60 rounded-full cursor-pointer">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5 text-black dark:text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 7h4l2-3h6l2 3h4v11a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 11a3 3 0 100 6 3 3 0 000-6z"
+                              />
+                            </svg>
                           </div>
                         </div>
-                      </label>
-
-                      <div className="pb-2">
-                        <p className="text-sm uppercase tracking-wide text-teal-100 dark:text-teal-200">
-                          {currentUser?.department || "Team member"}
-                        </p>
-                        <h1 className="text-3xl font-semibold text-white drop-shadow-sm">
-                          {currentUser?.name ?? "—"}
-                        </h1>
-                        <p className="text-white/80">{currentUser?.role ?? "-"}</p>
-                        {currentUser?.employeeId && (
-                          <p className="text-sm text-white/70 mt-1">ID: {currentUser.employeeId}</p>
-                        )}
                       </div>
-                    </div>
+                    </label>
 
-                    <div className="flex flex-1 flex-wrap gap-3 justify-start sm:justify-end">
-                      <Button
-                        variant="secondary"
-                        className="bg-white text-gray-900 hover:bg-gray-100"
-                        onClick={() => router.push("/dashboard/admin/profile/edit")}
-                      >
-                        Manage your account
-                      </Button>
-
+                    <div className="flex flex-col">
+                      <p className="text-sm uppercase tracking-wide text-shadow-lg text-teal-100 dark:text-teal-200">
+                        {currentUser?.department || "Team member"}
+                      </p>
+                      <h1 className="text-3xl font-semibold text-shadow-lg text-white drop-shadow-sm mt-1">
+                        {currentUser?.name ?? "—"}
+                      </h1>
+                      <p className="text-white/80 text-shadow-lg drop-shadow-sm mt-0.5">{currentUser?.role ?? "-"}</p>
+                      {currentUser?.employeeId && (
+                        <p className="text-sm text-shadow-lg text-white/80 mt-1">ID: {currentUser.employeeId}</p>
+                      )}
                     </div>
                   </div>
 
+                  <div className="flex flex-row justify-center sm:justify-end shrink-0">
+                    <Button
+                      variant="secondary"
+                      className="bg-white text-gray-900 hover:bg-gray-100"
+                      onClick={() => router.push("/dashboard/admin/profile/edit")}
+                    >
+                      Manage your account
+                    </Button>
+                  </div>
                 </div>
               </div>
             </section>

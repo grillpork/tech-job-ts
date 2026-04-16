@@ -199,7 +199,7 @@ const InventoryManagement = () => {
       render: (row: Inventory) => (
         <div className="flex flex-col items-center">
           <span className="font-bold text-[14px] text-gray-900 dark:text-white">{row.quantity}</span>
-          {row.quantity <= 20 && row.quantity > 0 && <span className="text-[10px] text-yellow-600 dark:text-yellow-500 font-semibold px-1.5 bg-yellow-50 dark:bg-yellow-950/30 rounded mt-0.5">ใกล้หมด</span>}
+          {row.quantity < 20 && row.quantity > 0 && <span className="text-[10px] text-yellow-600 dark:text-yellow-500 font-semibold px-1.5 bg-yellow-50 dark:bg-yellow-950/30 rounded mt-0.5">ใกล้หมด</span>}
           {row.quantity === 0 && <span className="text-[10px] text-red-600 dark:text-red-500 font-semibold px-1.5 bg-red-50 dark:bg-red-950/30 rounded mt-0.5">สั่งซื้อด่วน</span>}
         </div>
       ),

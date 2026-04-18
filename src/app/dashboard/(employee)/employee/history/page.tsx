@@ -121,7 +121,7 @@ export default function HistoryPage() {
     if (!currentUser) return [];
 
     // กรองเฉพาะ logs ที่ user คนนี้เป็นผู้ทำ
-    let filtered = auditLogs.filter((log) => log.performedBy.id === currentUser.id);
+    let filtered = auditLogs.filter((log) => log.performedById === currentUser.id);
 
     if (filterAction !== "all") {
       filtered = filtered.filter((log) => log.action === filterAction);
@@ -260,7 +260,7 @@ export default function HistoryPage() {
 
 // --- 5. Component Card สรุป ---
 function AuditLogCard({ log, onClick }: { log: AuditLog; onClick: () => void }) {
-  const EntityIcon = ENTITY_ICONS[log.entityType];
+  const EntityIcon = (ENTITY_ICONS as any)[log.entityType] || ClipboardList;
 
   return (
     <motion.div
@@ -274,7 +274,7 @@ function AuditLogCard({ log, onClick }: { log: AuditLog; onClick: () => void }) 
       transition={{ layout: { duration: 0.3, ease: "easeInOut" } }}
     >
       <div className="flex justify-between items-start mb-2">
-        <ActionBadge action={log.action} />
+        <ActionBadge action={log.action as AuditAction} />
         <span className="text-xs text-gray-500 dark:text-zinc-400">
           {formatDateShort(log.timestamp)}
         </span>
@@ -283,7 +283,7 @@ function AuditLogCard({ log, onClick }: { log: AuditLog; onClick: () => void }) 
       <div className="flex items-center gap-2 mb-2">
         <EntityIcon className="w-4 h-4 text-gray-500 dark:text-zinc-400" />
         <span className="text-xs text-gray-500 dark:text-zinc-400">
-          {ENTITY_LABELS[log.entityType]}
+          {(ENTITY_LABELS as any)[log.entityType] || log.entityType}
         </span>
       </div>
 
@@ -292,7 +292,7 @@ function AuditLogCard({ log, onClick }: { log: AuditLog; onClick: () => void }) 
       </h3>
 
       <p className="text-sm text-gray-600 dark:text-zinc-300 mt-2">
-        โดย: {log.performedBy.name} ({log.performedBy.role})
+        โดย: {log.performedByName} ({log.performedByRole})
       </p>
 
       {log.details && (
@@ -320,7 +320,7 @@ function AuditLogDetailModal({
   canNext: boolean;
   canPrevious: boolean;
 }) {
-  const EntityIcon = ENTITY_ICONS[log.entityType];
+  const EntityIcon = (ENTITY_ICONS as any)[log.entityType] || ClipboardList;
 
   const modalContent = (
     <>
@@ -367,12 +367,12 @@ function AuditLogDetailModal({
                 <div>
                   <h2 className="text-2xl font-bold">{log.entityName}</h2>
                   <p className="text-sm text-gray-500 dark:text-zinc-400">
-                    {ENTITY_LABELS[log.entityType]} • ID: {log.entityId}
+                    {(ENTITY_LABELS as any)[log.entityType] || log.entityType} • ID: {log.entityId}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ActionBadge action={log.action} />
+                <ActionBadge action={log.action as AuditAction} />
                 <button
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-white"
@@ -390,7 +390,7 @@ function AuditLogDetailModal({
                   <InfoItem
                     icon={User}
                     label="ผู้ดำเนินการ"
-                    value={`${log.performedBy.name} (${log.performedBy.role})`}
+                    value={`${log.performedByName} (${log.performedByRole})`}
                   />
                   <InfoItem
                     icon={Clock}
@@ -400,12 +400,12 @@ function AuditLogDetailModal({
                   <InfoItem
                     icon={EntityIcon}
                     label="ประเภท"
-                    value={ENTITY_LABELS[log.entityType]}
+                    value={(ENTITY_LABELS as any)[log.entityType] || log.entityType}
                   />
                   <InfoItem
                     icon={AlertCircle}
                     label="การกระทำ"
-                    value={ACTION_LABELS[log.action]}
+                    value={(ACTION_LABELS as any)[log.action] || log.action}
                   />
                 </div>
 
@@ -441,21 +441,25 @@ function AuditLogDetailModal({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-zinc-700">
-                          {log.changes.map((change, idx) => (
-                            <tr key={idx}>
-                              <td className="py-2 px-4 font-medium">{change.field}</td>
-                              <td className="py-2 px-4 text-gray-600 dark:text-zinc-400">
-                                {typeof change.oldValue === "object"
-                                  ? JSON.stringify(change.oldValue)
-                                  : String(change.oldValue || "N/A")}
-                              </td>
-                              <td className="py-2 px-4 text-gray-900 dark:text-white">
-                                {typeof change.newValue === "object"
-                                  ? JSON.stringify(change.newValue)
-                                  : String(change.newValue || "N/A")}
-                              </td>
-                            </tr>
-                          ))}
+                          {(() => {
+                            const changes = typeof log.changes === 'string' ? JSON.parse(log.changes) : log.changes;
+                            if (!Array.isArray(changes)) return null;
+                            return (changes as any[]).map((change: any, idx: number) => (
+                              <tr key={idx}>
+                                <td className="py-2 px-4 font-medium">{change.field}</td>
+                                <td className="py-2 px-4 text-gray-600 dark:text-zinc-400">
+                                  {typeof change.oldValue === "object"
+                                    ? JSON.stringify(change.oldValue)
+                                    : String(change.oldValue || "N/A")}
+                                </td>
+                                <td className="py-2 px-4 text-gray-900 dark:text-white">
+                                  {typeof change.newValue === "object"
+                                    ? JSON.stringify(change.newValue)
+                                    : String(change.newValue || "N/A")}
+                                </td>
+                              </tr>
+                            ));
+                          })()}
                         </tbody>
                       </table>
                     </div>

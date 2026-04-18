@@ -428,7 +428,7 @@ export default function InventoryDetailPage() {
                             {log.details || "ไม่มีรายละเอียด"}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            โดย: {log.performedBy.name} ({log.performedBy.role})
+                            โดย: {log.performedByName} ({log.performedByRole})
                           </p>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
@@ -444,20 +444,24 @@ export default function InventoryDetailPage() {
                             การเปลี่ยนแปลง:
                           </p>
                           <div className="space-y-1">
-                            {log.changes.map((change, idx) => (
-                              <div key={idx} className="text-xs">
-                                <span className="font-medium">
-                                  {change.field}:
-                                </span>{" "}
-                                <span className="text-red-400 line-through">
-                                  {String(change.oldValue)}
-                                </span>{" "}
-                                →{" "}
-                                <span className="text-green-400">
-                                  {String(change.newValue)}
-                                </span>
-                              </div>
-                            ))}
+                            {(() => {
+                              const changes = typeof log.changes === 'string' ? JSON.parse(log.changes) : log.changes;
+                              if (!Array.isArray(changes)) return null;
+                              return (changes as any[]).map((change: any, idx: number) => (
+                                <div key={idx} className="text-xs">
+                                  <span className="font-medium">
+                                    {change.field}:
+                                  </span>{" "}
+                                  <span className="text-red-400 line-through">
+                                    {String(change.oldValue)}
+                                  </span>{" "}
+                                  →{" "}
+                                  <span className="text-green-400">
+                                    {String(change.newValue)}
+                                  </span>
+                                </div>
+                              ));
+                            })()}
                           </div>
                         </div>
                       )}

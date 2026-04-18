@@ -17,7 +17,7 @@ export const MOCK_REPORTS: Report[] = [
     },
     assignee: null,
     priority: "high",
-    tags: ["frontend", "safari", "login"],
+    tags: "frontend,safari,login",
   },
   {
     id: "report-002",
@@ -39,7 +39,7 @@ export const MOCK_REPORTS: Report[] = [
       imageUrl: "https://i.pravatar.cc/150?u=mgr1",
     },
     priority: "medium",
-    tags: ["feature", "export", "pdf"],
+    tags: "feature,export,pdf",
   },
   {
     id: "report-003",
@@ -62,7 +62,7 @@ export const MOCK_REPORTS: Report[] = [
     },
     relatedInventoryId: "inv-001",
     priority: "urgent",
-    tags: ["equipment", "maintenance"],
+    tags: "equipment,maintenance",
   },
   {
     id: "report-004",
@@ -80,7 +80,7 @@ export const MOCK_REPORTS: Report[] = [
     },
     assignee: null,
     priority: "low",
-    tags: ["ui", "notification"],
+    tags: "ui,notification",
   },
   {
     id: "report-005",
@@ -103,7 +103,7 @@ export const MOCK_REPORTS: Report[] = [
     },
     relatedJobId: "job-001",
     priority: "medium",
-    tags: ["ui", "performance"],
+    tags: "ui,performance",
   },
   {
     id: "report-007",
@@ -125,7 +125,7 @@ export const MOCK_REPORTS: Report[] = [
       imageUrl: "https://i.pravatar.cc/150?u=admin1",
     },
     priority: "urgent",
-    tags: ["server", "performance"],
+    tags: "server,performance",
   },
   {
     id: "report-008",
@@ -143,6 +143,6 @@ export const MOCK_REPORTS: Report[] = [
     },
     assignee: null,
     priority: "medium",
-    tags: ["ux", "form"],
+    tags: "ux,form",
   },
 ];

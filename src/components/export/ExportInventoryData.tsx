@@ -19,18 +19,21 @@ export default function ExportInventoryData() {
 
     return approvedRequests.flatMap(req => {
       const job = getJobById(req.jobId);
-      return req.requestedItems.map(item => {
+      const items = typeof req.items === 'string' ? JSON.parse(req.items) : (req as any).requestedItems || [];
+      if (!Array.isArray(items)) return [];
+      
+      return items.map((item: any) => {
         const inventoryInfo = inventories.find(inv => inv.id === item.id);
         return {
           id: req.id,
-          date: req.approvedAt || req.requestedAt,
+          date: req.processedAt || req.requestedAt,
           jobTitle: job?.title || 'Unknown Job',
           requester: req.requestedBy.name,
           itemName: inventoryInfo?.name || 'Unknown Item',
           quantity: item.qty,
           price: inventoryInfo?.price || 0,
           total: (inventoryInfo?.price || 0) * item.qty,
-          approver: req.approvedBy?.name || '-'
+          approver: req.processedBy?.name || '-'
         };
       });
     });

@@ -1,187 +1,158 @@
-import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { 
+  sendSuccess, 
+  sendUnauthorized, 
+  sendForbidden, 
+  sendError, 
+  sendServerError 
+} from '@/lib/api-utils';
+import bcrypt from "bcryptjs";
 
-/**
- * @swagger
- * /api/users:
- *   get:
- *     summary: Get all users
- *     description: Returns a list of all users ordered by join date.
- *     responses:
- *       200:
- *         description: Array of users
- */
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return sendUnauthorized();
+
     const users = await prisma.user.findMany({
-      orderBy: { joinedAt: 'desc' }
+      select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          imageUrl: true,
+          status: true,
+          department: true,
+      },
+      orderBy: { name: 'asc' }
     });
     
-    // Transform JSON strings back to objects where necessary
-    const formattedUsers = users.map(user => {
-      try {
-        return {
-          ...user,
-          skills: user.skills ? JSON.parse(user.skills as string) : [],
-        };
-      } catch (e) {
-        console.error(`Failed to parse skills for user ${user.id}:`, e);
-        return { ...user, skills: [] };
-      }
-    });
-
-    return NextResponse.json(formattedUsers);
+    return sendSuccess(users, 'ดึงข้อมูลผู้ใช้งานสำเร็จ');
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    return sendServerError(error);
   }
 }
 
-/**
- * @swagger
- * /api/users:
- *   post:
- *     summary: Create a new user
- *     description: Adds a new user to the database.
- *     responses:
- *       200:
- *         description: The newly created user
- */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { name, email, password, role, skills, ...rest } = body;
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) return sendUnauthorized();
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
-      return NextResponse.json({ message: "Email already exists" }, { status: 400 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentUser = session.user as any;
+    if (currentUser.role !== 'admin') {
+      return sendForbidden('ต้องมีสิทธิ์ผู้ดูแลระบบจึงจะสร้างผู้ใช้ได้');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const body = await request.json();
+    const { name, email, password, role, department } = body;
+
+    // Check existing
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return sendError("อีเมลนี้มีอยู่ในระบบแล้ว", 409);
+
+    const hashedPassword = await bcrypt.hash(password || "123456", 10);
 
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: role || 'employee',
-        skills: skills ? JSON.stringify(skills) : "[]",
-        ...rest,
+        role: role || "employee",
+        department: department || null,
+        status: "active"
       }
     });
 
-    const formattedUser = {
-      ...newUser,
-      skills: newUser.skills ? JSON.parse(newUser.skills as string) : [],
-    };
+    // Logging
+    await prisma.auditLog.create({
+      data: {
+        action: "CREATE",
+        entityType: "USER",
+        entityId: newUser.id,
+        entityName: newUser.name,
+        performedById: currentUser.id,
+        performedByName: currentUser.name,
+        performedByRole: currentUser.role,
+        details: `Created user ${newUser.name} (${newUser.email})`
+      }
+    });
 
-    return NextResponse.json(formattedUser);
+    const { password: _, ...userWithoutPassword } = newUser;
+    return sendSuccess(userWithoutPassword, 'สร้างผู้ใช้งานสำเร็จ');
   } catch (error) {
-    console.error('Error creating user:', error);
-    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+    return sendServerError(error);
   }
 }
 
-/**
- * @swagger
- * /api/users:
- *   patch:
- *     summary: Update a user
- *     description: Updates an existing user's information.
- *     parameters:
- *       - in: query
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: The updated user
- */
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: Request) {
   try {
-    const searchParams = request.nextUrl.searchParams;
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) return sendUnauthorized();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentUser = session.user as any;
+    const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json({ message: "User ID required" }, { status: 400 });
+    if (!id) return sendError("ไม่พบรหัสผู้ใช้งาน");
+
+    // Only Admin can edit roles of others, or owner can edit profile
+    if (currentUser.role !== 'admin' && currentUser.id !== id) {
+      return sendForbidden('คุณไม่มีสิทธิ์แก้ไขข้อมูลผู้ใช้นี้');
     }
 
     const body = await request.json();
-    const { password, skills, id: bodyId, ...rest } = body; // Destructure id to exclude it from update
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dataToUpdate: any = { ...rest };
+    const { password, ...updateData } = body;
 
     if (password) {
-      dataToUpdate.password = await bcrypt.hash(password, 10);
+      updateData.password = await bcrypt.hash(password, 10);
     }
 
-    if (skills) {
-      dataToUpdate.skills = JSON.stringify(skills);
-    }
-
-    const updatedUser = await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id },
-      data: dataToUpdate,
+      data: updateData,
+      select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          imageUrl: true,
+          status: true,
+          department: true,
+      }
     });
 
-    const formattedUser = {
-      ...updatedUser,
-      skills: updatedUser.skills ? JSON.parse(updatedUser.skills as string) : [],
-    };
-
-    return NextResponse.json(formattedUser);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error('Error updating user:', error);
-    
-    // Check for Prisma unique constraint violation (e.g., email already taken)
-    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-      return NextResponse.json({ error: 'Email already exists' }, { status: 409 }); // 409 Conflict
-    }
-
-    return NextResponse.json({ error: error.message || 'Failed to update user' }, { status: 500 });
+    return sendSuccess(updated, 'อัปเดตข้อมูลผู้ใช้งานสำเร็จ');
+  } catch (error) {
+    return sendServerError(error);
   }
 }
 
-/**
- * @swagger
- * /api/users:
- *   delete:
- *     summary: Delete a user
- *     description: Removes a user from the database.
- *     parameters:
- *       - in: query
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Success message
- */
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: Request) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) return sendUnauthorized();
 
-    if (!id) {
-      return NextResponse.json({ message: "User ID required" }, { status: 400 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentUser = session.user as any;
+    if (currentUser.role !== 'admin') {
+      return sendForbidden('เฉพาะผู้ดูแลระบบเท่านั้นที่ลบผู้ใช้ได้');
     }
 
-    await prisma.user.delete({
-      where: { id }
-    });
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) return sendError("ไม่พบรหัสผู้ใช้งาน");
 
-    return NextResponse.json({ message: "User deleted successfully" });
+    if (id === currentUser.id) {
+       return sendError("คุณไม่สามารถลบตัวเองได้");
+    }
+
+    await prisma.user.delete({ where: { id } });
+
+    return sendSuccess(null, 'ลบผู้ใช้งานเรียบร้อยแล้ว');
   } catch (error) {
-    console.error('Error deleting user:', error);
-    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+    return sendServerError(error);
   }
 }

@@ -193,8 +193,16 @@ export default function ReportPage() {
         priority: priorityMap[storeReport.priority || "medium"],
         status: statusMap[storeReport.status],
         createdAt: storeReport.createdAt,
-        imageUrl: storeReport.attachments?.[0]?.url || "",
-        tags: storeReport.tags || [],
+        imageUrl: (() => {
+          if (!storeReport.attachments) return "";
+          try {
+            const atts = JSON.parse(storeReport.attachments);
+            return Array.isArray(atts) ? atts[0]?.url || "" : "";
+          } catch (e) {
+            return "";
+          }
+        })(),
+        tags: storeReport.tags ? storeReport.tags.split(",") : [],
       }
     })
   }, [storeReports, users])
@@ -502,8 +510,7 @@ export default function ReportPage() {
                           // Find the original store report and update its status to in-progress
                           const storeReport = storeReports.find(r => r.id === selectedReport.id)
                           if (storeReport) {
-                            updateReport({
-                              ...storeReport,
+                            updateReport(storeReport.id, {
                               status: "in_progress",
                               updatedAt: new Date().toISOString()
                             })
@@ -522,8 +529,7 @@ export default function ReportPage() {
                           // Find the original store report and update its status to resolved
                           const storeReport = storeReports.find(r => r.id === selectedReport.id)
                           if (storeReport) {
-                            updateReport({
-                              ...storeReport,
+                            updateReport(storeReport.id, {
                               status: "resolved",
                               updatedAt: new Date().toISOString()
                             })

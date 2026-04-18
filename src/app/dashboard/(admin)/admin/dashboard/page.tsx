@@ -35,29 +35,30 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowUpRight,
-  ArrowDownRight,
-  ChartArea,
-  Bug,
-  AlertCircle,
-  Lightbulb,
+  TrendingUp,
+  AlertTriangle,
+  PackageSearch,
+  CheckCircle2,
+  Clock,
+  Briefcase,
+  ArrowRight,
+  PlusCircle,
   FileText,
+  AlertCircle,
   MoreHorizontal,
-  CalendarClock,
-  ClipboardCheck,
-  PlusCircle
+  Lightbulb,
+  Bug,
+  CalendarClock
 } from "lucide-react";
 import { useJobStore } from "@/stores/features/jobStore";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
 import { useReportStore } from "@/stores/features/reportStore";
-import type { Job } from "@/stores/features/jobStore";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(relativeTime);
-
-export const description = "Interactive Dashboard";
 
 const chartConfig = {
   complete: { label: "เสร็จสิ้น", color: "#22c55e" },
@@ -65,48 +66,47 @@ const chartConfig = {
   pending: { label: "รอดำเนินการ", color: "#a3a3a3" },
 } satisfies ChartConfig;
 
-const CHART_WINDOW_DAYS = 180;
-
-const statusToChartKey: Record<Job["status"], keyof typeof chartConfig | null> = {
-  pending: "pending",
-  in_progress: "progressing",
-  pending_approval: "pending",
-  completed: "complete",
-  cancelled: "pending",
-  rejected: "pending",
-};
-
 const COLORS = ['#0ea5e9', '#22c55e', '#f97316', '#a855f7', '#e11d48'];
 
 export default function Page() {
   const router = useRouter();
   const [timeRange, setTimeRange] = React.useState("7d");
   const [reportFilter, setReportFilter] = React.useState("week");
-  const [activeChart, setActiveChart] = React.useState<keyof typeof chartConfig>("complete");
+  const [summary, setSummary] = React.useState<any>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   const jobs = useJobStore((s) => s.jobs);
   const inventories = useInventoryStore((s) => s.inventories);
   const reports = useReportStore((s) => s.reports);
 
-  const inventoryHasUsage = React.useMemo(
-    () => jobs.some((j: any) => Array.isArray((j as any).usedInventory) && (j as any).usedInventory.length > 0),
-    [jobs]
-  );
+  // Fetch real analytics from API
+  const fetchSummary = async () => {
+    try {
+      const res = await fetch('/api/analytics/summary');
+      const result = await res.json();
+      if (result.success) {
+        setSummary(result.data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch analytics", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchSummary();
+  }, [jobs, inventories, reports]); // Refresh when main stores change
 
   const topDepartments = React.useMemo(() => {
     const counts = jobs.reduce<Record<string, number>>((acc, job) => {
-      // @ts-ignore - Accessing departments array which exists on Job type but might be missing in strict type def
-      const departments = job.departments || [];
-
+      const departments = (job as any).departments || [];
       if (Array.isArray(departments) && departments.length > 0) {
         departments.forEach((dept: string) => {
-          if (dept && dept.trim() !== "") {
-            acc[dept] = (acc[dept] || 0) + 1;
-          }
+          if (dept && dept.trim() !== "") acc[dept] = (acc[dept] || 0) + 1;
         });
       } else {
-        const unassigned = "ไม่ระบุแผนก";
-        acc[unassigned] = (acc[unassigned] || 0) + 1;
+        acc["ไม่ระบุแผนก"] = (acc["ไม่ระบุแผนก"] || 0) + 1;
       }
       return acc;
     }, {});
@@ -116,127 +116,6 @@ export default function Page() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
   }, [jobs]);
-
-  const topInventory = React.useMemo(() => {
-    const anyUsage = inventoryHasUsage;
-
-    if (anyUsage) {
-      const counts: Record<string, number> = {};
-      jobs.forEach((j: any) => {
-        (j.usedInventory || []).forEach((item: any) => {
-          const id = item.id as string;
-          const qty = typeof item.qty === "number" ? item.qty : 1;
-          counts[id] = (counts[id] || 0) + qty;
-        });
-      });
-
-      return Object.entries(counts)
-        .map(([id, count]) => ({ id, count, name: inventories.find((i) => i.id === id)?.name || id }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
-    }
-
-    return inventories
-      .slice()
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 5)
-      .map((i) => ({ id: i.id, name: i.name, count: i.quantity }));
-  }, [jobs, inventories, inventoryHasUsage]);
-
-  const graphKeys = React.useMemo(() => (["complete", "progressing", "pending"] as const), []);
-
-  const rangeDays = React.useMemo(() => (timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90), [timeRange]);
-
-  const allChartData = React.useMemo(() => {
-    const end = dayjs().endOf("day");
-    const start = end.subtract(CHART_WINDOW_DAYS - 1, "day");
-    const data: { date: string; complete: number; progressing: number; pending: number }[] = [];
-    const dateMap = new Map<string, { date: string; complete: number; progressing: number; pending: number }>();
-
-    for (let i = 0; i < CHART_WINDOW_DAYS; i++) {
-      const date = start.add(i, "day");
-      const key = date.format("YYYY-MM-DD");
-      const entry = { date: key, complete: 0, progressing: 0, pending: 0 };
-      data.push(entry);
-      dateMap.set(key, entry);
-    }
-
-    jobs.forEach((job: Job) => {
-      if (!job?.createdAt) return;
-      const jobDate = dayjs(job.createdAt);
-      if (!jobDate.isValid()) return;
-      if (jobDate.isBefore(start, "day") || jobDate.isAfter(end, "day")) return;
-      const chartKey = statusToChartKey[job.status];
-      if (!chartKey) return;
-      const key = jobDate.format("YYYY-MM-DD");
-      const entry = dateMap.get(key);
-      if (entry) {
-        entry[chartKey] += 1;
-      }
-    });
-
-    return data;
-  }, [jobs]);
-
-  const filteredData = React.useMemo(() => {
-    if (allChartData.length === 0) return [];
-    return allChartData.slice(-rangeDays);
-  }, [allChartData, rangeDays]);
-
-  const hasFilteredData = React.useMemo(
-    () =>
-      filteredData.some(
-        (entry) => entry.complete > 0 || entry.progressing > 0 || entry.pending > 0
-      ),
-    [filteredData]
-  );
-
-  const chartData = React.useMemo(
-    () => (hasFilteredData ? filteredData : allChartData),
-    [hasFilteredData, filteredData, allChartData]
-  );
-
-  const total = React.useMemo(
-    () => ({
-      complete: chartData.reduce((acc, curr) => acc + curr.complete, 0),
-      progressing: chartData.reduce((acc, curr) => acc + curr.progressing, 0),
-      pending: chartData.reduce((acc, curr) => acc + curr.pending, 0),
-    }),
-    [chartData]
-  );
-
-  const previousRangeData = React.useMemo(() => {
-    if (allChartData.length === 0 || !hasFilteredData) return [];
-    const endIndex = Math.max(0, allChartData.length - rangeDays);
-    const startIndex = Math.max(0, endIndex - rangeDays);
-    return allChartData.slice(startIndex, endIndex);
-  }, [allChartData, rangeDays, hasFilteredData]);
-
-  const previousTotals = React.useMemo(
-    () => ({
-      complete: previousRangeData.reduce((acc, curr) => acc + curr.complete, 0),
-      progressing: previousRangeData.reduce((acc, curr) => acc + curr.progressing, 0),
-      pending: previousRangeData.reduce((acc, curr) => acc + curr.pending, 0),
-    }),
-    [previousRangeData]
-  );
-
-  const percentChange = (key: keyof typeof chartConfig) => {
-    const prev = previousTotals[key];
-    const curr = total[key];
-    // ถ้าทั้งสองเป็น 0 ให้ return 0
-    if (prev === 0 && curr === 0) return 0;
-    // ถ้า prev เป็น 0 แต่ curr > 0 ให้ return 100 (เพิ่มขึ้น 100%)
-    if (prev === 0 && curr > 0) return 100;
-    // ถ้า prev > 0 แต่ curr เป็น 0 ให้ return -100 (ลดลง 100%)
-    if (prev > 0 && curr === 0) return -100;
-    // คำนวณเปอร์เซ็นต์ปกติ
-    return ((curr - prev) / prev) * 100;
-  };
-
-  const miniData = React.useMemo(() => {
-    return chartData.filter((_, index) => index % 3 === 0);
-  }, [chartData]);
 
   const filteredReports = React.useMemo(() => {
     const now = dayjs();
@@ -250,407 +129,317 @@ export default function Page() {
       .slice(0, 5);
   }, [reports, reportFilter]);
 
-
-
-  const quickActions = React.useMemo(() => ([
-    {
-      title: "เช็กตารางงาน",
-      description: "ดูคิวงานที่ต้องทำและการมอบหมายล่าสุด",
-      icon: CalendarClock,
-      onClick: () => router.push("/dashboard/admin/jobs"),
-    },
-    {
-      title: "สร้างสต็อกใหม่",
-      description: "เพิ่มวัสดุหรืออุปกรณ์ที่ต้องใช้",
-      icon: PlusCircle,
-      onClick: () => router.push("/dashboard/admin/inventorys"),
-    },
-  ]), [router]);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[600px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-8 max-w-[1600px] mx-auto">
+    <div className="p-6 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-700">
       {/* Header */}
-      <div className="rounded-3xl border bg-gradient-to-r from-primary/10 via-sky-100/40 to-transparent dark:from-primary/15 dark:via-primary/5 dark:to-transparent p-6 shadow-sm">
-        <div className="flex flex-col lg:flex-row justify-between gap-6">
-          <div className="space-y-3 max-w-xl">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-background/60 backdrop-blur text-xs">อัปเดตเรียลไทม์</Badge>
-              <span className="text-xs text-muted-foreground">Sync status • OK</span>
+      <div className="rounded-3xl border bg-gradient-to-br from-primary/5 via-background to-background p-8 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row justify-between gap-6 relative z-10">
+          <div className="space-y-4 max-w-2xl">
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
+                Real-time Analytics
+              </Badge>
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                System Live
+              </span>
             </div>
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">ศูนย์ควบคุมผู้ดูแลระบบ</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                ภาพรวมสถานะงาน รายงาน และสต็อกแบบโต้ตอบ เพื่อช่วยตัดสินใจได้เร็วขึ้น
+              <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60">
+                ศูนย์วิเคราะห์ข้อมูลอัจฉริยะ
+              </h1>
+              <p className="text-muted-foreground mt-2 leading-relaxed">
+                ภาพรวมประสิทธิภาพงาน สภาพคล่องของพัสดุ และแนวโน้มความสำเร็จของโปรเจกต์
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-[140px] h-9 bg-background/80 border-muted-foreground/10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7d">7 วันล่าสุด</SelectItem>
-                  <SelectItem value="30d">30 วันล่าสุด</SelectItem>
-                  <SelectItem value="90d">3 เดือนล่าสุด</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" className="h-9 border-muted-foreground/20" onClick={() => router.push('/dashboard/admin/reports')}>
-                ดูรายงานทั้งหมด
-              </Button>
-              <Button onClick={() => router.push('/dashboard/admin/jobs/create')} className="h-9 shadow-sm gap-2">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+               <Button onClick={() => router.push('/dashboard/admin/jobs/create')} size="lg" className="shadow-lg shadow-primary/20 gap-2 px-6">
                 <span>สร้างงานใหม่</span>
-                <ArrowUpRight className="h-4 w-4" />
+                <PlusCircle className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="lg" onClick={() => router.push('/dashboard/admin/reports')} className="px-6">
+                ดูรายงานระบบ
               </Button>
             </div>
           </div>
 
+          <div className="flex items-center gap-4 lg:self-end">
+            <Card className="bg-background/40 backdrop-blur border-dashed shadow-none">
+                <CardContent className="p-4 flex items-center gap-4">
+                    <div className="p-3 bg-primary/10 rounded-2xl">
+                        <TrendingUp className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground font-medium">งานเสร็จทั้งหมด</p>
+                        <p className="text-2xl font-bold tabular-nums">{summary?.jobs.completed}</p>
+                    </div>
+                </CardContent>
+            </Card>
+          </div>
         </div>
+        <div className="absolute -right-20 -top-20 w-80 h-80 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {graphKeys.map((chart) => {
-          const pct = percentChange(chart);
-          const isUp = pct >= 0;
-          return (
-            <Card
-              key={chart}
-              className={`flex flex-row justify-between px-6 py-5 rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 border-l-4 ${activeChart === chart ? 'ring-2 ring-primary/20' : ''}`}
-              style={{ borderLeftColor: chartConfig[chart].color }}
-              onClick={() => setActiveChart(chart)}
-            >
-              <div className="flex flex-col justify-between">
-                <span className="text-muted-foreground text-sm font-medium">
-                  {chartConfig[chart].label}
-                </span>
-                <div className="mt-2">
-                  <span className="text-3xl font-bold tracking-tight">
-                    <NumberFlow value={total[chart]} format={{ notation: "compact" }} />
-                  </span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="hover:shadow-lg transition-all border-none ring-1 ring-border group overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
+                <Clock className="h-20 w-20" />
+            </div>
+            <CardContent className="p-6">
+                <p className="text-sm font-medium text-muted-foreground">งานรอดำเนินการ</p>
+                <h3 className="text-4xl font-bold mt-2"><NumberFlow value={summary?.jobs.pending || 0} /></h3>
+                <div className="mt-4 flex items-center gap-2 text-xs text-orange-500 font-semibold bg-orange-500/10 w-fit px-2 py-1 rounded-full">
+                    <AlertCircle className="h-3 w-3" />
+                    ต้องรีบเร่งจัดการ
                 </div>
-                {/* <div className="flex items-center gap-1 text-xs mt-2 font-medium">
-                  {isUp ? (
-                    <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <ArrowDownRight className="h-3.5 w-3.5 text-rose-500" />
-                  )}
-                  <span className={isUp ? "text-emerald-500" : "text-rose-500"}>
-                    {Math.abs(pct).toFixed(1)}%
-                  </span>
-                  <span className="text-muted-foreground ml-1 font-normal">vs previous</span>
-                </div> */}
-              </div>
-              <div className="w-24 h-16 self-center opacity-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={miniData}>
-                    <Area
-                      type="monotone"
-                      dataKey={chart}
-                      stroke={chartConfig[chart].color}
-                      fill={chartConfig[chart].color}
-                      fillOpacity={0.15}
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          );
-        })}
+            </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all border-none ring-1 ring-border group overflow-hidden">
+             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
+                <Briefcase className="h-20 w-20" />
+            </div>
+            <CardContent className="p-6">
+                <p className="text-sm font-medium text-muted-foreground">งานกำลังดำเนินการ</p>
+                <h3 className="text-4xl font-bold mt-2 text-sky-600"><NumberFlow value={summary?.jobs.in_progress || 0} /></h3>
+                <p className="text-xs text-muted-foreground mt-4 font-medium">Active Tasks อยู่ในกระบวนการ</p>
+            </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all border-none ring-1 ring-border group overflow-hidden border-b-4 border-b-emerald-500">
+             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform text-emerald-500">
+                <CheckCircle2 className="h-20 w-20" />
+            </div>
+            <CardContent className="p-6">
+                <p className="text-sm font-medium text-muted-foreground">ความสำเร็จสะสม</p>
+                <h3 className="text-4xl font-bold mt-2 text-emerald-600"><NumberFlow value={summary?.jobs.completed || 0} /></h3>
+                <p className="text-xs text-muted-foreground mt-4 font-medium italic">ส่งมอบงานสำเร็จแล้ว</p>
+            </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all border-none ring-1 ring-border group overflow-hidden bg-rose-50 dark:bg-rose-950/20">
+             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-rose-500">
+                <AlertTriangle className="h-20 w-20" />
+            </div>
+            <CardContent className="p-6">
+                <p className="text-sm font-medium text-rose-600 dark:text-rose-400 uppercase tracking-wider">แจ้งเตือนสินค้าใกล้หมด</p>
+                <h3 className="text-4xl font-bold mt-2 text-rose-600"><NumberFlow value={summary?.inventory.lowStockCount || 0} /></h3>
+                <div className="mt-4 flex items-center gap-2 cursor-pointer hover:underline text-rose-600 font-bold" onClick={() => router.push('/dashboard/admin/inventorys')}>
+                    ตรวจสอบคลัง <ArrowRight className="h-4 w-4" />
+                </div>
+            </CardContent>
+        </Card>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Main Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Left Column (2/3) */}
-        <div className="lg:col-span-2 space-y-6">
-
-          {/* Main Area Chart */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50 bg-gradient-to-b from-background via-background to-muted/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <div>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <ChartArea className="h-5 w-5 text-primary" />
-                  แนวโน้มงาน
-                </CardTitle>
-                <CardDescription>ประสิทธิภาพงานรายวัน</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[320px] w-full">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    {graphKeys.map((key) => (
-                      <linearGradient id={`colorGradient-${key}`} key={key} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="10%" stopColor={chartConfig[key].color} stopOpacity={0.35} />
-                        <stop offset="95%" stopColor={chartConfig[key].color} stopOpacity={0.05} />
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted/20" />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={10}
-                    minTickGap={30}
-                    tickFormatter={(value) => new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    className="text-xs text-muted-foreground font-medium"
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={10}
-                    className="text-xs text-muted-foreground font-medium"
-                  />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        className="w-[150px]"
-                        labelFormatter={(value) => new Date(value).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                      />
-                    }
-                  />
-                  {graphKeys.map((key) => (
-                    <Area
-                      key={key}
-                      type="monotone"
-                      dataKey={key}
-                      stroke={chartConfig[key].color}
-                      fill={`url(#colorGradient-${key})`}
-                      strokeWidth={key === activeChart ? 3 : 1.5}
-                      fillOpacity={key === activeChart ? 0.6 : 0.25}
-                      activeDot={key === activeChart ? { r: 6, strokeWidth: 0, className: "animate-pulse" } : undefined}
-                      opacity={key === activeChart ? 1 : 0.6}
-                    />
-                  ))}
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          {/* System Reports */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <div>
-                <CardTitle className="text-lg font-semibold">รายงานระบบ</CardTitle>
-                <CardDescription>ปัญหา บั๊ก และคำร้องล่าสุด</CardDescription>
-              </div>
-              <Tabs value={reportFilter} onValueChange={setReportFilter} className="w-auto">
-                <TabsList className="h-8 bg-muted/50">
-                  <TabsTrigger value="week" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">สัปดาห์</TabsTrigger>
-                  <TabsTrigger value="month" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">เดือน</TabsTrigger>
-                  <TabsTrigger value="year" className="text-xs h-7 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">ปี</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {filteredReports.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
-                    <div className="p-3 rounded-full bg-muted/50 mb-3">
-                      <FileText className="h-6 w-6 opacity-50" />
-                    </div>
-                    <p className="text-sm font-medium">ไม่พบรายงานในช่วงเวลานี้</p>
-                    <p className="text-xs text-muted-foreground mt-1">กลับมาตรวจสอบภายหลังหรือปรับตัวกรอง</p>
-                  </div>
-                ) : (
-                  filteredReports.map((report) => (
-                    <div key={report.id} className="flex items-start gap-4 p-3 rounded-lg border border-transparent hover:border-border hover:bg-muted/30 transition-all group cursor-pointer" onClick={() => router.push(`/dashboard/admin/reports/${report.id}`)}>
-                      <div className={`mt-1 p-2 rounded-full shrink-0 shadow-sm ${report.priority === 'urgent' ? 'bg-red-50 text-red-600' :
-                        report.priority === 'high' ? 'bg-orange-50 text-orange-600' :
-                          'bg-blue-50 text-blue-600'
-                        }`}>
-                        {report.type === 'bug' ? <Bug className="h-4 w-4" /> :
-                          report.type === 'incident' ? <AlertCircle className="h-4 w-4" /> :
-                            report.type === 'improvement' ? <Lightbulb className="h-4 w-4" /> :
-                              <FileText className="h-4 w-4" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{report.title}</h4>
-                          <Badge variant="secondary" className="text-[10px] h-5 px-2 capitalize shrink-0 font-normal bg-muted/50">
-                            {report.status.replace('_', ' ')}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          {report.description || "ไม่มีคำอธิบาย"}
-                        </p>
-                        <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <Avatar className="h-4 w-4 border">
-                              <AvatarFallback className="text-[8px] bg-primary/10 text-primary">{report.reporter.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{report.reporter.name}</span>
-                          </span>
-                          <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                          <span>{dayjs(report.createdAt).fromNow()}</span>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity -mr-2">
-                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="mt-6 pt-4 border-t flex justify-center">
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary" onClick={() => router.push('/dashboard/admin/reports')}>
-                  ดูรายงานทั้งหมด
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column (1/3) */}
-        <div className="space-y-6">
-
-          {/* Top Departments */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50 h-fit">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-semibold">อันดับแผนก</CardTitle>
-              <CardDescription>จำนวนงานสูงสุด</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                {topDepartments.length === 0 ? (
-                  <div className="text-xs text-muted-foreground text-center py-4">ไม่มีข้อมูล</div>
-                ) : (
-                  topDepartments.map((d, idx) => (
-                    <div key={d.name} className="flex items-center justify-between gap-3 group">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/50 text-xs font-medium text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                          {idx + 1}
-                        </span>
-                        <div className="truncate">
-                          <p className="text-sm font-medium truncate">{d.name}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="h-2 w-20 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all duration-500 ease-out"
-                            style={{ width: `${Math.min(100, Math.round((d.count / Math.max(1, topDepartments[0].count)) * 100))}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold w-8 text-right tabular-nums">{d.count}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Top Inventory (Horizontal Bar Chart) */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">อันดับการเบิกวัสดุ</CardTitle>
-              <CardDescription>รายการสูงสุดตามจำนวน</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 mt-2">
-                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground font-medium">
-                  <span>รายการ</span>
-                  <span>หน่วย</span>
+        {/* Trend Area Chart (2/3) */}
+        <Card className="lg:col-span-2 shadow-sm border-none ring-1 ring-border overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/20">
+                <div>
+                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        แนวโน้มความสำเร็จในการปิดงาน
+                   </CardTitle>
+                   <CardDescription>สถิติจบงานย้อนหลัง 6 เดือน</CardDescription>
                 </div>
-                {topInventory.length === 0 ? (
-                  <div className="flex items-center justify-center h-[260px] text-xs text-muted-foreground">
-                    ไม่มีข้อมูลวัสดุ
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart
-                      data={topInventory}
-                      layout="vertical"
-                      margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
-                      barCategoryGap={12}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted/30" />
-                      <XAxis
-                        type="number"
-                        tickLine={false}
-                        axisLine={false}
-                        className="text-xs text-muted-foreground"
-                      />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        tickLine={false}
-                        axisLine={false}
-                        width={140}
-                        className="text-xs text-muted-foreground"
-                      />
-                      <Tooltip
-                        cursor={{ fill: "hsl(var(--muted))", opacity: 0.35 }}
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const item = payload[0];
-                            return (
-                              <div className="bg-popover/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 text-xs animate-in fade-in zoom-in-95 duration-200">
-                                <p className="font-semibold mb-1">{item.payload.name}</p>
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className="w-2 h-2 rounded-full"
-                                    style={{ backgroundColor: item.color }}
-                                  />
-                                  <span className="text-muted-foreground">{item.value} หน่วย</span>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar dataKey="count" radius={[0, 12, 12, 0]} barSize={18}>
-                        {topInventory.map((entry, index) => (
-                          <Cell key={`bar-${entry.id}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-                {topInventory.length > 0 && (
-                  <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground border-t">
-                    <span>รวมทั้งหมด</span>
-                    <span className="font-semibold text-foreground">
-                      <NumberFlow value={topInventory.reduce((a, b) => a + b.count, 0)} format={{ notation: "compact" }} />
-                    </span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="shadow-sm border-none ring-1 ring-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">ทางลัดที่ใช้บ่อย</CardTitle>
-              <CardDescription>จัดการงานสำคัญได้ทันที</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {quickActions.map((action) => (
-                <button
-                  key={action.title}
-                  onClick={action.onClick}
-                  className="w-full flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-border hover:bg-muted/40 transition-all text-left"
-                >
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                    <action.icon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold">{action.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-70" />
-                </button>
-              ))}
+            <CardContent className="pt-8 bg-gradient-to-b from-muted/5 to-transparent">
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                    <AreaChart data={summary?.trends.completionTrend || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="colorComplete" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted/30" />
+                        <XAxis 
+                            dataKey="name" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{fill: 'currentColor', fontSize: 12}} 
+                            tickMargin={15}
+                        />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: 'currentColor', fontSize: 12}} />
+                        <Tooltip 
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-background border rounded-xl shadow-xl p-3 animate-in zoom-in-95">
+                                            <p className="text-xs font-bold text-muted-foreground uppercase">{payload[0].payload.name}</p>
+                                            <p className="text-lg font-bold">ปิดงานได้ {payload[0].value} ใบ</p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
+                        <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#22c55e" 
+                            fillOpacity={1} 
+                            fill="url(#colorComplete)" 
+                            strokeWidth={3}
+                            animationDuration={1500}
+                        />
+                    </AreaChart>
+                </ChartContainer>
             </CardContent>
-          </Card>
+        </Card>
 
+        {/* Inventory Requests & Alerts (1/3) */}
+        <div className="space-y-6">
+            <Card className="shadow-lg border-none ring-1 ring-border group hover:ring-primary/40 transition-all overflow-hidden relative">
+                 <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                    <PackageSearch className="h-24 w-24" />
+                </div>
+                <CardHeader className="pb-2 bg-primary/5 border-b mb-4">
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                        <PackageSearch className="h-5 w-5 text-primary" />
+                        คำร้องขอเบิกวัสดุ
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col items-center py-6 text-center">
+                        <h4 className="text-5xl font-extrabold text-foreground tracking-tighter">
+                            <NumberFlow value={summary?.inventory.pendingRequests || 0} />
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-2 font-medium">รอเจ้าหน้าที่อนุมัติ</p>
+                        <Button 
+                            onClick={() => router.push('/dashboard/admin/inventorys')} 
+                            className="mt-6 w-full rounded-2xl h-12 gap-2 shadow-lg hover:shadow-primary/30 transition-shadow"
+                        >
+                            จัดการคำร้องทันที <ArrowRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="shadow-sm border-none ring-1 ring-border">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold">อันดับแผนกที่รับงานสูงสุด</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {topDepartments.map((d, idx) => (
+                        <div key={d.name} className="flex items-center justify-between group">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${idx === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                    {idx + 1}
+                                </span>
+                                <span className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{d.name}</span>
+                            </div>
+                            <Badge variant="secondary" className="font-mono bg-muted/50">{d.count}</Badge>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
         </div>
+      </div>
+
+      {/* Reports and Bottom Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-12">
+        <Card className="lg:col-span-2 shadow-sm border-none ring-1 ring-border">
+            <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/10">
+                <div>
+                   <CardTitle className="text-lg font-bold">รายงานระบบล่าสุด</CardTitle>
+                   <CardDescription>การแจ้งเตือนและเหตุการณ์ล่าสุด</CardDescription>
+                </div>
+                <Tabs value={reportFilter} onValueChange={setReportFilter} className="bg-muted/50 p-1 rounded-lg">
+                    <TabsList className="bg-transparent h-8">
+                        <TabsTrigger value="week" className="text-xs">7 วัน</TabsTrigger>
+                        <TabsTrigger value="month" className="text-xs">30 วัน</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </CardHeader>
+            <CardContent className="p-0">
+                <div className="divide-y">
+                    {filteredReports.length === 0 ? (
+                        <div className="p-12 text-center text-muted-foreground">ไม่พบรายการในช่วงเวลานี้</div>
+                    ) : (
+                        filteredReports.map((report) => (
+                            <div key={report.id} className="p-4 flex items-center gap-4 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/admin/reports/${report.id}`)}>
+                                <div className={`p-2 rounded-xl h-fit shadow-sm ${report.priority === 'urgent' ? 'bg-rose-500/10 text-rose-500' : 'bg-muted text-muted-foreground'}`}>
+                                    {report.type === 'bug' ? <Bug className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-bold truncate">{report.title}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Badge variant="outline" className="text-[9px] h-4 py-0 font-normal">{report.type}</Badge>
+                                        <span className="text-xs text-muted-foreground font-medium">{report.reporter.name}</span>
+                                        <span className="text-[10px] text-muted-foreground/50">•</span>
+                                        <span className="text-xs text-muted-foreground">{dayjs(report.createdAt).fromNow()}</span>
+                                    </div>
+                                </div>
+                                <Badge variant={report.priority === 'urgent' ? 'destructive' : 'secondary'} className="text-[10px] px-2 py-0.5">
+                                    {report.priority}
+                                </Badge>
+                            </div>
+                        ))
+                    )}
+                </div>
+                <div className="p-4 border-t flex justify-center">
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline" onClick={() => router.push('/dashboard/admin/reports')}>
+                        ดูรายงานทั้งหมดในระบบ
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-none ring-1 ring-border bg-rose-500/5 dark:bg-rose-500/10 border-t-4 border-t-rose-500">
+            <CardHeader>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-rose-500" />
+                    พัสดุใกล้หมด (Critical)
+                </CardTitle>
+                <CardDescription>รายการที่ตำกว่าจุดสั่งซื้อขั้นต่ำ</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {summary?.inventory.lowStockItems.length === 0 ? (
+                        <div className="text-center py-8">
+                            <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3 opacity-50" />
+                            <p className="text-sm text-muted-foreground font-semibold">พัสดุในคลังเพียงพอทุกรายการ</p>
+                        </div>
+                    ) : (
+                        summary?.inventory.lowStockItems.map((item: any) => (
+                            <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-background border shadow-sm group hover:border-rose-300 transition-colors">
+                                <div className="min-w-0 flex-1 mr-3">
+                                    <p className="text-sm font-bold truncate">{item.name}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
+                                            <div className="h-full bg-rose-500" style={{ width: `${(item.quantity / item.minStock) * 100}%` }} />
+                                        </div>
+                                        <p className="text-[11px] text-rose-500 font-bold whitespace-nowrap">
+                                            {item.quantity} / {item.minStock} หน่วย
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full shrink-0 group-hover:bg-primary group-hover:text-white transition-colors" onClick={() => router.push('/dashboard/admin/inventorys')}>
+                                    <PlusCircle className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))
+                    )}
+                    
+                    {summary?.inventory.lowStockItems.length > 0 && (
+                        <Button variant="outline" className="w-full mt-4 border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => router.push('/dashboard/admin/inventorys')}>
+                            จัดการใบสั่งซื้อพัสดุ
+                        </Button>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
       </div>
     </div>
   );

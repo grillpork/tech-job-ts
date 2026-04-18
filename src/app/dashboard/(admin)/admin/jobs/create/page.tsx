@@ -367,14 +367,34 @@ export default function CreateJobPage() {
     }
   }, [getSignature]);
 
-  // Helper function: แปลง File เป็น base64 string
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error); // eslint-disable-line @typescript-eslint/no-explicit-any
+  // Helper function to upload files to the server
+  const uploadFile = async (file: File, folder: string, subFolder?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+    if (subFolder) formData.append('subFolder', subFolder);
+    
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
     });
+    
+    if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
+    const data = await res.json();
+    return data.url; // Returns the public URL
+  };
+
+  // Helper to convert base64 (signature) to File for upload
+  const base64ToFile = (base64: string, filename: string): File => {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
   };
 
   // ✅ --- 8. สร้างฟังก์ชัน handleSubmit --- ✅
@@ -393,7 +413,7 @@ export default function CreateJobPage() {
     if (!title || title.trim() === "") {
       setErrorMessage("กรุณากรอก Job Title ให้ครบถ้วน");
       setIsErrorAlertOpen(true);
-      return; // หยุดการทำงาน
+      return;
     }
 
     if (!leadTechnician || leadTechnician.trim() === "") {
@@ -402,7 +422,6 @@ export default function CreateJobPage() {
       return;
     }
 
-    // Validation สำหรับลูกค้าองค์กร
     if (customerType === "organization" && !customerCompanyName.trim()) {
       setErrorMessage("กรุณากรอกชื่อบริษัท/องค์กร");
       setIsErrorAlertOpen(true);
@@ -410,41 +429,46 @@ export default function CreateJobPage() {
     }
 
     setIsSubmitting(true);
+    const subFolder = title.trim();
 
     try {
-      // ✅ แปลง File[] เป็น Attachment[] (ใช้ base64 สำหรับ url)
+      // 1. Upload Attachments
       const attachmentsData: Attachment[] = await Promise.all(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        attachments.map(async (file) => ({
-          id: crypto.randomUUID(),
-          fileName: file.name,
-          fileType: file.type || "application/octet-stream",
-          size: file.size,
-          url: await fileToBase64(file), // แปลงเป็น base64 string
-          uploadedAt: new Date().toISOString(),
-        }))
+        attachments.map(async (file) => {
+          const url = await uploadFile(file, 'jobs/attachments', subFolder);
+          return {
+            id: crypto.randomUUID(),
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            size: file.size,
+            url: url,
+            uploadedAt: new Date().toISOString(),
+          };
+        })
       );
 
-      // ✅ แปลง locationImages File[] เป็น base64 string[]
+      // 2. Upload Location Images
       const locationImagesUrls: string[] = await Promise.all(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        locationImages.map((file) => fileToBase64(file))
+        locationImages.map((file) => uploadFile(file, 'jobs/location', subFolder))
       );
 
-      // ✅ แปลง beforeImages File[] เป็น base64 string[]
+      // 3. Upload Before Images
       const beforeImagesUrls: string[] = await Promise.all(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        beforeImages.map((file) => fileToBase64(file))
+        beforeImages.map((file) => uploadFile(file, 'jobs/before', subFolder))
       );
 
-      // ✅ แปลง afterImages File[] เป็น base64 string[]
+      // 4. Upload After Images
       const afterImagesUrls: string[] = await Promise.all(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        afterImages.map((file) => fileToBase64(file))
+        afterImages.map((file) => uploadFile(file, 'jobs/after', subFolder))
       );
 
-      // Get signature if available
-      const signature = getSignatureImage();
+      // 5. Upload Signature (Convert base64 to file first)
+      const signatureBase64 = getSignatureImage();
+      let signatureUrl = null;
+      if (signatureBase64) {
+        const signatureFile = base64ToFile(signatureBase64, 'signature.png');
+        signatureUrl = await uploadFile(signatureFile, 'jobs/signatures', subFolder);
+      }
 
       if (!currentUser?.id) {
         setErrorMessage("ไม่พบข้อมูลผู้ใช้งาน ไม่สามารถสร้างใบงานได้");
@@ -466,7 +490,7 @@ export default function CreateJobPage() {
         status: "pending" as const,
         startDate: startDate ? startDate.toISOString() : null,
         endDate: endDate ? endDate.toISOString() : null,
-        tasks: [], // ไม่มี tasks
+        tasks: [],
         creatorId: currentUser.id,
         location: location ?? null,
         locationImages: locationImagesUrls.length > 0 ? locationImagesUrls : undefined,
@@ -478,21 +502,16 @@ export default function CreateJobPage() {
         customerCompanyName: customerType === "organization" ? (customerCompanyName || null) : null,
         customerTaxId: customerType === "organization" ? (customerTaxId || null) : null,
         customerAddress: customerType === "organization" ? (customerAddress || null) : null,
-        signature: signature || null,
-      };
-
-      // ✅ ส่ง attachments ไปกับ jobData
-      const jobDataWithAttachments = {
-        ...jobData,
+        signature: signatureUrl,
         attachments: attachmentsData,
       };
 
-      createJob(jobDataWithAttachments);
+      await createJob(jobData);
       removeSignature(SIGNATURE_STORAGE_KEY);
       router.push("/dashboard/admin/jobs");
     } catch (error) {
-      console.error("Error converting files to base64:", error);
-      setErrorMessage("เกิดข้อผิดพลาดในการแปลงไฟล์ กรุณาลองใหม่อีกครั้ง");
+      console.error("Error uploading files:", error);
+      setErrorMessage("เกิดข้อผิดพลาดในการอัปโหลดไฟล์ กรุณาลองใหม่อีกครั้ง");
       setIsErrorAlertOpen(true);
       setIsSubmitting(false);
     }

@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // --- Enums ---
@@ -32,6 +33,8 @@ model User {
   github              String?
   employmentType      String?
   status              String?   @default("active")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
   
   // Extra profile fields
   accountTier         String?
@@ -49,6 +52,13 @@ model User {
   assignedIssues      Report[]  @relation("ReportAssignee")
   
   updatedWorkLogs     WorkLog[]
+
+  // New Relations for Requests
+  inventoryRequestsRequested InventoryRequest[] @relation("InventoryRequestedBy")
+  inventoryRequestsProcessed InventoryRequest[] @relation("InventoryProcessedBy")
+  
+  completionRequestsRequested CompletionRequest[] @relation("CompletionRequestedBy")
+  completionRequestsProcessed CompletionRequest[] @relation("CompletionProcessedBy")
 }
 
 model Job {
@@ -73,6 +83,7 @@ model Job {
   usedInventory       String?   // JSON: {id, qty}[]
   
   createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
   startDate           DateTime?
   endDate             DateTime?
   
@@ -89,11 +100,19 @@ model Job {
   customerTaxId       String?
   customerAddress     String?
   
+  discount            Float?    @default(0)
+  laborCost           Float?    @default(0)
+  vatPercentage       Float?    @default(0)
+  
   signature           String?
   rejectionReason     String?
   
   workLogs            WorkLog[]
   reports             Report[]
+  
+  // New Relations
+  inventoryRequests   InventoryRequest[]
+  completionRequest   CompletionRequest?
 }
 
 model Task {
@@ -119,14 +138,19 @@ model WorkLog {
 
 model Inventory {
   id          String   @id @default(uuid())
+  sku         String?  @unique
   name        String
+  category    String?  @default("ทั่วไป")
   imageUrl    String?
   quantity    Int      @default(0)
+  minStock    Int      @default(5)
   location    String?
   status      String   @default("พร้อมใช้")
   type        String   @default("ไม่ต้องคืน")
   price       Float    @default(0)
   requireFrom String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model Report {
@@ -153,6 +177,44 @@ model Report {
   
   attachments String?  // JSON
   tags        String?  // JSON: string[]
+}
+
+model InventoryRequest {
+  id              String   @id @default(uuid())
+  jobId           String
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status          String   @default("pending") // pending, approved, rejected
+  items           String   // JSON: {id, qty}[]
+  
+  requestedById   String
+  requestedBy     User     @relation("InventoryRequestedBy", fields: [requestedById], references: [id])
+  requestedAt     DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  
+  processedById   String?
+  processedBy     User?    @relation("InventoryProcessedBy", fields: [processedById], references: [id])
+  processedAt     DateTime?
+  
+  note            String?
+}
+
+model CompletionRequest {
+  id              String   @id @default(uuid())
+  jobId           String   @unique
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status          String   @default("pending") // pending, approved, rejected
+  
+  requestedById   String
+  requestedBy     User     @relation("CompletionRequestedBy", fields: [requestedById], references: [id])
+  requestedAt     DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  
+  processedById   String?
+  processedBy     User?    @relation("CompletionProcessedBy", fields: [processedById], references: [id])
+  processedAt     DateTime?
+  
+  rejectionReason String?
+  signature       String?  // Base64 or URL
 }
 
 model AuditLog {

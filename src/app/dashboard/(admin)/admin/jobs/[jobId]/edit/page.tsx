@@ -486,14 +486,34 @@ export default function EditJobPage() {
   };
 
 
-  // Helper function: แปลง File เป็น base64 string
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
+  // Helper function to upload files to the server
+  const uploadFile = async (file: File, folder: string, subFolder?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+    if (subFolder) formData.append('subFolder', subFolder);
+    
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
     });
+    
+    if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
+    const data = await res.json();
+    return data.url; // Returns the public URL
+  };
+
+  // Helper to convert base64 (signature) to File for upload
+  const base64ToFile = (base64: string, filename: string): File => {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
   };
 
   // ✅ 5. ฟังก์ชัน handleSubmit ที่เรียกใช้ "updateJob"
@@ -524,7 +544,6 @@ export default function EditJobPage() {
       return;
     }
 
-    // Validation สำหรับลูกค้าองค์กร
     if (customerType === "organization" && !customerCompanyName.trim()) {
       setErrorMessage("กรุณากรอกชื่อบริษัท/องค์กร");
       setIsErrorAlertOpen(true);
@@ -532,44 +551,53 @@ export default function EditJobPage() {
     }
 
     setIsSubmitting(true);
+    const subFolder = finalTitle.trim();
 
     try {
-      // ✅ แปลง File[] เป็น Attachment[] และรวมกับ existing attachments (ใช้ base64)
-      const newAttachments: Attachment[] = await Promise.all(
-        attachments.map(async (file) => ({
-          id: crypto.randomUUID(),
-          fileName: file.name,
-          fileType: file.type || "application/octet-stream",
-          size: file.size,
-          url: await fileToBase64(file), // แปลงเป็น base64 string
-          uploadedAt: new Date().toISOString(),
-        }))
+      // 1. Upload NEW Attachments
+      const newAttachmentsData: Attachment[] = await Promise.all(
+        attachments.map(async (file) => {
+          const url = await uploadFile(file, 'jobs/attachments', subFolder);
+          return {
+            id: crypto.randomUUID(),
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            size: file.size,
+            url: url,
+            uploadedAt: new Date().toISOString(),
+          };
+        })
       );
+      // รวม attachments เก่าที่ยังเหลืออยู่กับไฟล์ใหม่
+      const allAttachments = [...existingAttachments, ...newAttachmentsData];
 
-      // รวม attachments เก่าและใหม่
-      const allAttachments = [...existingAttachments, ...newAttachments];
-
-      // ✅ แปลง locationImages File[] เป็น base64 string[] และรวมกับ existing
+      // 2. Upload NEW Location Images
       const newLocationImagesUrls: string[] = await Promise.all(
-        locationImages.map((file: File) => fileToBase64(file))
+        locationImages.map((file: File) => uploadFile(file, 'jobs/location', subFolder))
       );
       const allLocationImages = [...existingLocationImages, ...newLocationImagesUrls];
 
-      // ✅ แปลง beforeImages File[] เป็น base64 string[] และรวมกับ existing
+      // 3. Upload NEW Before Images
       const newBeforeImagesUrls: string[] = await Promise.all(
-        beforeImages.map((file: File) => fileToBase64(file))
+        beforeImages.map((file: File) => uploadFile(file, 'jobs/before', subFolder))
       );
       const allBeforeImages = [...existingBeforeImages, ...newBeforeImagesUrls];
 
-      // ✅ แปลง afterImages File[] เป็น base64 string[] และรวมกับ existing
+      // 4. Upload NEW After Images
       const newAfterImagesUrls: string[] = await Promise.all(
-        afterImages.map((file: File) => fileToBase64(file))
+        afterImages.map((file: File) => uploadFile(file, 'jobs/after', subFolder))
       );
       const allAfterImages = [...existingAfterImages, ...newAfterImagesUrls];
 
-      // Get signature - use new signature if available, otherwise keep existing
-      const newSignature = getSignatureImage();
-      const finalSignature = newSignature || signatureData || jobToEdit.signature || null;
+      // 5. Manage Signature
+      const newSignatureBase64 = getSignatureImage();
+      let finalSignature = signatureData || jobToEdit.signature || null;
+      
+      // ถ้ามีการวาดลายเซ็นใหม่ (เป็น base64) ให้เอาไปอัปโหลด
+      if (newSignatureBase64 && newSignatureBase64.startsWith('data:image')) {
+        const signatureFile = base64ToFile(newSignatureBase64, 'signature.png');
+        finalSignature = await uploadFile(signatureFile, 'jobs/signatures', subFolder);
+      }
 
       const updatedData = {
         title: finalTitle,
@@ -582,7 +610,7 @@ export default function EditJobPage() {
         usedInventory: selectedInventory.map(inv => ({ id: inv.value, qty: inv.qty ?? 1 })),
         startDate: startDate ? startDate.toISOString() : null,
         endDate: endDate ? endDate.toISOString() : null,
-        tasks: [], // ไม่มี tasks
+        tasks: [],
         location: location ?? null,
         attachments: allAttachments,
         locationImages: allLocationImages.length > 0 ? allLocationImages : undefined,
@@ -597,11 +625,11 @@ export default function EditJobPage() {
         signature: finalSignature,
       };
 
-      updateJob(jobToEdit.id, updatedData);
+      await updateJob(jobToEdit.id, updatedData);
       router.push("/dashboard/admin/jobs");
     } catch (error) {
-      console.error("Error converting files to base64:", error);
-      setErrorMessage("เกิดข้อผิดพลาดในการแปลงไฟล์ กรุณาลองใหม่อีกครั้ง");
+      console.error("Error uploading files:", error);
+      setErrorMessage("เกิดข้อผิดพลาดในการอัปโหลดไฟล์ กรุณาลองใหม่อีกครั้ง");
       setIsErrorAlertOpen(true);
       setIsSubmitting(false);
     }

@@ -2,10 +2,8 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { MOCK_REPORTS } from "@/lib/mocks/report";
 
 export type ReportStatus = "open" | "in_progress" | "resolved" | "closed";
-
 export type ReportType = "bug" | "request" | "incident" | "improvement";
 
 export interface Report {
@@ -20,13 +18,8 @@ export interface Report {
   assignee?: { id: string; name: string; imageUrl?: string | null } | null;
   relatedJobId?: string | null;
   relatedInventoryId?: string | null;
-  attachments?: {
-    id: string;
-    fileName: string;
-    url: string;
-    uploadedAt: string;
-  }[];
-  tags?: string[];
+  attachments?: string | null;
+  tags?: string | null;
   priority?: "low" | "medium" | "high" | "urgent";
 }
 
@@ -34,13 +27,15 @@ interface ReportStore {
   reports: Report[];
   isHydrated: boolean;
 
-  addReport: (report: Report) => void;
-  updateReport: (report: Report) => void;
-  deleteReport: (id: string) => void;
+  addReportLocal: (report: Report) => void;
+  updateReportLocal: (report: Report) => void;
+  deleteReportLocal: (id: string) => void;
   clearAll: () => void;
-  reorderReports: (orderedIds: string[]) => void;
   getReportById: (id: string) => Report | undefined;
   fetchReports: () => Promise<void>;
+  addReport: (data: any) => Promise<boolean>;
+  updateReport: (id: string, data: any) => Promise<boolean>;
+  deleteReport: (id: string) => Promise<boolean>;
 }
 
 export const useReportStore = create<ReportStore>()(
@@ -49,36 +44,20 @@ export const useReportStore = create<ReportStore>()(
       reports: [],
       isHydrated: false,
 
-      addReport: (report) =>
+      addReportLocal: (report) =>
         set((state) => ({ reports: [report, ...state.reports] })),
 
-      updateReport: (report) =>
+      updateReportLocal: (report) =>
         set((state) => ({
           reports: state.reports.map((r) => (r.id === report.id ? report : r)),
         })),
 
-      deleteReport: (id) =>
+      deleteReportLocal: (id) =>
         set((state) => ({
           reports: state.reports.filter((r) => r.id !== id),
         })),
 
       clearAll: () => set({ reports: [] }),
-
-      reorderReports: (orderedIds) =>
-        set((state) => {
-          const idToItem = new Map(state.reports.map((it) => [it.id, it]));
-          const next: Report[] = [];
-          for (const id of orderedIds) {
-            const item = idToItem.get(id);
-            if (item) next.push(item);
-          }
-          for (const item of state.reports) {
-            if (!orderedIds.includes(item.id)) {
-              next.push(item);
-            }
-          }
-          return { reports: next };
-        }),
 
       getReportById: (id: string) => {
         return get().reports.find((r) => r.id === id);
@@ -87,12 +66,69 @@ export const useReportStore = create<ReportStore>()(
       fetchReports: async () => {
         try {
           const res = await fetch("/api/reports");
-          if (res.ok) {
-            const reports = await res.json();
-            set({ reports });
+          const result = await res.json();
+          if (res.ok && result.success) {
+            set({ reports: result.data });
           }
         } catch (error) {
           console.error("Failed to fetch reports:", error);
+        }
+      },
+
+      addReport: async (data) => {
+        try {
+          const res = await fetch("/api/reports", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await res.json();
+          if (res.ok && result.success) {
+            set((state) => ({ reports: [result.data, ...state.reports] }));
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("Failed to add report:", error);
+          return false;
+        }
+      },
+
+      updateReport: async (id, data) => {
+        try {
+          const res = await fetch(`/api/reports/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await res.json();
+          if (res.ok && result.success) {
+            set((state) => ({
+              reports: state.reports.map((r) => (r.id === id ? result.data : r)),
+            }));
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("Failed to update report:", error);
+          return false;
+        }
+      },
+
+      deleteReport: async (id) => {
+        try {
+          const res = await fetch(`/api/reports/${id}`, { method: "DELETE" });
+          const result = await res.json();
+          if (res.ok && result.success) {
+            set((state) => ({
+              reports: state.reports.filter((r) => r.id !== id),
+            }));
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("Failed to delete report:", error);
+          return false;
         }
       },
     }),

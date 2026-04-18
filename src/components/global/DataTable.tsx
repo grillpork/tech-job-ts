@@ -43,7 +43,7 @@ interface DataTableProps<T> {
 }
 
 // Animated TableRow component
-const AnimatedTableRow = motion(TableRow);
+const AnimatedTableRow = motion.create(TableRow);
 
 export function DataTable<T extends { id: string | number }>({
   columns,

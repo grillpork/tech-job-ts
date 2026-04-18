@@ -12,6 +12,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "คลังกลาง",
     price: 200,
     requireFrom: "ช่างประปา",
+    minStock: 5,
   },
   {
     id: "inv-002",
@@ -23,6 +24,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "คลังกลาง",
     price: 200,
     requireFrom: "ช่างสวน/ประปา",
+    minStock: 5,
   },
   {
     id: "inv-003",
@@ -34,6 +36,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "คลังอะไหล่",
     price: 200,
     requireFrom: "ช่างประปา",
+    minStock: 5,
   },
   {
     id: "inv-004",
@@ -45,6 +48,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "คลังกลาง",
     price: 200,
     requireFrom: "ช่างไฟฟ้า",
+    minStock: 5,
   },
   {
     id: "inv-005",
@@ -56,6 +60,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "ฝ่ายช่างทั่วไป",
     price: 200,
     requireFrom: "ช่างทั่วไป",
+    minStock: 5,
   },
   {
     id: "inv-006",
@@ -67,6 +72,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "คลังอะไหล่",
     price: 200,
     requireFrom: "ช่างแอร์",
+    minStock: 5,
   },
   {
     id: "inv-007",
@@ -78,6 +84,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "คลังกลาง",
     price: 200,
     requireFrom: "ฝ่ายความปลอดภัย",
+    minStock: 5,
   },
   {
     id: "inv-008",
@@ -89,6 +96,7 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "ฝ่ายช่างทั่วไป",
     price: 200,
     requireFrom: "ช่างทั่วไป",
+    minStock: 5,
   },
   {
     id: "inv-009",
@@ -100,5 +108,6 @@ export const MOCK_INVENTORIES: Inventory[] = [
     location: "คลังอะไหล่",
     price: 200,
     requireFrom: "ช่างไฟฟ้า",
+    minStock: 5,
   },
 ];

@@ -1,55 +1,77 @@
 import { NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { sendUnauthorized, sendError, sendServerError } from '@/lib/api-utils';
 
-/**
- * @swagger
- * /api/upload:
- *   post:
- *     summary: Upload a file
- *     description: Uploads a file to the server and returns its public URL.
- *     requestBody:
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *     responses:
- *       200:
- *         description: Successfully uploaded file
- */
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') 
+    .replace(/[^\w\u0E00-\u0E7F-]+/g, '') 
+    .replace(/--+/g, '-') 
+    .replace(/^-+/, '') 
+    .replace(/-+$/, '');
+}
+
 export async function POST(request: Request) {
   try {
+    // SECURITY: Must be logged in to upload anything
+    const session = await getServerSession(authOptions);
+    if (!session) return sendUnauthorized();
+
     const data = await request.formData();
     const file: File | null = data.get('file') as unknown as File;
+    const folder = (data.get('folder') as string) || 'general';
+    const subFolder = (data.get('subFolder') as string) || '';
     
     if (!file) {
-      return NextResponse.json({ success: false, error: "No file provided" }, { status: 400 });
+      return sendError("ไม่พบไฟล์ที่ต้องการอัปโหลด");
+    }
+
+    // SECURITY: Limit file size to 10MB
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      return sendError("ขนาดไฟล์ใหญ่เกินไป (สูงสุด 10MB)", 413);
+    }
+
+    // SECURITY: Allowed file types (Images only for now)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      return sendError(`ไม่รองรับประเภทไฟล์นี้ (${file.type})`, 415);
     }
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create a unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const filename = `${uniqueSuffix}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filename = `${uniqueSuffix}-${sanitizedFileName}`;
     
-    // Path to save in the public directory
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    const filepath = join(uploadDir, filename);
-    
-    await writeFile(filepath, buffer);
-    console.log(`File saved to ${filepath}`);
+    let uploadPath = join(process.cwd(), 'public', 'uploads', slugify(folder));
+    if (subFolder) {
+      uploadPath = join(uploadPath, slugify(subFolder));
+    }
 
-    // Return the URL to access the uploaded file
-    const url = `/uploads/${filename}`;
+    await mkdir(uploadPath, { recursive: true });
+    const filepath = join(uploadPath, filename);
+    await writeFile(filepath, buffer);
     
-    return NextResponse.json({ success: true, url, filename });
+    const publicPath = subFolder 
+      ? `/uploads/${slugify(folder)}/${slugify(subFolder)}/${filename}`
+      : `/uploads/${slugify(folder)}/${filename}`;
+    
+    return NextResponse.json({ 
+      success: true, 
+      url: publicPath, 
+      filename,
+      requestId: crypto.randomUUID(),
+      message: 'อัปโหลดสำเร็จ'
+    });
   } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ success: false, error: "Upload failed" }, { status: 500 });
+    return sendServerError(error, "การอัปโหลดไฟล์ล้มเหลว");
   }
 }

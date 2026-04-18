@@ -1,34 +1,42 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { Toaster } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+
 import { ClientAuthGuard } from "@/components/ClientAuthGuard";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
-import { motion, AnimatePresence } from "framer-motion";
+import { GlobalModal } from "@/components/global/GlobalModal";
+import { GlobalToast } from "@/components/global/GlobalToast";
 
-import { usePathname } from "next/navigation";
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   // ✅ ตรวจขนาดจอหลังจาก mount แล้ว
   useEffect(() => {
-    const handleResize = () => { }; // setIsMobile(window.innerWidth < 1024); // No longer needed
-    handleResize(); // เรียกครั้งแรก
+    const handleResize = () => { }; 
+    handleResize(); 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
     <ClientAuthGuard>
+      <Toaster position="top-right" richColors closeButton />
+      <GlobalModal />
+      <GlobalToast />
+      
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar (ซ้าย) */}
         {/* ✅ Desktop */}
-        <aside className="hidden lg:block bg-muted/40 ">
+        <aside className="hidden lg:block bg-muted/40 border-r">
           <Sidebar />
         </aside>
 

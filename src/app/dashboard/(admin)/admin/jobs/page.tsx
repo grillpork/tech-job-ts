@@ -15,6 +15,7 @@ import {
 import { DataTable } from "@/components/global/DataTable";
 // import type { Column } from "@/components/global/DataTable";
 import { Job } from "@/lib/types/job";
+import { getJobDepartments } from "@/lib/utils/job-helpers";
 import { useJobStore } from "@/stores/features/jobStore";
 import { useUserStore } from '@/stores/features/userStore';
 import { useInventoryStore } from '@/stores/features/inventoryStore';
@@ -57,15 +58,6 @@ import { toast } from "sonner";
 // ===========================
 // MAIN COMPONENT
 // ===========================
-const getJobDepartments = (job: Job & { department?: string }) => {
-  if (job.departments && job.departments.length > 0) {
-    return job.departments;
-  }
-  if (job.department) {
-    return [job.department];
-  }
-  return [];
-};
 
 const JobsList = () => {
   const router = useRouter(); // 5. khởi tạo router
@@ -230,9 +222,13 @@ const JobsList = () => {
   // Get unique departments from jobs
   const departments = useMemo(() => {
     const depts = new Set<string>();
+    if (!Array.isArray(jobs)) return [];
+    
     jobs.forEach((job) => {
       const jobDepartments = getJobDepartments(job);
-      jobDepartments.forEach((dept) => depts.add(dept));
+      if (Array.isArray(jobDepartments)) {
+        jobDepartments.forEach((dept) => depts.add(dept));
+      }
     });
     return Array.from(depts).sort();
   }, [jobs]);

@@ -5,7 +5,7 @@ import { ClientAuthGuard } from "@/components/ClientAuthGuard";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { DataInitializer } from "@/components/DataInitializer";
 import { usePathname } from "next/navigation";
 export default function DashboardLayout({
   children,
@@ -25,6 +25,7 @@ export default function DashboardLayout({
 
   return (
     <ClientAuthGuard>
+      <DataInitializer />
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar (ซ้าย) */}
         {/* ✅ Desktop */}

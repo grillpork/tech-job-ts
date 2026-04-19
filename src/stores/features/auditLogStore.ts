@@ -1,19 +1,16 @@
 "use client";
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 
-// ประเภทการกระทำ
-export type AuditAction = 
-  | "create" 
-  | "update" 
+export type AuditAction =
+  | "create"
+  | "update"
   | "delete"
   | "approve"
   | "reject"
   | "assign"
   | "unassign";
 
-// ประเภท entity ที่ถูกกระทำ
-export type AuditEntityType = 
+export type AuditEntityType =
   | "job"
   | "inventory"
   | "user"
@@ -21,92 +18,143 @@ export type AuditEntityType =
   | "inventory_request"
   | "completion_request";
 
-// Audit Log Interface
 export interface AuditLog {
   id: string;
   action: AuditAction;
   entityType: AuditEntityType;
   entityId: string;
-  entityName: string; // ชื่อของ entity ที่ถูกกระทำ (เช่น ชื่อ job, ชื่อ inventory)
+  entityName: string;
   performedBy: {
     id: string;
     name: string;
     role: string;
   };
   timestamp: string;
-  details?: string; // รายละเอียดเพิ่มเติม
+  details?: string;
   changes?: {
     field: string;
     oldValue: unknown;
     newValue: unknown;
-  }[]; // เก็บการเปลี่ยนแปลง (สำหรับ update)
-  metadata?: Record<string, unknown>; // ข้อมูลเพิ่มเติม
+  }[];
+  metadata?: Record<string, unknown>;
 }
 
-// Audit Log Store Interface
 interface AuditLogStoreState {
   auditLogs: AuditLog[];
   isHydrated: boolean;
-  
-  // Actions
-  addAuditLog: (log: Omit<AuditLog, "id" | "timestamp">) => void;
+
+  // Sync with DB
+  fetchAuditLogs: () => Promise<void>;
+  addAuditLog: (log: Omit<AuditLog, "id" | "timestamp"> & {
+    performedById: string;
+    performedByName: string;
+    performedByRole: string;
+  }) => Promise<void>;
+
+  // Local queries
   getAuditLogs: () => AuditLog[];
   getAuditLogsByEntity: (entityType: AuditEntityType, entityId?: string) => AuditLog[];
   getAuditLogsByUser: (userId: string) => AuditLog[];
   clearAuditLogs: () => void;
 }
 
-// Create Audit Log Store
-export const useAuditLogStore = create<AuditLogStoreState>()(
-  persist(
-    (set, get) => ({
-      auditLogs: [],
-      isHydrated: false,
+export const useAuditLogStore = create<AuditLogStoreState>()((set, get) => ({
+  auditLogs: [],
+  isHydrated: false,
 
-      addAuditLog: (logData) => {
-        const newLog: AuditLog = {
-          id: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          ...logData,
-        };
-        
-        set((state) => ({
-          auditLogs: [newLog, ...state.auditLogs], // ใหม่สุดก่อน
+  fetchAuditLogs: async () => {
+    try {
+      const res = await fetch("/api/audit-logs");
+      if (res.ok) {
+        const data = await res.json();
+        const rawLogs = Array.isArray(data) ? data : (data.data ?? []);
+
+        // Transform DB format → store format
+        const auditLogs: AuditLog[] = rawLogs.map((log: any) => ({
+          id: log.id,
+          action: log.action.toLowerCase() as AuditAction,
+          entityType: log.entityType.toLowerCase() as AuditEntityType,
+          entityId: log.entityId,
+          entityName: log.entityName,
+          performedBy: {
+            id: log.performedById,
+            name: log.performedByName,
+            role: log.performedByRole,
+          },
+          timestamp: log.timestamp,
+          details: log.details || undefined,
+          changes: log.changes ? JSON.parse(log.changes) : undefined,
+          metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
         }));
-      },
 
-      getAuditLogs: () => {
-        return get().auditLogs;
-      },
-
-      getAuditLogsByEntity: (entityType, entityId) => {
-        const logs = get().auditLogs;
-        if (entityId) {
-          return logs.filter(
-            (log) => log.entityType === entityType && log.entityId === entityId
-          );
-        }
-        return logs.filter((log) => log.entityType === entityType);
-      },
-
-      getAuditLogsByUser: (userId) => {
-        return get().auditLogs.filter((log) => log.performedBy.id === userId);
-      },
-
-      clearAuditLogs: () => {
-        set({ auditLogs: [] });
-      },
-    }),
-    {
-      name: "audit-log-storage",
-      storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.isHydrated = true;
-        }
-      },
-      version: 1,
+        set({ auditLogs, isHydrated: true });
+        console.log("✅ AuditLogStore: Fetched", auditLogs.length, "logs from DB.");
+      }
+    } catch (error) {
+      console.error("❌ AuditLogStore: Failed to fetch logs", error);
     }
-  )
-);
+  },
 
+  addAuditLog: async (logData) => {
+    try {
+      const res = await fetch("/api/audit-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: logData.action.toUpperCase(),
+          entityType: logData.entityType.toUpperCase(),
+          entityId: logData.entityId,
+          entityName: logData.entityName,
+          performedById: logData.performedById,
+          performedByName: logData.performedByName,
+          performedByRole: logData.performedByRole,
+          details: logData.details || null,
+          changes: logData.changes || null,
+          metadata: logData.metadata || null,
+        }),
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        // Add to local state optimistically
+        const newLog: AuditLog = {
+          id: saved.id,
+          action: saved.action.toLowerCase() as AuditAction,
+          entityType: saved.entityType.toLowerCase() as AuditEntityType,
+          entityId: saved.entityId,
+          entityName: saved.entityName,
+          performedBy: {
+            id: saved.performedById,
+            name: saved.performedByName,
+            role: saved.performedByRole,
+          },
+          timestamp: saved.timestamp,
+          details: saved.details || undefined,
+          changes: saved.changes ? JSON.parse(saved.changes) : undefined,
+          metadata: saved.metadata ? JSON.parse(saved.metadata) : undefined,
+        };
+        set((state) => ({ auditLogs: [newLog, ...state.auditLogs] }));
+      }
+    } catch (error) {
+      console.error("❌ AuditLogStore: Failed to save log to DB", error);
+    }
+  },
+
+  getAuditLogs: () => get().auditLogs,
+
+  getAuditLogsByEntity: (entityType, entityId) => {
+    const logs = get().auditLogs;
+    if (entityId) {
+      return logs.filter(
+        (log) => log.entityType === entityType && log.entityId === entityId
+      );
+    }
+    return logs.filter((log) => log.entityType === entityType);
+  },
+
+  getAuditLogsByUser: (userId) => {
+    return get().auditLogs.filter((log) => log.performedBy.id === userId);
+  },
+
+  clearAuditLogs: () => set({ auditLogs: [] }),
+}));

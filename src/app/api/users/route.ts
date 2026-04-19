@@ -1,6 +1,13 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { 
+  sendSuccess, 
+  sendUnauthorized, 
+  sendError, 
+  sendServerError 
+} from '@/lib/api-utils';
 
 /**
  * @swagger
@@ -14,8 +21,11 @@ import bcrypt from 'bcryptjs';
  */
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return sendUnauthorized();
+
     const users = await prisma.user.findMany({
-      orderBy: { joinedAt: 'desc' }
+      orderBy: { name: 'asc' }
     });
     
     // Transform JSON strings back to objects where necessary
@@ -31,10 +41,9 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(formattedUsers);
+    return sendSuccess(formattedUsers, 'ดึงข้อมูลผู้ใช้งานสำเร็จ');
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    return sendServerError(error);
   }
 }
 
@@ -48,10 +57,17 @@ export async function GET() {
  *       200:
  *         description: The newly created user
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return sendUnauthorized();
+
     const body = await request.json();
     const { name, email, password, role, skills, ...rest } = body;
+
+    if (!name || !email || !password) {
+      return sendError("กรุณาระบุชื่อ อีเมล และรหัสผ่าน", 400);
+    }
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -59,7 +75,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json({ message: "Email already exists" }, { status: 400 });
+      return sendError("อีเมลนี้มีอยู่ในระบบแล้ว", 400);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -80,10 +96,9 @@ export async function POST(request: NextRequest) {
       skills: newUser.skills ? JSON.parse(newUser.skills as string) : [],
     };
 
-    return NextResponse.json(formattedUser);
+    return sendSuccess(formattedUser, 'สร้างผู้ใช้งานสำเร็จ');
   } catch (error) {
-    console.error('Error creating user:', error);
-    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+    return sendServerError(error);
   }
 }
 
@@ -103,17 +118,20 @@ export async function POST(request: NextRequest) {
  *       200:
  *         description: The updated user
  */
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: Request) {
   try {
-    const searchParams = request.nextUrl.searchParams;
+    const session = await getServerSession(authOptions);
+    if (!session) return sendUnauthorized();
+
+    const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ message: "User ID required" }, { status: 400 });
+      return sendError("ไม่พบรหัสผู้ใช้งาน", 400);
     }
 
     const body = await request.json();
-    const { password, skills, id: bodyId, ...rest } = body; // Destructure id to exclude it from update
+    const { password, skills, id: bodyId, ...rest } = body;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dataToUpdate: any = { ...rest };
@@ -136,17 +154,14 @@ export async function PATCH(request: NextRequest) {
       skills: updatedUser.skills ? JSON.parse(updatedUser.skills as string) : [],
     };
 
-    return NextResponse.json(formattedUser);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return sendSuccess(formattedUser, 'อัปเดตข้อมูลผู้ใช้งานสำเร็จ');
   } catch (error: any) {
-    console.error('Error updating user:', error);
-    
     // Check for Prisma unique constraint violation (e.g., email already taken)
     if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-      return NextResponse.json({ error: 'Email already exists' }, { status: 409 }); // 409 Conflict
+      return sendError('อีเมลนี้ถูกใช้งานแล้ว', 409);
     }
 
-    return NextResponse.json({ error: error.message || 'Failed to update user' }, { status: 500 });
+    return sendServerError(error);
   }
 }
 
@@ -166,22 +181,24 @@ export async function PATCH(request: NextRequest) {
  *       200:
  *         description: Success message
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: Request) {
   try {
-    const searchParams = request.nextUrl.searchParams;
+    const session = await getServerSession(authOptions);
+    if (!session) return sendUnauthorized();
+
+    const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ message: "User ID required" }, { status: 400 });
+      return sendError("ไม่พบรหัสผู้ใช้งาน", 400);
     }
 
     await prisma.user.delete({
       where: { id }
     });
 
-    return NextResponse.json({ message: "User deleted successfully" });
+    return sendSuccess(null, 'ลบผู้ใช้งานสำเร็จ');
   } catch (error) {
-    console.error('Error deleting user:', error);
-    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+    return sendServerError(error);
   }
 }

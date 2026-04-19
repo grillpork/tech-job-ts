@@ -106,7 +106,7 @@ const InventoryManagement = () => {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, itemId?: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -114,6 +114,8 @@ const InventoryManagement = () => {
     try {
       const uploadData = new FormData();
       uploadData.append('file', file);
+      uploadData.append('entity', 'inventory');
+      uploadData.append('entityId', itemId || 'new');
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -247,18 +249,16 @@ const InventoryManagement = () => {
     }
   };
 
-  // อัปเดตสถานะของอุปกรณ์ที่มีอยู่แล้วเมื่อโหลดหน้า
+  // อัปเดตสถานะของอุปกรณ์ที่มีอยู่แล้วเมื่อโหลดหน้า — รันเพียงครั้งเดียว (on mount)
   useEffect(() => {
+    if (inventories.length === 0) return;
     inventories.forEach((item) => {
       const newStatus = calculateInventoryStatus(item.quantity);
       if (item.status !== newStatus) {
-        updateInventory({
-          ...item,
-          status: newStatus,
-        });
+        updateInventory({ ...item, status: newStatus }).catch(() => {});
       }
     });
-  }, [inventories, updateInventory]); // รันครั้งเดียวตอนโหลดหน้า
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -299,7 +299,7 @@ const InventoryManagement = () => {
     setIsFormOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (
       !formData.name ||
       !formData.type ||
@@ -312,28 +312,38 @@ const InventoryManagement = () => {
     const quantity = parseInt(formData.quantity);
     const calculatedStatus = calculateInventoryStatus(quantity);
 
-    if (editingItem) {
-      updateInventory({
-        ...editingItem,
-        name: formData.name,
-        status: calculatedStatus,
-        type: formData.type as Inventory["type"],
-        quantity: quantity,
-        imageUrl: formData.imageUrl,
-      });
-    } else {
-      const newItem: Inventory = {
-        id: crypto.randomUUID(),
-        name: formData.name,
-        status: calculatedStatus,
-        type: formData.type as Inventory["type"],
-        quantity: quantity,
-        imageUrl: formData.imageUrl,
-        location: "Main Warehouse",
-        price: 0,
-        requireFrom: "", // Keep for backward compatibility but set to empty
-      };
-      addInventory(newItem);
+    try {
+      if (editingItem) {
+        await updateInventory({
+          ...editingItem,
+          name: formData.name,
+          status: calculatedStatus,
+          type: formData.type as Inventory["type"],
+          quantity: quantity,
+          imageUrl: formData.imageUrl || null,
+        });
+        toast.success("แก้ไขข้อมูลสำเร็จ");
+      } else {
+        const result = await addInventory({
+          name: formData.name,
+          status: calculatedStatus,
+          type: formData.type as Inventory["type"],
+          quantity: quantity,
+          imageUrl: formData.imageUrl || null,
+          location: "Main Warehouse",
+          price: 0,
+          requireFrom: null,
+        });
+        if (result) {
+          toast.success("เพิ่มอุปกรณ์สำเร็จ");
+        } else {
+          toast.error("เพิ่มอุปกรณ์ไม่สำเร็จ กรุณาลองใหม่");
+          return;
+        }
+      }
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      return;
     }
 
     setIsFormOpen(false);
@@ -349,40 +359,23 @@ const InventoryManagement = () => {
     router.push(`/dashboard/admin/inventorys/${inventoryId}`);
   };
 
-  const handleDeleteConfirm = () => {
-    if (deletingItemId) deleteInventory(deletingItemId);
+  const handleDeleteConfirm = async () => {
+    if (deletingItemId) {
+      try {
+        await deleteInventory(deletingItemId);
+        toast.success("ลบอุปกรณ์สำเร็จ");
+      } catch {
+        toast.error("ลบไม่สำเร็จ กรุณาลองใหม่");
+      }
+    }
     setIsDeleteAlertOpen(false);
     setDeletingItemId(null);
   };
 
-  // Filter jobs ที่มี usedInventory
+  // Filter jobs ที่มี usedInventory (ไม่นับงานที่ถูกยกเลิกแล้ว)
   const jobsWithInventory = jobs.filter(
-    (job) => job.usedInventory && job.usedInventory.length > 0
+    (job) => job.usedInventory && job.usedInventory.length > 0 && job.status !== 'cancelled'
   );
-
-  // สร้าง inventory request อัตโนมัติเมื่อ job มี usedInventory แต่ยังไม่มี request
-  useEffect(() => {
-    const jobsWithInv = jobs.filter(
-      (job) => job.usedInventory && job.usedInventory.length > 0
-    );
-
-    jobsWithInv.forEach((job) => {
-      const existingRequest = getInventoryRequestByJobId(job.id);
-      if (!existingRequest && job.usedInventory && job.usedInventory.length > 0) {
-        // สร้าง request ใหม่
-        addInventoryRequest({
-          jobId: job.id,
-          status: "pending",
-          requestedItems: job.usedInventory,
-          requestedBy: {
-            id: job.creator.id,
-            name: job.creator.name,
-          },
-          note: null,
-        });
-      }
-    });
-  }, [jobs, addInventoryRequest, getInventoryRequestByJobId]);
 
   const getJobStatusColor = (status: string) => {
     switch (status) {
@@ -415,32 +408,37 @@ const InventoryManagement = () => {
     return statusMap[status] || status;
   };
 
-  // Get approval status for a job (ใช้จาก store)
+  // Returns 'pending' as default when no status exists yet
   const getInventoryRequestStatusForJob = (jobId: string): 'pending' | 'approved' | 'rejected' => {
-    return getInventoryRequestStatus(jobId);
+    const job = jobs.find(j => j.id === jobId);
+    return (job?.inventoryStatus as 'pending' | 'approved' | 'rejected') || 'pending';
   };
 
   // Handle approve inventory request
-  const handleApproveInventory = (jobId: string) => {
+  const handleApproveInventory = async (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job || !job.usedInventory) return;
 
-    const request = getInventoryRequestByJobId(jobId);
-    if (!request) {
-      toast.error("ไม่พบคำขอเบิกวัสดุ");
+    if (job.inventoryStatus === "approved") {
+      toast.error("คำขอนี้ถูกอนุมัติไปแล้ว");
       return;
     }
 
-    // Update approval status in store
-    updateInventoryRequestStatus(
-      request.id,
-      "approved",
-      {
-        id: "admin", // TODO: ใช้ user ID จริงจาก auth
-        name: "ผู้ดูแลระบบ",
-      },
-      null
-    );
+    // ตรวจสอบสต๊อกก่อนอนุมัติ
+    for (const usedInv of job.usedInventory) {
+      const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
+      if (!inventoryItem) {
+        toast.error(`ไม่พบข้อมูลอุปกรณ์รหัส ${usedInv.id} ในระบบ`);
+        return;
+      }
+      if (inventoryItem.quantity < usedInv.qty) {
+        toast.error(`อุปกรณ์ "${inventoryItem.name}" มีไม่เพียงพอ (คงเหลือ ${inventoryItem.quantity} ชิ้น, ต้องการ ${usedInv.qty} ชิ้น)`);
+        return; // หยุดการอนุมัติหากของไม่พอ
+      }
+    }
+
+    // Update approval status in Database through jobStore
+    await updateJob(jobId, { inventoryStatus: "approved" });
 
     // Update inventory quantity and calculate status automatically for approved items
     job.usedInventory.forEach(usedInv => {
@@ -460,33 +458,22 @@ const InventoryManagement = () => {
   };
 
   // Handle reject inventory request
-  const handleRejectInventory = (jobId: string) => {
+  const handleRejectInventory = async (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) {
       toast.error("ไม่พบใบงาน");
       return;
     }
 
-    const request = getInventoryRequestByJobId(jobId);
-    if (!request) {
-      toast.error("ไม่พบคำขอเบิกวัสดุ");
+    if (job.inventoryStatus === "rejected") {
+      toast.error("คำขอนี้ถูกปฏิเสธไปแล้ว");
       return;
     }
 
-    // Update rejection status in store
-    updateInventoryRequestStatus(
-      request.id,
-      "rejected",
-      {
-        id: "admin", // TODO: ใช้ user ID จริงจาก auth
-        name: "ผู้ดูแลระบบ",
-      },
-      null
-    );
-
-    // ✅ ลบ usedInventory ออกจากใบงานเมื่อปฏิเสธ
-    updateJob(jobId, {
+    // ✅ ลบ usedInventory ออกจากใบงานเมื่อปฏิเสธ และอัปเดต inventoryStatus
+    await updateJob(jobId, {
       usedInventory: [],
+      inventoryStatus: "rejected"
     });
 
     toast.error("ปฏิเสธคำขอเบิกวัสดุ");

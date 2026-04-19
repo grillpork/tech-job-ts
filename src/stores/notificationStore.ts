@@ -74,7 +74,7 @@ export const useNotificationStore = create<NotificationStore>()(
           }),
           createdAt: new Date().toISOString(),
         };
-        const updated = [newNotification, ...get().notifications];
+        const updated = [newNotification, ...get().notifications].slice(0, 50);
         set({
           notifications: updated,
           unreadCount: updated.filter((n) => !n.read).length,

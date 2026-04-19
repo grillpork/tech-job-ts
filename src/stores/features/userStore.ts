@@ -25,53 +25,46 @@ export const useUserStore = create<UserStoreState>()(
 
       createUser: async (userData) => {
         try {
-          // 1. Call API
           const res = await fetch("/api/users", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(userData),
           });
 
+          const resData = await res.json();
+
           if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.message || "Failed to create user");
+            throw new Error(resData.message || resData.error || "Failed to create user");
           }
 
-          const newUser = await res.json();
+          const newUser = resData.data;
 
           // 2. Update Local State
           set((state) => {
             state.users.push(newUser);
           });
           console.log("✅ UserStore: User created:", newUser.name);
-        } catch (error) {
-          console.error("❌ UserStore: Create user failed", error);
-          throw error; // Re-throw for UI handling
+        } catch (error: any) {
+          console.error("❌ UserStore: Create user failed", error.message);
+          throw error;
         }
       },
 
       updateUser: async (userId, updatedData) => {
         try {
-           // 1. Call API (Using PUT/PATCH to specific ID if exists, or query param)
-           // We will create /api/users/[id] route next.
-           const res = await fetch(`/api/users?id=${userId}`, { // Using query param for now if folders complex, OR assume dynamic route
+           const res = await fetch(`/api/users?id=${userId}`, { 
              method: "PATCH", 
              headers: { "Content-Type": "application/json" },
              body: JSON.stringify(updatedData),
            });
 
-           // Note: Ideally use /api/users/${userId}, but for simplicity in file creation I might just use one route file with params if simpler. 
-           // actually, better to use standard REST: /api/users/${userId}
-           // But I'll stick to /api/users with a method to handle updates if I don't want to make new folder yet? 
-           // No, best practice: I will implement DELETE/PATCH in /api/users/route.ts handling ID from searchParams if easier, or create the folder.
-           // Let's use `/api/users?id=${userId}` for simplicity in `route.ts` modification.
+           const resData = await res.json();
 
            if (!res.ok) {
-             const errorData = await res.json().catch(() => ({}));
-             throw new Error(errorData.error || errorData.message || "Failed to update user");
+             throw new Error(resData.message || resData.error || "Failed to update user");
            }
            
-           const updatedUser = await res.json();
+           const updatedUser = resData.data;
 
           set((state) => {
             const index = state.users.findIndex((u) => u.id === userId);
@@ -80,8 +73,9 @@ export const useUserStore = create<UserStoreState>()(
             }
           });
           console.log("✅ UserStore: User updated:", userId);
-        } catch (error) {
-           console.error("❌ UserStore: Update user failed", error);
+        } catch (error: any) {
+           console.error("❌ UserStore: Update user failed", error.message);
+           throw error;
         }
       },
 
@@ -91,14 +85,19 @@ export const useUserStore = create<UserStoreState>()(
             method: "DELETE",
           });
 
-          if (!res.ok) throw new Error("Failed to delete user");
+          const resData = await res.json();
+
+          if (!res.ok) {
+            throw new Error(resData.message || resData.error || "Failed to delete user");
+          }
 
           set((state) => {
             state.users = state.users.filter((user) => user.id !== userId);
           });
            console.log("✅ UserStore: User deleted:", userId);
-        } catch (error) {
-           console.error("❌ UserStore: Delete user failed", error);
+        } catch (error: any) {
+           console.error("❌ UserStore: Delete user failed", error.message);
+           throw error;
         }
       },
 
@@ -125,12 +124,24 @@ export const useUserStore = create<UserStoreState>()(
       fetchUsers: async () => {
         try {
           const res = await fetch('/api/users');
-          if (!res.ok) throw new Error('Failed to fetch users');
-          const users = await res.json();
+          const resData = await res.json();
+
+          if (!res.ok) {
+            throw new Error(resData.message || resData.error || 'Failed to fetch users');
+          }
+
+          // Handle both raw array and structured response { success, data, ... }
+          const users = Array.isArray(resData) ? resData : resData.data;
+          
+          if (!Array.isArray(users)) {
+            throw new Error('Invalid user data received from server');
+          }
+
           set({ users });
           console.log("✅ UserStore: Fetched users from API.");
-        } catch (error) {
-           console.error("❌ UserStore: Failed to fetch users", error);
+        } catch (error: any) {
+           console.error("❌ UserStore: Failed to fetch users:", error.message);
+           throw error; // Re-throw to let UI handle the error (e.g. show toast)
         }
       },
     })),

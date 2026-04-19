@@ -176,23 +176,38 @@ export async function PUT(
       }
     });
 
-    // Handle inventory deduction if status changes to 'completed'
-    if (updateData.status === 'completed' && existingJob.status !== 'completed') {
-      const itemsToDeduct = usedInventory || (existingJob.usedInventory ? JSON.parse(existingJob.usedInventory) : []);
-      
-      if (Array.isArray(itemsToDeduct) && itemsToDeduct.length > 0) {
-        // Run sequentially to ensure updates don't conflict, or use transaction
-        for (const item of itemsToDeduct) {
-          if (item.id && item.qty) {
-            await prisma.inventory.update({
-              where: { id: item.id },
-              data: {
-                quantity: {
-                  decrement: item.qty
-                }
-              }
-            }).catch(err => console.error(`Failed to deduct inventory for ${item.id}:`, err));
+    // Handle returning 'ต้องคืน' items when job is completed
+    if (updateData.status === 'completed' && existingJob.status !== 'completed' && existingJob.inventoryStatus === 'approved') {
+      const itemsToReturn = usedInventory || (existingJob.usedInventory ? JSON.parse(existingJob.usedInventory) : []);
+
+      if (Array.isArray(itemsToReturn) && itemsToReturn.length > 0) {
+        try {
+          // Fetch the inventory types
+          const inventoryIds = itemsToReturn.map(i => i.id).filter(Boolean);
+          const inventories = await prisma.inventory.findMany({
+            where: { id: { in: inventoryIds } },
+            select: { id: true, type: true }
+          });
+
+          // Find only the ones that must be returned
+          const returnableIds = new Set(
+            inventories.filter(inv => inv.type === 'ต้องคืน').map(inv => inv.id)
+          );
+
+          const updates = itemsToReturn
+            .filter((item: any) => item.id && item.qty && returnableIds.has(item.id))
+            .map((item: any) =>
+              prisma.inventory.update({
+                where: { id: item.id },
+                data: { quantity: { increment: item.qty } },
+              })
+            );
+
+          if (updates.length > 0) {
+            await prisma.$transaction(updates);
           }
+        } catch (txError) {
+          console.error('Inventory return transaction failed:', txError);
         }
       }
     }

@@ -61,6 +61,7 @@ export interface Job {
   leadTechnician: JobUser | null;
   tasks: Task[];
   usedInventory?: { id: string; qty: number }[];
+  inventoryStatus?: "pending" | "approved" | "rejected";
   createdAt: string;
   startDate?: string | null;
   endDate?: string | null;
@@ -168,12 +169,12 @@ interface JobStoreState {
   approveCompletionRequest: (
     requestId: string,
     approvedBy: { id: string; name: string }
-  ) => void;
+  ) => Promise<void>;
   rejectCompletionRequest: (
     requestId: string,
     rejectedBy: { id: string; name: string },
     rejectionReason: string
-  ) => void;
+  ) => Promise<void>;
   getCompletionRequestByJobId: (jobId: string) => CompletionRequest | undefined;
   getCompletionRequestStatus: (
     jobId: string
@@ -206,7 +207,9 @@ export const useJobStore = create<JobStoreState>()(
              return null;
           }
           
-          const newJob = await response.json();
+          const responseData = await response.json();
+          // Handle both raw job and structured { data: job }
+          const newJob = responseData.data ?? responseData;
 
           set((state) => {
             state.jobs.unshift(newJob);
@@ -512,10 +515,17 @@ export const useJobStore = create<JobStoreState>()(
           }
         });
 
+        // Sync with API
+        setTimeout(() => {
+           get().updateJob(jobId, { status: "pending_approval", signature, beforeImages, afterImages, rejectionReason: null }).catch(e => console.error("API error", e));
+        }, 0);
+
         return requestId;
       },
 
-      approveCompletionRequest: (requestId, approvedBy) => {
+      approveCompletionRequest: async (requestId, approvedBy) => {
+        let targetJobId: string | null = null;
+        
         set((state) => {
           const requestIndex = state.completionRequests.findIndex(
             (req) => req.id === requestId
@@ -534,14 +544,21 @@ export const useJobStore = create<JobStoreState>()(
           request.rejectionReason = null;
 
           // เปลี่ยน job status เป็น completed
+          targetJobId = request.jobId;
           const jobIndex = state.jobs.findIndex((j) => j.id === request.jobId);
           if (jobIndex !== -1) {
             state.jobs[jobIndex].status = "completed";
           }
         });
+
+        if (targetJobId) {
+            await get().updateJob(targetJobId, { status: "completed" });
+        }
       },
 
-      rejectCompletionRequest: (requestId, rejectedBy, rejectionReason) => {
+      rejectCompletionRequest: async (requestId, rejectedBy, rejectionReason) => {
+        let targetJobId: string | null = null;
+
         set((state) => {
           const requestIndex = state.completionRequests.findIndex(
             (req) => req.id === requestId
@@ -560,12 +577,17 @@ export const useJobStore = create<JobStoreState>()(
           request.approvedAt = null;
 
           // เปลี่ยน job status เป็น rejected และเก็บ rejection reason
+          targetJobId = request.jobId;
           const jobIndex = state.jobs.findIndex((j) => j.id === request.jobId);
           if (jobIndex !== -1) {
             state.jobs[jobIndex].status = "rejected";
             state.jobs[jobIndex].rejectionReason = rejectionReason;
           }
         });
+
+        if (targetJobId) {
+            await get().updateJob(targetJobId, { status: "rejected", rejectionReason });
+        }
       },
 
       getCompletionRequestByJobId: (jobId) => {
@@ -587,12 +609,16 @@ export const useJobStore = create<JobStoreState>()(
           ]);
 
           if (jobsRes.ok) {
-            const jobs = await jobsRes.json();
+            const jobsData = await jobsRes.json();
+            // Handle both raw array and structured { data: [...] }
+            const jobs = Array.isArray(jobsData) ? jobsData : (jobsData.data ?? []);
             set({ jobs });
           }
           if (usersRes.ok) {
-            const users = await usersRes.json();
-            set({ jobUsers: users });
+            const usersData = await usersRes.json();
+            // Handle both raw array and structured { data: [...] }
+            const jobUsers = Array.isArray(usersData) ? usersData : (usersData.data ?? []);
+            set({ jobUsers });
           }
           console.log("✅ JobStore: Fetched jobs and users from API.");
         } catch (error) {

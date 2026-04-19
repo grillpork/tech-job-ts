@@ -56,6 +56,8 @@ export function ClientAuthGuard({
         case "employee":
           newRedirectPath = "/dashboard/employee/dashboard";
           break;
+        default:
+          newRedirectPath = "/dashboard/employee/dashboard";
       }
       setIsRedirecting(true);
       router.replace(newRedirectPath);
@@ -75,13 +77,16 @@ export function ClientAuthGuard({
         : allowedRoles;
 
       if (!expandedAllowedRoles.includes(userRole)) {
-        let redirectTo = "/dashboard";
+        let redirectTo = "/dashboard/employee/dashboard";
         switch (userRole) {
-          case "employee":
-            redirectTo = "/dashboard/employee/dashboard"; // Fixed path to match dashboard structure
-            break;
-          default:
+          case "admin":
+          case "manager":
+          case "lead_technician":
             redirectTo = "/dashboard/admin/dashboard";
+            break;
+          case "employee":
+          default:
+            redirectTo = "/dashboard/employee/dashboard";
         }
 
         // Avoid redirect loop if already on target (basic check)

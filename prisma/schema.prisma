@@ -6,7 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
 }
 
 // --- Enums ---
@@ -71,6 +72,7 @@ model Job {
   
   tasks               Task[]
   usedInventory       String?   // JSON: {id, qty}[]
+  inventoryStatus     String    @default("pending") // pending, approved, rejected
   
   createdAt           DateTime  @default(now())
   startDate           DateTime?

@@ -305,25 +305,9 @@ const JobsList = () => {
     // Approve completion request
     approveCompletionRequest(requestId, { id: currentUser.id, name: currentUser.name });
 
-    // คืนวัสดุที่ type เป็น "ต้องคืน" กลับเข้าคลัง
-    if (job.usedInventory && job.usedInventory.length > 0) {
-      job.usedInventory.forEach(usedInv => {
-        const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
-        if (inventoryItem && inventoryItem.type === "ต้องคืน") {
-          // เพิ่ม quantity กลับเข้าไป
-          const newQuantity = inventoryItem.quantity + usedInv.qty;
-          const calculatedStatus = calculateInventoryStatus(newQuantity);
-
-          updateInventory({
-            ...inventoryItem,
-            quantity: newQuantity,
-            status: calculatedStatus,
-          });
-        }
-      });
-    }
-
-    toast.success("อนุมัติคำขอจบงานแล้ว และคืนวัสดุที่ต้องคืนกลับเข้าคลังแล้ว");
+    // คืนวัสดุที่ type เป็น "ต้องคืน" กลับเข้าคลัง (ตอนนี้ระบบ Backend จะตัดให้ตาม Logic API แบบอัตโนมัติแล้ว)
+    
+    toast.success("อนุมัติคำขอจบงานแล้ว ระบบจะคืนอุปกรณ์ที่ตั้งค่า 'ต้องคืน' กลับเข้าคลังอัตโนมัติ");
   };
 
   const handleRejectRequest = (requestId: string) => {

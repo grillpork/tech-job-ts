@@ -498,12 +498,10 @@ export default function ReportPage() {
                     {selectedReport.status === "open" && (
                       <Button
                         className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                        onClick={() => {
-                          // Find the original store report and update its status to in-progress
+                        onClick={async () => {
                           const storeReport = storeReports.find(r => r.id === selectedReport.id)
                           if (storeReport) {
-                            updateReport({
-                              ...storeReport,
+                            await updateReport(storeReport.id, {
                               status: "in_progress",
                               updatedAt: new Date().toISOString()
                             })
@@ -518,12 +516,10 @@ export default function ReportPage() {
                     {selectedReport.status === "in-progress" && (
                       <Button
                         className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => {
-                          // Find the original store report and update its status to resolved
+                        onClick={async () => {
                           const storeReport = storeReports.find(r => r.id === selectedReport.id)
                           if (storeReport) {
-                            updateReport({
-                              ...storeReport,
+                            await updateReport(storeReport.id, {
                               status: "resolved",
                               updatedAt: new Date().toISOString()
                             })

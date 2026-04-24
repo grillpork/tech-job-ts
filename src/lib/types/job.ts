@@ -47,7 +47,6 @@ export interface Job {
   afterImages?: string[]; // รูปภาพหลังซ่อม
   workLogs?: Array<{
     id: string;
-    date: string;
     updatedBy: { id: string; name: string };
     status: Job["status"];
     note: string;

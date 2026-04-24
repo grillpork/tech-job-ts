@@ -20,7 +20,8 @@ export async function middleware(request: NextRequest) {
   // 1. Redirect to dashboard if logged in and trying to access public auth pages
   if (isPublicPath && isAuthenticated) {
     const role = (token as { role?: string })?.role || 'employee';
-    const targetUrl = ['admin', 'manager', 'lead_technician'].includes(role) 
+    const isAdminAreaRole = role === 'admin' || role === 'manager' || role === 'lead_technician' || role.startsWith('lead_');
+    const targetUrl = isAdminAreaRole 
         ? '/dashboard/admin' 
         : '/dashboard/employee';
     return NextResponse.redirect(new URL(targetUrl, request.url));
@@ -40,7 +41,8 @@ export async function middleware(request: NextRequest) {
     
     // Admin Area Protection
     if (path.startsWith('/dashboard/admin')) {
-       if (!['admin', 'manager', 'lead_technician'].includes(role)) {
+       const isAdminAreaRole = role === 'admin' || role === 'manager' || role === 'lead_technician' || role.startsWith('lead_');
+       if (!isAdminAreaRole) {
           // If employee tries to access admin area, redirect to employee dashboard
           return NextResponse.redirect(new URL('/dashboard/employee', request.url));
        }
@@ -55,7 +57,8 @@ export async function middleware(request: NextRequest) {
   if (path === '/' || path === '/dashboard') {
     if (isAuthenticated) {
         const role = (token as { role?: string })?.role || 'employee';
-        const targetUrl = ['admin', 'manager', 'lead_technician'].includes(role) 
+        const isAdminAreaRole = role === 'admin' || role === 'manager' || role === 'lead_technician' || role.startsWith('lead_');
+        const targetUrl = isAdminAreaRole 
             ? '/dashboard/admin' 
             : '/dashboard/employee';
         return NextResponse.redirect(new URL(targetUrl, request.url));

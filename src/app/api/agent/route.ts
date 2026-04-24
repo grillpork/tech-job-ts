@@ -1,6 +1,37 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /api/agent:
+ *   post:
+ *     summary: แชทกับ AI (Database-Aware Agent)
+ *     description: ส่งคำถามเพื่อคุยกับระบบ AI อัจฉริยะที่รู้จักข้อมูลใบงานและคลังวัสดุภายในระบบ
+ *     tags: [Agent]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [question]
+ *             properties:
+ *               question:
+ *                 type: string
+ *                 description: คำถามที่ต้องการถาม AI
+ *                 example: มีงานอะไรที่ยังค้างอยู่บ้าง?
+ *     responses:
+ *       200:
+ *         description: คำตอบจาก AI
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 answer:
+ *                   type: string
+ *                   description: คำตอบที่ประมวลผลแล้ว
+ */
 export async function POST(req: Request) {
   try {
     const { question } = await req.json();

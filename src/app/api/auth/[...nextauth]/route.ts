@@ -6,12 +6,14 @@ import { authOptions } from "@/lib/auth";
  * /api/auth/{nextauth}:
  *   post:
  *     summary: NextAuth operations
+ *     tags: [Auth]
  *     description: Handles authentication operations (login, logout, session)
  *     responses:
  *       200:
  *         description: Success
  *   get:
  *     summary: NextAuth operations
+ *     tags: [Auth]
  *     description: Handles session checks and callbacks
  *     responses:
  *       200:

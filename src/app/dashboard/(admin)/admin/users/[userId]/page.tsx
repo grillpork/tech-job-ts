@@ -56,11 +56,22 @@ export default function UserProfileViewPage() {
 
   // --- Formatters ---
 
-  const formatRoleLabel = (role?: string | null) => {
+  const formatRoleLabel = (role?: string | null, department?: string | null) => {
     if (!role) return "สมาชิกทีม";
+    if (role.startsWith("lead_")) {
+      const dept = role.split("_")[1];
+      const deptMap: Record<string, string> = {
+        "Electrical": "ไฟฟ้า",
+        "Mechanical": "เครื่องกล",
+        "Technical": "เทคนิค",
+        "Civil": "โยธา"
+      };
+      const deptLabel = deptMap[dept] || department || dept;
+      return `หัวหน้าแผนก (${deptLabel})`;
+    }
     switch (role) {
       case "lead_technician":
-        return "หัวหน้าแผนก";
+        return department ? `หัวหน้าแผนก (${department})` : "หัวหน้าแผนก";
       case "manager":
       case "admin":
         return "ผู้จัดการแผนก";
@@ -123,8 +134,8 @@ export default function UserProfileViewPage() {
         status: person.status ?? "active",
       }))
       .sort((a, b) => {
-        const rankA = order[a.role as keyof typeof order] ?? 4;
-        const rankB = order[b.role as keyof typeof order] ?? 4;
+        const rankA = a.role?.startsWith("lead_") ? 0 : (order[a.role as keyof typeof order] ?? 4);
+        const rankB = b.role?.startsWith("lead_") ? 0 : (order[b.role as keyof typeof order] ?? 4);
         return rankA - rankB || a.name.localeCompare(b.name);
       });
   }, [allUsers, user]);
@@ -247,7 +258,7 @@ export default function UserProfileViewPage() {
                     <h1 className="text-3xl font-semibold text-shadow-lg text-white drop-shadow-sm mt-2">
                       {user.name}
                     </h1>
-                    <p className="text-white/80 text-shadow-lg drop-shadow-sm mt-0.5">{formatRoleLabel(user.role) || "-"}</p>
+                    <p className="text-white/80 text-shadow-lg drop-shadow-sm mt-0.5">{formatRoleLabel(user.role, user.department) || "-"}</p>
                     {user.employeeId && (
                       <p className="text-sm text-shadow-lg text-white/80 mt-1">ID: {user.employeeId}</p>
                     )}
@@ -266,7 +277,7 @@ export default function UserProfileViewPage() {
               <dl className="space-y-4 text-sm">
                 <div>
                   <dt className="text-gray-500 ">บทบาท</dt>
-                  <dd className="text-gray-900 dark:text-white mt-0.5">{formatRoleLabel(user.role) ?? "-"}</dd>
+                  <dd className="text-gray-900 dark:text-white mt-0.5">{formatRoleLabel(user.role, user.department) ?? "-"}</dd>
                 </div>
                 <div>
                   <dt className="text-gray-500">แผนก</dt>
@@ -405,7 +416,7 @@ export default function UserProfileViewPage() {
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             {(person as any).department || user?.department || "ทีมทั่วไป"} •{" "}
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {formatRoleLabel((person as any).role ?? undefined)}
+                            {formatRoleLabel((person as any).role ?? undefined, (person as any).department ?? undefined)}
                           </p>
                           {(() => {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any

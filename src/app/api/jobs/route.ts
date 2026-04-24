@@ -7,34 +7,42 @@ import { z } from 'zod';
 // Define the validation schema using Zod
 const jobSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long"),
-  description: z.string().optional(),
-  status: z.string().optional(),
-  priority: z.string().optional(),
-  type: z.string().optional(),
-  departments: z.any().optional(),
+  description: z.string().optional().nullable(),
+  status: z.string().optional().nullable(),
+  priority: z.string().optional().nullable(),
+  type: z.string().optional().nullable(),
+  departments: z.any().optional().nullable(),
   creatorId: z.string().min(1, "Creator ID is required"),
   leadTechnicianId: z.string().optional().nullable(),
-  assignedEmployeeIds: z.array(z.string()).optional(),
+  assignedEmployeeIds: z.array(z.string()).optional().nullable(),
   tasks: z.array(z.object({
     description: z.string(),
-    details: z.string().optional(),
-    order: z.number().optional()
-  })).optional(),
-  location: z.any().optional(),
-  locationImages: z.any().optional(),
-  attachments: z.any().optional(),
-  usedInventory: z.any().optional(),
-  beforeImages: z.any().optional(),
-  afterImages: z.any().optional(),
-  // Add more fields if needed
-}).passthrough();
-
+    details: z.string().optional().nullable(),
+    order: z.number().optional().nullable()
+  })).optional().nullable(),
+  location: z.any().optional().nullable(),
+  locationImages: z.any().optional().nullable(),
+  attachments: z.any().optional().nullable(),
+  usedInventory: z.any().optional().nullable(),
+  beforeImages: z.any().optional().nullable(),
+  afterImages: z.any().optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
+  customerType: z.string().optional().nullable(),
+  customerName: z.string().optional().nullable(),
+  customerPhone: z.string().optional().nullable(),
+  customerCompanyName: z.string().optional().nullable(),
+  customerTaxId: z.string().optional().nullable(),
+  customerAddress: z.string().optional().nullable(),
+  signature: z.string().optional().nullable(),
+});
 
 /**
  * @swagger
  * /api/jobs:
  *   get:
  *     summary: Get all jobs
+ *     tags: [Jobs]
  *     description: Returns a list of all jobs with related data.
  *     responses:
  *       200:
@@ -86,6 +94,7 @@ export async function GET() {
  * /api/jobs:
  *   post:
  *     summary: Create a new job
+ *     tags: [Jobs]
  *     description: Creates a new job. Requires Admin or Manager role.
  *     responses:
  *       200:
@@ -137,23 +146,26 @@ export async function POST(request: Request) {
       usedInventory,
       beforeImages,
       afterImages,
+      startDate,
+      endDate,
       ...apiData 
     } = validatedData;
 
     const newJob = await prisma.job.create({
       data: {
         ...apiData,
+        status: apiData.status || 'pending',
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
         creator: { connect: { id: creatorId } },
-        // Conditionally connect lead if present
-        ...(leadTechnicianId ? { leadTechnician: { connect: { id: leadTechnicianId } } } : {}),
+        leadTechnician: leadTechnicianId ? { connect: { id: leadTechnicianId } } : undefined,
         assignedEmployees: {
-          connect: assignedEmployeeIds?.map((id: string) => ({ id })) || []
+          connect: assignedEmployeeIds?.filter(Boolean).map((id: string) => ({ id })) || []
         },
         tasks: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           create: tasks?.map((t: any, i: number) => ({
              description: t.description,
-             details: t.details,
+             details: t.details || null,
              order: t.order ?? i,
              isCompleted: false
           })) || []

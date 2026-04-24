@@ -120,7 +120,7 @@ export const useInventoryStore = create<InventoryStore>()((set, get) => ({
       }));
     } catch (error: any) {
       console.error("❌ InventoryStore: updateInventory failed", error.message);
-      throw error;
+      // Removed 'throw error' to prevent unhandled promise rejections if Ghost data exists
     }
   },
 

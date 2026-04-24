@@ -33,7 +33,6 @@ export interface Attachment {
 
 export interface WorkLog {
   id: string;
-  date: string;
   updatedBy: { id: string; name: string };
   status: Job["status"];
   note: string;
@@ -167,11 +166,11 @@ interface JobStoreState {
     afterImages?: string[]
   ) => string;
   approveCompletionRequest: (
-    requestId: string,
+    jobId: string,
     approvedBy: { id: string; name: string }
   ) => Promise<void>;
   rejectCompletionRequest: (
-    requestId: string,
+    jobId: string,
     rejectedBy: { id: string; name: string },
     rejectionReason: string
   ) => Promise<void>;
@@ -203,11 +202,12 @@ export const useJobStore = create<JobStoreState>()(
           });
 
           if (!response.ok) {
-             console.error("JobStore: Failed to create job API");
+             const errorText = await response.text();
+             console.error("JobStore: Failed to create job API", response.status, errorText);
              return null;
           }
           
-          const responseData = await response.json();
+          const responseData = JSON.parse(await response.text());
           // Handle both raw job and structured { data: job }
           const newJob = responseData.data ?? responseData;
 
@@ -336,7 +336,6 @@ export const useJobStore = create<JobStoreState>()(
             if (!currentJob.workLogs) currentJob.workLogs = [];
             currentJob.workLogs.unshift({
                 id: crypto.randomUUID(),
-                date: new Date().toISOString(),
                 updatedBy: { id: "system", name: "ระบบ" },
                 status: "in_progress",
                 note: "สถานะเปลี่ยนเป็น 'กำลังดำเนินการ' เพราะมี Lead และ Employee ครบ",
@@ -352,7 +351,6 @@ export const useJobStore = create<JobStoreState>()(
              if (!currentJob.workLogs) currentJob.workLogs = [];
              currentJob.workLogs.unshift({
                 id: crypto.randomUUID(),
-                date: new Date().toISOString(),
                 updatedBy: { id: "system", name: "ระบบ" },
                 status: "pending",
                 note: "สถานะกลับเป็น 'รอดำเนินการ' เพราะ Lead หรือ Employee ถูกลบออก",
@@ -380,11 +378,14 @@ export const useJobStore = create<JobStoreState>()(
             // To be safe and since API PUT is flexible, we can send what we have in updatedData + status
             // Note: assignedEmployeeIds etc are in updatedData
             
-            await fetch(`/api/jobs/${jobId}`, {
+            const response = await fetch(`/api/jobs/${jobId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            if (!response.ok) {
+                console.error("JobStore: Failed to update job API", response.status, await response.text());
+            }
             
         } catch (error) {
             console.error("JobStore: Failed to update job API", error);
@@ -394,7 +395,12 @@ export const useJobStore = create<JobStoreState>()(
 
       deleteJob: async (jobId) => {
          try {
-            await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
+            const response = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
+            if (!response.ok) {
+              const errText = await response.text();
+              console.error("JobStore: Failed to delete job API", response.status, errText);
+              return;
+            }
             set((state) => {
                 state.jobs = state.jobs.filter((job) => job.id !== jobId);
             });
@@ -512,6 +518,16 @@ export const useJobStore = create<JobStoreState>()(
             }
             // ล้าง rejection reason เมื่อส่งคำขอใหม่
             state.jobs[jobIndex].rejectionReason = null;
+            
+            // เพิ่ม Worklog
+            if (!state.jobs[jobIndex].workLogs) state.jobs[jobIndex].workLogs = [];
+            state.jobs[jobIndex].workLogs.unshift({
+              id: crypto.randomUUID(),
+              updatedBy: requestedBy,
+              status: "pending_approval",
+              note: "ส่งคำขอจบงานและรอยืนยันจากหัวหน้าช่าง",
+              createdAt: new Date().toISOString()
+            });
           }
         });
 
@@ -520,74 +536,50 @@ export const useJobStore = create<JobStoreState>()(
            get().updateJob(jobId, { status: "pending_approval", signature, beforeImages, afterImages, rejectionReason: null }).catch(e => console.error("API error", e));
         }, 0);
 
-        return requestId;
+        return jobId;
       },
 
-      approveCompletionRequest: async (requestId, approvedBy) => {
-        let targetJobId: string | null = null;
-        
+      approveCompletionRequest: async (jobId, approvedBy) => {
         set((state) => {
-          const requestIndex = state.completionRequests.findIndex(
-            (req) => req.id === requestId
-          );
-          if (requestIndex === -1) {
-            console.warn("JobStore: Completion request not found");
-            return;
-          }
-
-          const request = state.completionRequests[requestIndex];
-          request.status = "approved";
-          request.approvedBy = approvedBy;
-          request.approvedAt = new Date().toISOString();
-          request.rejectedBy = null;
-          request.rejectedAt = null;
-          request.rejectionReason = null;
-
-          // เปลี่ยน job status เป็น completed
-          targetJobId = request.jobId;
-          const jobIndex = state.jobs.findIndex((j) => j.id === request.jobId);
+          const jobIndex = state.jobs.findIndex((j) => j.id === jobId);
           if (jobIndex !== -1) {
             state.jobs[jobIndex].status = "completed";
+            
+            // เพิ่ม Worklog
+            if (!state.jobs[jobIndex].workLogs) state.jobs[jobIndex].workLogs = [];
+            state.jobs[jobIndex].workLogs.unshift({
+                id: crypto.randomUUID(),
+                updatedBy: approvedBy,
+                status: "completed",
+                note: "อนุมัติคำขอจบงาน",
+                createdAt: new Date().toISOString(),
+            });
           }
         });
 
-        if (targetJobId) {
-            await get().updateJob(targetJobId, { status: "completed" });
-        }
+        await get().updateJob(jobId, { status: "completed" });
       },
 
-      rejectCompletionRequest: async (requestId, rejectedBy, rejectionReason) => {
-        let targetJobId: string | null = null;
-
+      rejectCompletionRequest: async (jobId, rejectedBy, rejectionReason) => {
         set((state) => {
-          const requestIndex = state.completionRequests.findIndex(
-            (req) => req.id === requestId
-          );
-          if (requestIndex === -1) {
-            console.warn("JobStore: Completion request not found");
-            return;
-          }
-
-          const request = state.completionRequests[requestIndex];
-          request.status = "rejected";
-          request.rejectedBy = rejectedBy;
-          request.rejectedAt = new Date().toISOString();
-          request.rejectionReason = rejectionReason;
-          request.approvedBy = null;
-          request.approvedAt = null;
-
-          // เปลี่ยน job status เป็น rejected และเก็บ rejection reason
-          targetJobId = request.jobId;
-          const jobIndex = state.jobs.findIndex((j) => j.id === request.jobId);
+          const jobIndex = state.jobs.findIndex((j) => j.id === jobId);
           if (jobIndex !== -1) {
             state.jobs[jobIndex].status = "rejected";
             state.jobs[jobIndex].rejectionReason = rejectionReason;
+            
+            // เพิ่ม Worklog
+            if (!state.jobs[jobIndex].workLogs) state.jobs[jobIndex].workLogs = [];
+            state.jobs[jobIndex].workLogs.unshift({
+                id: crypto.randomUUID(),
+                updatedBy: rejectedBy,
+                status: "rejected",
+                note: `ปฏิเสธคำขอจบงาน: ${rejectionReason}`,
+                createdAt: new Date().toISOString(),
+            });
           }
         });
 
-        if (targetJobId) {
-            await get().updateJob(targetJobId, { status: "rejected", rejectionReason });
-        }
+        await get().updateJob(jobId, { status: "rejected", rejectionReason });
       },
 
       getCompletionRequestByJobId: (jobId) => {

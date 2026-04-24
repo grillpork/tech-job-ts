@@ -78,6 +78,7 @@ src/
 | Transaction | ทำหลายอย่างพร้อมกัน ถ้าพังหนึ่งอัน rollback ทั้งหมด |
 | Middleware | ตรวจสอบก่อนถึง route จริง |
 | RBAC | Role-Based Access Control — สิทธิ์ตาม role |
+| Dynamic RBAC | ระบบสิทธิ์ที่เพิ่มความละเอียด เช่น lead_[Department] เพื่อแยกแผนกอิสระ |
 
 ---
 

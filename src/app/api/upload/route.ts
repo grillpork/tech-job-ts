@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth';
  * /api/upload:
  *   post:
  *     summary: Upload a file
+ *     tags: [Uploads]
  *     description: Uploads a file to a structured path and returns its public URL.
  *     responses:
  *       200:

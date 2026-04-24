@@ -53,7 +53,7 @@ export default function EventManagerDemo() {
         })
       }
 
-      if (role === "lead_technician") {
+      if (role === "lead_technician" || (role as string).startsWith("lead_")) {
         return jobs.filter((job) => {
           const isLead = job.leadTechnician?.id === userId
           const isAssigned = job.assignedEmployees?.some((u) => u.id === userId)

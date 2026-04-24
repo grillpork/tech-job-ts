@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function EditProfilePage() {
     joinedAt: "",
     password: "", // New password field
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (userToEdit) {
@@ -92,7 +94,15 @@ export default function EditProfilePage() {
   }
 
   const handleChange = (k: string, v: string) => {
-    setForm((s) => ({ ...s, [k]: v }));
+    setForm((s) => {
+      const next = { ...s, [k]: v };
+      // Auto-sync department if a specific lead role is selected
+      if (k === "role" && v.startsWith("lead_")) {
+        const dept = v.split("_")[1];
+        next.department = dept;
+      }
+      return next;
+    });
   };
 
   const onFile = (file?: File | null) => {
@@ -133,7 +143,7 @@ export default function EditProfilePage() {
     if (form.password) updatedData.password = form.password;
 
     try {
-      updateUser(userId, updatedData);
+      await updateUser(userId, updatedData);
 
       // Propagate changes to jobs
       try {
@@ -217,41 +227,12 @@ export default function EditProfilePage() {
                   <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1" />
                 </div>
                 <div>
-                  <Label>อีเมล <span className="text-red-500">*</span></Label>
-                  <Input value={form.email} onChange={(e) => handleChange('email', e.target.value)} className="mt-1" />
-                </div>
-                <div>
                   <Label>เบอร์โทรศัพท์</Label>
                   <Input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1" />
                 </div>
                 <div>
                   <Label>รหัสพนักงาน</Label>
-                  <Input value={form.employeeId} onChange={(e) => handleChange('employeeId', e.target.value)} className="mt-1" />
-                </div>
-                <div>
-                  <Label>รหัสผ่านใหม่ (เว้นว่างหากไม่ต้องการเปลี่ยน)</Label>
-                  <Input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} className="mt-1" placeholder="ตั้งรหัสผ่านใหม่" />
-                </div>
-              </div>
-            </div>
-
-            {/* Role & Department */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4 pb-2 border-b">บทบาทและแผนก</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
-                  <Label>บทบาท</Label>
-                  <Select value={form.role} onValueChange={(value) => handleChange("role", value)}>
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue placeholder="เลือกบทบาท" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="employee">Employee</SelectItem>
-                      <SelectItem value="lead_technician">Lead Technician</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input value={form.employeeId} onChange={(e) => handleChange('employeeId', e.target.value)} className="mt-1" placeholder="เช่น TCH-001" />
                 </div>
                 <div>
                   <Label>แผนก</Label>
@@ -264,6 +245,53 @@ export default function EditProfilePage() {
                       <SelectItem value="Mechanical">ช่างเครื่องกล</SelectItem>
                       <SelectItem value="Civil">ช่างโยธา</SelectItem>
                       <SelectItem value="Technical">ช่างเทคนิค</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>อีเมล <span className="text-red-500">*</span></Label>
+                  <Input value={form.email} onChange={(e) => handleChange('email', e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label>รหัสผ่านใหม่ (เว้นว่างหากไม่ต้องการเปลี่ยน)</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => handleChange('password', e.target.value)}
+                      className="w-full pr-10"
+                      placeholder="ตั้งรหัสผ่านใหม่"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Role & Department */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4 pb-2 border-b">บทบาทและสถานะ</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <Label>บทบาท</Label>
+                  <Select value={form.role} onValueChange={(value) => handleChange("role", value)}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="เลือกบทบาท" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="employee">ช่างทั่วไป (Employee)</SelectItem>
+                      <SelectItem value="lead_Electrical">หัวหน้าช่างไฟฟ้า (Lead Electrical)</SelectItem>
+                      <SelectItem value="lead_Mechanical">หัวหน้าช่างเครื่องกล (Lead Mechanical)</SelectItem>
+                      <SelectItem value="lead_Civil">หัวหน้าช่างโยธา (Lead Civil)</SelectItem>
+                      <SelectItem value="lead_Technical">หัวหน้าช่างเทคนิค (Lead Technical)</SelectItem>
+                      <SelectItem value="manager">ผู้จัดการ (Manager)</SelectItem>
+                      <SelectItem value="admin">ผู้ดูแลระบบ (Admin)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

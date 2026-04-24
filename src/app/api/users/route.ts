@@ -14,6 +14,7 @@ import {
  * /api/users:
  *   get:
  *     summary: Get all users
+ *     tags: [Users]
  *     description: Returns a list of all users ordered by join date.
  *     responses:
  *       200:
@@ -25,7 +26,7 @@ export async function GET() {
     if (!session) return sendUnauthorized();
 
     const users = await prisma.user.findMany({
-      orderBy: { name: 'asc' }
+      orderBy: { joinedAt: 'desc' }
     });
     
     // Transform JSON strings back to objects where necessary
@@ -52,6 +53,7 @@ export async function GET() {
  * /api/users:
  *   post:
  *     summary: Create a new user
+ *     tags: [Users]
  *     description: Adds a new user to the database.
  *     responses:
  *       200:
@@ -69,13 +71,23 @@ export async function POST(request: Request) {
       return sendError("กรุณาระบุชื่อ อีเมล และรหัสผ่าน", 400);
     }
 
-    // Check if user exists
+    // Check if user exists (Email)
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
 
     if (existingUser) {
       return sendError("อีเมลนี้มีอยู่ในระบบแล้ว", 400);
+    }
+
+    // Check if employeeId exists
+    if (body.employeeId) {
+      const existingId = await prisma.user.findFirst({
+        where: { employeeId: body.employeeId }
+      });
+      if (existingId) {
+        return sendError("รหัสพนักงานนี้มีอยู่ในระบบแล้ว", 400);
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -107,6 +119,7 @@ export async function POST(request: Request) {
  * /api/users:
  *   patch:
  *     summary: Update a user
+ *     tags: [Users]
  *     description: Updates an existing user's information.
  *     parameters:
  *       - in: query
@@ -156,9 +169,15 @@ export async function PATCH(request: Request) {
 
     return sendSuccess(formattedUser, 'อัปเดตข้อมูลผู้ใช้งานสำเร็จ');
   } catch (error: any) {
-    // Check for Prisma unique constraint violation (e.g., email already taken)
-    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-      return sendError('อีเมลนี้ถูกใช้งานแล้ว', 409);
+    // Check for Prisma unique constraint violation
+    if (error.code === 'P2002') {
+      const target = error.meta?.target || [];
+      if (target.includes('email')) {
+        return sendError('อีเมลนี้ถูกใช้งานแล้ว', 409);
+      }
+      if (target.includes('employeeId')) {
+        return sendError('รหัสพนักงานนี้ถูกใช้งานแล้ว', 409);
+      }
     }
 
     return sendServerError(error);
@@ -170,6 +189,7 @@ export async function PATCH(request: Request) {
  * /api/users:
  *   delete:
  *     summary: Delete a user
+ *     tags: [Users]
  *     description: Removes a user from the database.
  *     parameters:
  *       - in: query

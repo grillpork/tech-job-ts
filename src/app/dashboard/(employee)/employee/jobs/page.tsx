@@ -130,19 +130,13 @@ export default function JobManagementPage() {
     setSignatureData(result);
   }, []);
 
-  useEffect(() => {
-    if (!isCompleteDialogOpen) return;
-
-    const interval = setInterval(() => {
-      checkSignature();
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, [isCompleteDialogOpen, checkSignature]);
-
-  const handleSignatureEnd = () => {
+  const handleSignatureEnd = React.useCallback(() => {
     setTimeout(() => checkSignature(), 80);
-  };
+  }, [checkSignature]);
+
+  useEffect(() => {
+    // interval removed - no need to check every 300ms as it causes re-renders and signature cleared
+  }, [isCompleteDialogOpen]);
 
   const handleClearSignature = () => {
     if (signatureRef.current) {
@@ -175,6 +169,19 @@ export default function JobManagementPage() {
     toast.success("บันทึกลายเซ็นเรียบร้อยแล้ว");
   };
 
+  // ฟังก์ชันช่วยแปลง Base64 เป็น File
+  const base64ToFile = (base64String: string, filename: string): File => {
+    const arr = base64String.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
   // ฟังก์ชันยืนยันการ Complete งาน
   const confirmComplete = async () => {
     if (!signatureData) {
@@ -190,11 +197,42 @@ export default function JobManagementPage() {
     if (jobToDelete) {
       setIsCompleting(true);
       try {
+        let finalSignatureUrl = signatureData;
+        
+        // ถ้าเป็น Base64 ให้ทำการอัปโหลดขึ้น Server ก่อนแล้วรับเป็น URL กลับมา
+        if (signatureData.startsWith('data:image')) {
+          const file = base64ToFile(signatureData, `signature-${jobToDelete.id}-${Date.now()}.png`);
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('entity', 'job_signatures');
+          formData.append('entityId', jobToDelete.id);
+          
+          const uploadRes = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            if (data.success) {
+              finalSignatureUrl = data.url;
+            } else {
+              toast.error("เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ตอนอัปโหลดลายเซ็น");
+              setIsCompleting(false);
+              return;
+            }
+          } else {
+            toast.error("อัปโหลดลายเซ็นไม่สำเร็จ");
+            setIsCompleting(false);
+            return;
+          }
+        }
+
         // ส่งคำขอจบงาน
         requestJobCompletion(
           jobToDelete.id,
           { id: currentUser.id, name: currentUser.name },
-          signatureData,
+          finalSignatureUrl,
           beforeImages,
           afterImages
         );
@@ -208,8 +246,9 @@ export default function JobManagementPage() {
           signatureRef.current.clear();
         }
 
-      } catch {
-        toast.error("เกิดข้อผิดพลาดในการโหลดลายเซ็น");
+      } catch (error) {
+        toast.error("เกิดข้อผิดพลาดในการส่งคำขอจบงาน");
+        console.error(error);
       } finally {
         setIsCompleting(false);
       }
@@ -531,7 +570,7 @@ function JobCard({ job, onView, onDelete, showCompleteButton = true }: JobCardPr
               {job.title}
             </CardTitle>
             <Badge className="capitalize mt-2" variant={getStatusVariant(job.status)}>
-              {job.status.replace(/_/g, " ")}
+              {formatStatusLabel(job.status)}
             </Badge>
             {job.status === "rejected" && job.rejectionReason && (
               <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
@@ -623,6 +662,19 @@ function JobCard({ job, onView, onDelete, showCompleteButton = true }: JobCardPr
 }
 
 // --- Helper ---
+const formatStatusLabel = (status: string) => {
+  if (!status) return "-";
+  const statusMap: Record<string, string> = {
+    "pending": "รอดำเนินการ",
+    "in_progress": "กำลังดำเนินการ",
+    "pending_approval": "รออนุมัติเสร็จสิ้นงาน",
+    "completed": "เสร็จสิ้น",
+    "cancelled": "ยกเลิก",
+    "rejected": "ปฏิเสธ",
+  };
+  return statusMap[status.toLowerCase()] || status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 const getStatusVariant = (
   status: string
 ): "outline" | "default" | "destructive" | "secondary" | null | undefined => {

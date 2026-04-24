@@ -47,17 +47,11 @@ export function ClientAuthGuard({
     // ✅ ถ้าล็อกอินอยู่หน้า /login → redirect ไป dashboard ที่ใช้ร่วมกัน
     if (pathname === redirectPath) {
       let newRedirectPath = "/dashboard";
-      switch (currentUser.role) {
-        case "admin":
-        case "manager":
-        case "lead_technician":
-          newRedirectPath = "/dashboard/admin/dashboard";
-          break;
-        case "employee":
-          newRedirectPath = "/dashboard/employee/dashboard";
-          break;
-        default:
-          newRedirectPath = "/dashboard/employee/dashboard";
+      const isLead = (role: string) => role === 'lead_technician' || role.startsWith('lead_');
+      if (currentUser.role === 'admin' || currentUser.role === 'manager' || isLead(currentUser.role)) {
+        newRedirectPath = "/dashboard/admin/dashboard";
+      } else {
+        newRedirectPath = "/dashboard/employee/dashboard";
       }
       setIsRedirecting(true);
       router.replace(newRedirectPath);
@@ -69,6 +63,7 @@ export function ClientAuthGuard({
       const userRole = currentUser.role;
 
       // ✅ รวมกลุ่ม role ที่ใช้ dashboard เดียวกัน
+      const isLeadRole = (role: string) => role === 'lead_technician' || role.startsWith('lead_');
       const sharedDashboardRoles = ["admin", "manager", "lead_technician", "lead_tech"];
 
       // ถ้า allowedRoles มี dashboard กลุ่มนี้ → ให้ role ในกลุ่มเข้าร่วมได้ทั้งหมด
@@ -76,17 +71,12 @@ export function ClientAuthGuard({
         ? [...allowedRoles, ...sharedDashboardRoles]
         : allowedRoles;
 
-      if (!expandedAllowedRoles.includes(userRole)) {
+      if (!expandedAllowedRoles.includes(userRole) && !isLeadRole(userRole)) {
         let redirectTo = "/dashboard/employee/dashboard";
-        switch (userRole) {
-          case "admin":
-          case "manager":
-          case "lead_technician":
-            redirectTo = "/dashboard/admin/dashboard";
-            break;
-          case "employee":
-          default:
-            redirectTo = "/dashboard/employee/dashboard";
+        if (userRole === 'admin' || userRole === 'manager' || isLeadRole(userRole)) {
+          redirectTo = "/dashboard/admin/dashboard";
+        } else {
+          redirectTo = "/dashboard/employee/dashboard";
         }
 
         // Avoid redirect loop if already on target (basic check)

@@ -41,7 +41,7 @@ export const useUserStore = create<UserStoreState>()(
 
           // 2. Update Local State
           set((state) => {
-            state.users.push(newUser);
+            state.users.unshift(newUser);
           });
           console.log("✅ UserStore: User created:", newUser.name);
         } catch (error: any) {

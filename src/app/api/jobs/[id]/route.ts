@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
  * /api/jobs/{id}:
  *   get:
  *     summary: Get a standard job by ID
+ *     tags: [Jobs]
  *     description: Returns a single job by its ID.
  *     parameters:
  *       - in: path
@@ -70,6 +71,7 @@ export async function GET(
  * /api/jobs/{id}:
  *   put:
  *     summary: Update an existing job
+ *     tags: [Jobs]
  *     description: Updates an existing job by ID.
  *     parameters:
  *       - in: path
@@ -103,12 +105,15 @@ export async function PUT(
       leadTechnicianId, 
       tasks, 
       departments,
+      department, // Strip this out if it comes from the frontend
       location,
       locationImages,
       attachments,
       usedInventory,
       beforeImages,
       afterImages,
+      startDate,
+      endDate,
       // relations that shouldn't be updated directly usually, but handle if needed
       // creator,
       // leadTechnician,
@@ -120,6 +125,10 @@ export async function PUT(
     // Prepare update data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = { ...apiData };
+
+    // Handle Dates
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
 
     // Handle JSON fields
     if (departments !== undefined) updateData.departments = departments ? JSON.stringify(departments) : null;
@@ -235,6 +244,7 @@ export async function PUT(
  * /api/jobs/{id}:
  *   delete:
  *     summary: Delete a job by ID
+ *     tags: [Jobs]
  *     description: Deletes a specific job.
  *     parameters:
  *       - in: path

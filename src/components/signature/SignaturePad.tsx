@@ -42,6 +42,15 @@ const SignaturePadComponent = forwardRef<SignaturePadRef, SignaturePadComponentP
 
     const { saveSignature, getSignature, removeSignature } = useSignatureStore();
 
+    // Use refs for callbacks to avoid re-initializing pad when they change
+    const onBeginRef = useRef(onBegin);
+    const onEndRef = useRef(onEnd);
+
+    useEffect(() => {
+      onBeginRef.current = onBegin;
+      onEndRef.current = onEnd;
+    }, [onBegin, onEnd]);
+
     useEffect(() => {
       if (!canvasRef.current) return;
 
@@ -82,14 +91,14 @@ const SignaturePadComponent = forwardRef<SignaturePadRef, SignaturePadComponentP
       padRef.current = pad;
 
       const handleEndStroke = () => {
-        onEnd?.();
+        onEndRef.current?.();
         if (storageKey) {
           const dataUrl = pad.toDataURL();
           saveSignature(storageKey, dataUrl);
         }
       };
 
-      const handleBeginStroke = () => onBegin?.();
+      const handleBeginStroke = () => onBeginRef.current?.();
 
       pad.addEventListener("endStroke", handleEndStroke);
       pad.addEventListener("beginStroke", handleBeginStroke);
@@ -109,7 +118,7 @@ const SignaturePadComponent = forwardRef<SignaturePadRef, SignaturePadComponentP
         pad.removeEventListener("endStroke", handleEndStroke);
         pad.removeEventListener("beginStroke", handleBeginStroke);
       };
-    }, [penColor, backgroundColor, height, width, onBegin, onEnd, saveSignature, getSignature, storageKey]);
+    }, [penColor, backgroundColor, height, width, saveSignature, getSignature, storageKey]);
 
     // expose API
     useImperativeHandle(ref, () => ({

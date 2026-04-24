@@ -22,6 +22,7 @@ model User {
   role                String    @default("employee") // admin, manager, lead_technician, employee
   department          String?
   imageUrl            String?
+  coverImageUrl       String?
   password            String?
   phone               String?
   bio                 String?
@@ -29,7 +30,7 @@ model User {
   joinedAt            DateTime? @default(now())
   address             String?
   linkedin            String?
-  employeeId          String?
+  employeeId          String?   @unique
   github              String?
   employmentType      String?
   status              String?   @default("active")
@@ -138,6 +139,18 @@ model Report {
   type        String   // bug, request, incident
   status      String   @default("open")
   priority    String?  // low, medium, high, urgent
+  
+  // Multi-department support
+  departments    String?  // JSON: string[] — แผนกทั้งหมดที่เกี่ยวข้อง
+  isMultiDept    Boolean  @default(false) // มีหลายแผนกเกี่ยวข้องหรือไม่
+  
+  // Resolution tracking
+  resolutionNote String?  // รายละเอียดที่ lead กรอกว่าแก้ไขอะไรไปบ้าง
+  resolvedDepts  String?  // JSON: string[] — แผนกที่แก้เสร็จแล้ว
+  
+  // Forward tracking
+  forwardedTo    String?  // JSON: string[] — ส่งต่อไปแผนกไหนบ้าง
+  forwardNote    String?  // หมายเหตุการส่งต่อ
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime? @updatedAt

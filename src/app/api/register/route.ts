@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
  * /api/register:
  *   post:
  *     summary: Register a new user
+ *     tags: [Auth]
  *     description: Creates a new user account with employee role.
  *     requestBody:
  *       content:

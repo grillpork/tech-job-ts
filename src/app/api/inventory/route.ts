@@ -3,6 +3,18 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+/**
+ * @swagger
+ * /api/inventory:
+ *   get:
+ *     summary: ดึงข้อมูลคลังอุปกรณ์ทั้งหมด
+ *     tags: [Inventory]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: รายการอุปกรณ์ทั้งหมด
+ */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -18,6 +30,37 @@ export async function GET() {
   }
 }
 
+/**
+ * @swagger
+ * /api/inventory:
+ *   post:
+ *     summary: สร้างอุปกรณ์ใหม่
+ *     tags: [Inventory]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *               quantity:
+ *                 type: number
+ *               price:
+ *                 type: number
+ *               status:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: อุปกรณ์ที่ถูกสร้าง
+ */
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);

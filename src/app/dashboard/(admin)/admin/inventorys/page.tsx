@@ -312,6 +312,17 @@ const InventoryManagement = () => {
     const quantity = parseInt(formData.quantity);
     const calculatedStatus = calculateInventoryStatus(quantity);
 
+    // ✅ Validation: Check for duplicate names
+    const duplicate = inventories.find(inv => 
+      inv.name.toLowerCase().trim() === formData.name.toLowerCase().trim() && 
+      (!editingItem || inv.id !== editingItem.id)
+    );
+
+    if (duplicate) {
+      toast.error(`วัสดุชื่อ "${formData.name}" มีอยู่ในระบบแล้ว (ID: ${duplicate.id.substring(0,8)})`);
+      return;
+    }
+
     try {
       if (editingItem) {
         await updateInventory({
@@ -460,7 +471,7 @@ const InventoryManagement = () => {
   // Handle reject inventory request
   const handleRejectInventory = async (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
-    if (!job) {
+    if (!job || !job.usedInventory) {
       toast.error("ไม่พบใบงาน");
       return;
     }
@@ -470,13 +481,23 @@ const InventoryManagement = () => {
       return;
     }
 
-    // ✅ ลบ usedInventory ออกจากใบงานเมื่อปฏิเสธ และอัปเดต inventoryStatus
+    // ✅ ปรับจำนวนวัสดุให้เท่ากับที่มีอยู่ในสต็อก (ถ้าเบิกเกิน) แทนการลบทิ้งทั้งหมด
+    const adjustedUsedInventory = job.usedInventory.map(usedInv => {
+      const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
+      // ถ้าพบอุปกรณ์ในคลัง และจำนวนที่ขอเบิก มากกว่าที่มีในคลัง
+      if (inventoryItem && usedInv.qty > inventoryItem.quantity) {
+        return { ...usedInv, qty: inventoryItem.quantity };
+      }
+      return usedInv;
+    });
+
+    // อัปเดตใบงานด้วยจำนวนที่แก้ไขแล้ว และเปลี่ยนสถานะเป็น rejected
     await updateJob(jobId, {
-      usedInventory: [],
+      usedInventory: adjustedUsedInventory,
       inventoryStatus: "rejected"
     });
 
-    toast.error("ปฏิเสธคำขอเบิกวัสดุ");
+    toast.warning("ปฏิเสธคำขอและปรับยอดรายการให้ตรงตามสต็อกปัจจุบันแล้ว");
   };
 
   // Get approval status badge color

@@ -86,7 +86,7 @@ export default function EditJobPage() {
 
   // Role-based permissions
   const isAdmin = currentUser?.role === 'admin';
-  const isLeadTechnician = currentUser?.role === 'lead_technician';
+  const isLeadTechnician = currentUser?.role?.startsWith('lead_');
   const isEmployee = currentUser?.role === 'employee';
   const canEditBeforeAfterImages = isLeadTechnician || isEmployee;
 
@@ -170,7 +170,7 @@ export default function EditJobPage() {
   // Lead technician ไม่ถูกกรองตาม department (เลือกได้ทั้งหมด)
   const availableLeadTechnicians: Employee[] = React.useMemo(() => {
     return MOCK_USERS
-      .filter(u => u.role === 'lead_technician')
+      .filter(u => (u.role as string).startsWith('lead_'))
       .map(u => ({ value: u.id, label: u.name }));
   }, []);
 
@@ -185,10 +185,10 @@ export default function EditJobPage() {
 
   // รายการ departments ทั้งหมด
   const allDepartments = [
-    { value: "ไฟฟ้า", label: "แผนกช่างไฟ (Electrical)" },
-    { value: "เครื่องกล", label: "แผนกช่างกล (Mechanical)" },
-    { value: "เทคนิค", label: "แผนกช่างเทคนิค (Technical)" },
-    { value: "โยธา", label: "แผนกช่างโยธา (Civil)" },
+    { value: "Electrical", label: "แผนกช่างไฟ (Electrical)" },
+    { value: "Mechanical", label: "แผนกช่างกล (Mechanical)" },
+    { value: "Technical", label: "แผนกช่างเทคนิค (Technical)" },
+    { value: "Civil", label: "แผนกช่างโยธา (Civil)" },
   ];
 
   // Helper function to get localStorage key for signature
@@ -233,16 +233,8 @@ export default function EditJobPage() {
 
       setSelectedEmployees(job.assignedEmployees.map(u => ({ value: u.id, label: u.name })));
 
-      // แปลง department เดิมเป็น array และ map เป็นภาษาไทย (backward compatibility)
-      const deptMap: Record<string, string> = {
-        "Electrical": "ไฟฟ้า",
-        "Mechanical": "เครื่องกล",
-        "Technical": "เทคนิค",
-        "Civil": "โยธา"
-      };
       const rawDepts = Array.isArray(job.departments) ? job.departments : (job.departments ? [job.departments] : []);
-      const mappedDepts = rawDepts.map(d => deptMap[d] || d);
-      setDepartments(mappedDepts);
+      setDepartments(rawDepts);
       setLeadTechnician(job.leadTechnician?.id || ''); // ใช้ค่าจาก job
       setPriority(job.priority || 'medium'); // ใช้ค่าจาก job
       setType(job.type || ''); // ใช้ค่าจาก job

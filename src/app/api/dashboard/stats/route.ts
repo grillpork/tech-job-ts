@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
  * /api/dashboard/stats:
  *   get:
  *     summary: Get dashboard statistics
+ *     tags: [Dashboard]
  *     description: Returns aggregated statistics for the dashboard, such as job counts and inventory alerts.
  *     responses:
  *       200:

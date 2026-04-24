@@ -69,6 +69,19 @@ const MapRouting = dynamic(
   }
 );
 
+const formatStatusLabel = (status: string) => {
+  if (!status) return "-";
+  const statusMap: Record<string, string> = {
+    "pending": "รอดำเนินการ",
+    "in_progress": "กำลังดำเนินการ",
+    "pending_approval": "รออนุมัติเสร็จสิ้นงาน",
+    "completed": "เสร็จสิ้น",
+    "cancelled": "ยกเลิก",
+    "rejected": "ปฏิเสธ",
+  };
+  return statusMap[status.toLowerCase()] || status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'completed': return 'bg-emerald-500/15 text-emerald-700 border-emerald-200';
@@ -209,7 +222,7 @@ export default function JobViewPage() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <Badge variant="outline" className={`px-3 py-1 text-sm font-medium capitalize border ${getStatusColor(job.status)}`}>
-              {job.status.replace(/_/g, ' ')}
+              {formatStatusLabel(job.status)}
             </Badge>
             {job.priority && (
               <Badge variant="outline" className={`px-3 py-1 text-sm font-medium capitalize border ${getPriorityColor(job.priority)}`}>
@@ -450,7 +463,7 @@ export default function JobViewPage() {
 
 
           {/* 3. Execution Evidence (Before/After) */}
-          {(job.beforeImages && job.beforeImages.length > 0 || job.afterImages && job.afterImages.length > 0) && (
+          {((job.beforeImages && job.beforeImages.length > 0) || (job.afterImages && job.afterImages.length > 0) || job.signature || getSignature(`job-signature-${job.id}`)) && (
             <Card className="shadow-sm border-none ring-1 ring-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -710,10 +723,10 @@ export default function JobViewPage() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-muted-foreground">
-                            {dayjs(log.date).format('DD MMM HH:mm')}
+                            {dayjs(log.createdAt).format('DD MMM HH:mm')}
                           </span>
                           <Badge variant="outline" className="text-[10px] h-5 px-1.5 capitalize">
-                            {log.status.replace(/_/g, ' ')}
+                            {formatStatusLabel(log.status)}
                           </Badge>
                         </div>
                         <p className="text-sm font-medium">{log.note}</p>

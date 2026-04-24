@@ -68,6 +68,17 @@ const ProfilePage: React.FC = () => {
 
   const formatRoleLabel = (role?: string | null) => {
     if (!role) return "สมาชิกทีม";
+    if (role.startsWith("lead_")) {
+      const dept = role.split("_")[1];
+      const deptMap: Record<string, string> = {
+        "Electrical": "ไฟฟ้า",
+        "Mechanical": "เครื่องกล",
+        "Technical": "เทคนิค",
+        "Civil": "โยธา"
+      };
+      const deptLabel = deptMap[dept] || dept;
+      return `หัวหน้าแผนก (${deptLabel})`;
+    }
     switch (role) {
       case "lead_technician":
         return "หัวหน้าแผนก";
@@ -134,8 +145,8 @@ const ProfilePage: React.FC = () => {
         status: person.status ?? "active",
       }))
       .sort((a, b) => {
-        const rankA = order[a.role as keyof typeof order] ?? 4;
-        const rankB = order[b.role as keyof typeof order] ?? 4;
+        const rankA = a.role?.startsWith("lead_") ? 0 : (order[a.role as keyof typeof order] ?? 4);
+        const rankB = b.role?.startsWith("lead_") ? 0 : (order[b.role as keyof typeof order] ?? 4);
         return rankA - rankB || a.name.localeCompare(b.name);
       });
   }, [allUsers, currentUser]);

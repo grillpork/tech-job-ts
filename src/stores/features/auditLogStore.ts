@@ -1,18 +1,16 @@
 "use client";
 import { create } from "zustand";
 
-// ประเภทการกระทำ
-export type AuditAction = 
-  | "create" 
-  | "update" 
+export type AuditAction =
+  | "create"
+  | "update"
   | "delete"
   | "approve"
   | "reject"
   | "assign"
   | "unassign";
 
-// ประเภท entity ที่ถูกกระทำ
-export type AuditEntityType = 
+export type AuditEntityType =
   | "job"
   | "inventory"
   | "user"
@@ -20,72 +18,129 @@ export type AuditEntityType =
   | "inventory_request"
   | "completion_request";
 
-// Audit Log Interface
 export interface AuditLog {
   id: string;
-  action: string;
-  entityType: string;
+  action: AuditAction;
+  entityType: AuditEntityType;
   entityId: string;
-  entityName: string; 
-  performedById: string;
-  performedByName: string;
-  performedByRole: string;
+  entityName: string;
+  performedBy: {
+    id: string;
+    name: string;
+    role: string;
+  };
   timestamp: string;
   details?: string;
-  changes?: string; // JSON
-  metadata?: string; // JSON
+  changes?: {
+    field: string;
+    oldValue: unknown;
+    newValue: unknown;
+  }[];
+  metadata?: Record<string, unknown>;
 }
 
-// Audit Log Store Interface
 interface AuditLogStoreState {
   auditLogs: AuditLog[];
-  isLoading: boolean;
-  
-  // Actions
+  isHydrated: boolean;
+
+  // Sync with DB
   fetchAuditLogs: () => Promise<void>;
-  addAuditLog: (log: Omit<AuditLog, "id" | "timestamp">) => void;
+  addAuditLog: (log: Omit<AuditLog, "id" | "timestamp"> & {
+    performedById: string;
+    performedByName: string;
+    performedByRole: string;
+  }) => Promise<void>;
+
+  // Local queries
   getAuditLogs: () => AuditLog[];
-  getAuditLogsByEntity: (entityType: string, entityId?: string) => AuditLog[];
+  getAuditLogsByEntity: (entityType: AuditEntityType, entityId?: string) => AuditLog[];
   getAuditLogsByUser: (userId: string) => AuditLog[];
   clearAuditLogs: () => void;
 }
 
-// Create Audit Log Store
-export const useAuditLogStore = create<AuditLogStoreState>((set, get) => ({
+export const useAuditLogStore = create<AuditLogStoreState>()((set, get) => ({
   auditLogs: [],
-  isLoading: false,
+  isHydrated: false,
 
   fetchAuditLogs: async () => {
-    set({ isLoading: true });
     try {
-      const res = await fetch('/api/audit-logs');
-      const result = await res.json();
-      
-      if (res.ok && result.success) {
-        set({ auditLogs: result.data });
+      const res = await fetch("/api/audit-logs");
+      if (res.ok) {
+        const data = await res.json();
+        const rawLogs = Array.isArray(data) ? data : (data.data ?? []);
+
+        // Transform DB format → store format
+        const auditLogs: AuditLog[] = rawLogs.map((log: any) => ({
+          id: log.id,
+          action: log.action.toLowerCase() as AuditAction,
+          entityType: log.entityType.toLowerCase() as AuditEntityType,
+          entityId: log.entityId,
+          entityName: log.entityName,
+          performedBy: {
+            id: log.performedById,
+            name: log.performedByName,
+            role: log.performedByRole,
+          },
+          timestamp: log.timestamp,
+          details: log.details || undefined,
+          changes: log.changes ? JSON.parse(log.changes) : undefined,
+          metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
+        }));
+
+        set({ auditLogs, isHydrated: true });
+        console.log("✅ AuditLogStore: Fetched", auditLogs.length, "logs from DB.");
       }
     } catch (error) {
-      console.error("Failed to fetch audit logs", error);
-    } finally {
-      set({ isLoading: false });
+      console.error("❌ AuditLogStore: Failed to fetch logs", error);
     }
   },
 
-  addAuditLog: (logData) => {
-    const newLog: AuditLog = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      ...logData,
-    };
-    
-    set((state) => ({
-      auditLogs: [newLog, ...state.auditLogs],
-    }));
+  addAuditLog: async (logData) => {
+    try {
+      const res = await fetch("/api/audit-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: logData.action.toUpperCase(),
+          entityType: logData.entityType.toUpperCase(),
+          entityId: logData.entityId,
+          entityName: logData.entityName,
+          performedById: logData.performedById,
+          performedByName: logData.performedByName,
+          performedByRole: logData.performedByRole,
+          details: logData.details || null,
+          changes: logData.changes || null,
+          metadata: logData.metadata || null,
+        }),
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        // Add to local state optimistically
+        const newLog: AuditLog = {
+          id: saved.id,
+          action: saved.action.toLowerCase() as AuditAction,
+          entityType: saved.entityType.toLowerCase() as AuditEntityType,
+          entityId: saved.entityId,
+          entityName: saved.entityName,
+          performedBy: {
+            id: saved.performedById,
+            name: saved.performedByName,
+            role: saved.performedByRole,
+          },
+          timestamp: saved.timestamp,
+          details: saved.details || undefined,
+          changes: saved.changes ? JSON.parse(saved.changes) : undefined,
+          metadata: saved.metadata ? JSON.parse(saved.metadata) : undefined,
+        };
+        set((state) => ({ auditLogs: [newLog, ...state.auditLogs] }));
+      }
+    } catch (error) {
+      console.error("❌ AuditLogStore: Failed to save log to DB", error);
+    }
   },
 
-  getAuditLogs: () => {
-    return get().auditLogs;
-  },
+  getAuditLogs: () => get().auditLogs,
 
   getAuditLogsByEntity: (entityType, entityId) => {
     const logs = get().auditLogs;
@@ -98,10 +153,8 @@ export const useAuditLogStore = create<AuditLogStoreState>((set, get) => ({
   },
 
   getAuditLogsByUser: (userId) => {
-    return get().auditLogs.filter((log) => log.performedById === userId);
+    return get().auditLogs.filter((log) => log.performedBy.id === userId);
   },
 
-  clearAuditLogs: () => {
-    set({ auditLogs: [] });
-  },
+  clearAuditLogs: () => set({ auditLogs: [] }),
 }));

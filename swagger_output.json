@@ -1,0 +1,640 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Tech Job API Documentation",
+    "version": "1.0"
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [],
+  "paths": {
+    "/api/agent": {
+      "post": {
+        "summary": "แชทกับ AI (Database-Aware Agent)",
+        "description": "ส่งคำถามเพื่อคุยกับระบบ AI อัจฉริยะที่รู้จักข้อมูลใบงานและคลังวัสดุภายในระบบ",
+        "tags": [
+          "Agent"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "question"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "description": "คำถามที่ต้องการถาม AI",
+                    "example": "มีงานอะไรที่ยังค้างอยู่บ้าง?"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "คำตอบจาก AI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "answer": {
+                      "type": "string",
+                      "description": "คำตอบที่ประมวลผลแล้ว"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{nextauth}": {
+      "post": {
+        "summary": "NextAuth operations",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Handles authentication operations (login, logout, session)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "get": {
+        "summary": "NextAuth operations",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Handles session checks and callbacks",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/stats": {
+      "get": {
+        "summary": "Get dashboard statistics",
+        "tags": [
+          "Dashboard"
+        ],
+        "description": "Returns aggregated statistics for the dashboard, such as job counts and inventory alerts.",
+        "responses": {
+          "200": {
+            "description": "Dashboard statistics object"
+          }
+        }
+      }
+    },
+    "/api/inventory/{id}": {
+      "get": {
+        "summary": "ข้อมูลอุปกรณ์ตาม ID",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ข้อมูลอุปกรณ์"
+          }
+        }
+      },
+      "patch": {
+        "summary": "อัปเดตข้อมูลอุปกรณ์",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quantity": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ข้อมูลอุปกรณ์ที่อัปเดตแล้ว"
+          }
+        }
+      },
+      "delete": {
+        "summary": "ลบอุปกรณ์",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ลบสำเสร็จ"
+          }
+        }
+      }
+    },
+    "/api/inventory": {
+      "get": {
+        "summary": "ดึงข้อมูลคลังอุปกรณ์ทั้งหมด",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "รายการอุปกรณ์ทั้งหมด"
+          }
+        }
+      },
+      "post": {
+        "summary": "สร้างอุปกรณ์ใหม่",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  },
+                  "price": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "อุปกรณ์ที่ถูกสร้าง"
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}": {
+      "get": {
+        "summary": "Get a standard job by ID",
+        "tags": [
+          "Jobs"
+        ],
+        "description": "Returns a single job by its ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job object corresponding to the ID"
+          },
+          "404": {
+            "description": "Job not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update an existing job",
+        "tags": [
+          "Jobs"
+        ],
+        "description": "Updates an existing job by ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated job"
+          },
+          "404": {
+            "description": "Job not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a job by ID",
+        "tags": [
+          "Jobs"
+        ],
+        "description": "Deletes a specific job.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success message"
+          }
+        }
+      }
+    },
+    "/api/jobs/export": {
+      "get": {
+        "summary": "Export jobs to CSV",
+        "tags": [
+          "Jobs"
+        ],
+        "description": "Exports a list of jobs to a CSV formatted file. Requires Admin or Manager role.",
+        "responses": {
+          "200": {
+            "description": "CSV file contents"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/jobs": {
+      "get": {
+        "summary": "Get all jobs",
+        "tags": [
+          "Jobs"
+        ],
+        "description": "Returns a list of all jobs with related data.",
+        "responses": {
+          "200": {
+            "description": "Array of jobs"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new job",
+        "tags": [
+          "Jobs"
+        ],
+        "description": "Creates a new job. Requires Admin or Manager role.",
+        "responses": {
+          "200": {
+            "description": "The newly created job"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/register": {
+      "post": {
+        "summary": "Register a new user",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Creates a new user account with employee role.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered user without password"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "409": {
+            "description": "User already exists"
+          }
+        }
+      }
+    },
+    "/api/reports/{id}": {
+      "get": {
+        "summary": "Get a report by ID",
+        "tags": [
+          "Reports"
+        ],
+        "description": "Retrieve a single report by its ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The report object"
+          },
+          "404": {
+            "description": "Report not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update an existing report",
+        "tags": [
+          "Reports"
+        ],
+        "description": "Update an existing report by ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated report"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a report",
+        "tags": [
+          "Reports"
+        ],
+        "description": "Delete an existing report by ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success message"
+          }
+        }
+      }
+    },
+    "/api/reports": {
+      "get": {
+        "summary": "Get all reports",
+        "tags": [
+          "Reports"
+        ],
+        "description": "Returns a list of reports. Configurable via status and type queries.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of reports"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new report",
+        "tags": [
+          "Reports"
+        ],
+        "description": "Create a report or issue. Requires title, type, and reporterId.",
+        "responses": {
+          "201": {
+            "description": "The created report"
+          },
+          "400": {
+            "description": "Missing required fields"
+          }
+        }
+      }
+    },
+    "/api/upload": {
+      "post": {
+        "summary": "Upload a file",
+        "tags": [
+          "Uploads"
+        ],
+        "description": "Uploads a file to a structured path and returns its public URL.",
+        "responses": {
+          "200": {
+            "description": "Successfully uploaded file"
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "summary": "Get all users",
+        "tags": [
+          "Users"
+        ],
+        "description": "Returns a list of all users ordered by join date.",
+        "responses": {
+          "200": {
+            "description": "Array of users"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new user",
+        "tags": [
+          "Users"
+        ],
+        "description": "Adds a new user to the database.",
+        "responses": {
+          "200": {
+            "description": "The newly created user"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a user",
+        "tags": [
+          "Users"
+        ],
+        "description": "Updates an existing user's information.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated user"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a user",
+        "tags": [
+          "Users"
+        ],
+        "description": "Removes a user from the database.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success message"
+          }
+        }
+      }
+    }
+  },
+  "tags": []
+}

@@ -55,26 +55,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card"; // Added Card for KPI
 
-// Stores & State
+// Mock data
 import { Inventory } from "@/lib/types/inventory";
 import { useInventoryStore } from "@/stores/features/inventoryStore";
 import { useJobStore } from "@/stores/features/jobStore";
-import { useUIStore } from "@/stores/uiStore";
 import ExportInventoryData from "@/components/export/ExportInventoryData";
 import { useRouter } from "next/navigation";
-import { getJobDepartments, getJobUsedInventory } from "@/lib/utils/job-helpers";
+
+// ===========================
+// MAIN COMPONENT
+// ===========================
+const getJobDepartments = (job: any) => {
+  if (job.departments && job.departments.length > 0) {
+    return job.departments;
+  }
+  if (job.department) {
+    return [job.department];
+  }
+  return [];
+};
 
 const InventoryManagement = () => {
   const router = useRouter();
-  const { addToast, openModal, closeModal } = useUIStore();
   const {
     inventories,
     addInventory,
     updateInventory,
     deleteInventory,
-// ...
     clearAll,
     addInventoryRequest,
     updateInventoryRequestStatus,
@@ -90,17 +99,14 @@ const InventoryManagement = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [formData, setFormData] = useState({
-    sku: "",
     name: "",
-    category: "ทั่วไป",
     type: "",
     quantity: "",
-    minStock: "5",
     imageUrl: "",
   });
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, itemId?: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -108,8 +114,8 @@ const InventoryManagement = () => {
     try {
       const uploadData = new FormData();
       uploadData.append('file', file);
-      uploadData.append('folder', 'inventory');
-      uploadData.append('subFolder', formData.name || 'unnamed');
+      uploadData.append('entity', 'inventory');
+      uploadData.append('entityId', itemId || 'new');
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -232,33 +238,27 @@ const InventoryManagement = () => {
     },
   ];
 
-  // ฟังก์ชันคำนวณ status อัตโนมัติตาม quantity และ minStock
-  const calculateInventoryStatus = (quantity: number, minStock: number = 5): Inventory["status"] => {
+  // ฟังก์ชันคำนวณ status อัตโนมัติตาม quantity
+  const calculateInventoryStatus = (quantity: number): Inventory["status"] => {
     if (quantity === 0) {
       return "หมด";
-    } else if (quantity < minStock) {
+    } else if (quantity < 20) {
       return "ใกล้หมด";
     } else {
       return "พร้อมใช้";
     }
   };
 
-  // อัปเดตสถานะของอุปกรณ์ที่มีอยู่แล้วเมื่อโหลดหน้า
+  // อัปเดตสถานะของอุปกรณ์ที่มีอยู่แล้วเมื่อโหลดหน้า — รันเพียงครั้งเดียว (on mount)
   useEffect(() => {
+    if (inventories.length === 0) return;
     inventories.forEach((item) => {
-      const newStatus = calculateInventoryStatus(item.quantity, item.minStock);
+      const newStatus = calculateInventoryStatus(item.quantity);
       if (item.status !== newStatus) {
-        updateInventory({
-          ...item,
-          status: newStatus,
-        });
+        updateInventory({ ...item, status: newStatus }).catch(() => {});
       }
     });
-  }, [inventories, updateInventory]); // รันครั้งเดียวตอนโหลดหน้า
-
-  const handleViewInventory = (id: string) => {
-    router.push(`/dashboard/(admin)/admin/inventorys/${id}`);
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -275,12 +275,9 @@ const InventoryManagement = () => {
 
   const resetForm = () => {
     setFormData({
-      sku: "",
       name: "",
-      category: "ทั่วไป",
       type: "",
       quantity: "",
-      minStock: "5",
       imageUrl: "",
     });
     setEditingItem(null);
@@ -294,12 +291,9 @@ const InventoryManagement = () => {
   const handleEdit = (item: Inventory) => {
     setEditingItem(item);
     setFormData({
-      sku: item.sku || "",
       name: item.name,
-      category: item.category || "ทั่วไป",
       type: item.type,
       quantity: item.quantity.toString(),
-      minStock: (item.minStock || 5).toString(),
       imageUrl: item.imageUrl || "",
     });
     setIsFormOpen(true);
@@ -311,44 +305,56 @@ const InventoryManagement = () => {
       !formData.type ||
       !formData.quantity
     ) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
     const quantity = parseInt(formData.quantity);
-    const minStock = parseInt(formData.minStock) || 5;
-    const calculatedStatus = calculateInventoryStatus(quantity, minStock);
+    const calculatedStatus = calculateInventoryStatus(quantity);
 
-    if (editingItem) {
-      await updateInventory({
-        ...editingItem,
-        sku: formData.sku,
-        name: formData.name,
-        category: formData.category,
-        status: calculatedStatus,
-        type: formData.type as Inventory["type"],
-        quantity: quantity,
-        minStock: minStock,
-        imageUrl: formData.imageUrl,
-      });
-      toast.success("อัปเดตข้อมูลสำเร็จ");
-    } else {
-      const newItem: Inventory = {
-        id: crypto.randomUUID(),
-        sku: formData.sku,
-        name: formData.name,
-        category: formData.category,
-        status: calculatedStatus,
-        type: formData.type as Inventory["type"],
-        quantity: quantity,
-        minStock: minStock,
-        imageUrl: formData.imageUrl,
-        location: "Main Warehouse",
-        price: 0,
-        requireFrom: "", 
-      };
-      await addInventory(newItem);
-      toast.success("เพิ่มอุปกรณ์ใหม่สำเร็จ");
+    // ✅ Validation: Check for duplicate names
+    const duplicate = inventories.find(inv => 
+      inv.name.toLowerCase().trim() === formData.name.toLowerCase().trim() && 
+      (!editingItem || inv.id !== editingItem.id)
+    );
+
+    if (duplicate) {
+      toast.error(`วัสดุชื่อ "${formData.name}" มีอยู่ในระบบแล้ว (ID: ${duplicate.id.substring(0,8)})`);
+      return;
+    }
+
+    try {
+      if (editingItem) {
+        await updateInventory({
+          ...editingItem,
+          name: formData.name,
+          status: calculatedStatus,
+          type: formData.type as Inventory["type"],
+          quantity: quantity,
+          imageUrl: formData.imageUrl || null,
+        });
+        toast.success("แก้ไขข้อมูลสำเร็จ");
+      } else {
+        const result = await addInventory({
+          name: formData.name,
+          status: calculatedStatus,
+          type: formData.type as Inventory["type"],
+          quantity: quantity,
+          imageUrl: formData.imageUrl || null,
+          location: "Main Warehouse",
+          price: 0,
+          requireFrom: null,
+        });
+        if (result) {
+          toast.success("เพิ่มอุปกรณ์สำเร็จ");
+        } else {
+          toast.error("เพิ่มอุปกรณ์ไม่สำเร็จ กรุณาลองใหม่");
+          return;
+        }
+      }
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      return;
     }
 
     setIsFormOpen(false);
@@ -360,47 +366,27 @@ const InventoryManagement = () => {
     setIsDeleteAlertOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (deletingItemId) {
-      const success = await deleteInventory(deletingItemId);
-      if (success) {
-        // addToast is not needed if deleteInventory already adds toast, but following current style
-        // addToast("ลบพัสดุเสร็จสิ้น", "success");
-      }
-      setIsDeleteAlertOpen(false);
-      setDeletingItemId(null);
-    }
+  const handleViewInventory = (inventoryId: string) => {
+    router.push(`/dashboard/admin/inventorys/${inventoryId}`);
   };
 
-  // Filter jobs ที่มี usedInventory
-  const jobsWithInventory = jobs.filter(
-    (job) => getJobUsedInventory(job).length > 0
-  );
-
-  // สร้าง inventory request อัตโนมัติเมื่อ job มี usedInventory แต่ยังไม่มี request
-  useEffect(() => {
-    const jobsWithInv = jobs.filter(
-      (job) => job.usedInventory && job.usedInventory.length > 0
-    );
-
-    jobsWithInv.forEach((job) => {
-      const existingRequest = getInventoryRequestByJobId(job.id);
-      const usedInv = getJobUsedInventory(job);
-      if (!existingRequest && usedInv.length > 0) {
-        // สร้าง request ใหม่
-        addInventoryRequest({
-          jobId: job.id,
-          status: "pending",
-          requestedItems: usedInv,
-          requestedBy: {
-            id: job.creator.id,
-            name: job.creator.name,
-          },
-          note: null,
-        });
+  const handleDeleteConfirm = async () => {
+    if (deletingItemId) {
+      try {
+        await deleteInventory(deletingItemId);
+        toast.success("ลบอุปกรณ์สำเร็จ");
+      } catch {
+        toast.error("ลบไม่สำเร็จ กรุณาลองใหม่");
       }
-    });
-  }, [jobs, addInventoryRequest, getInventoryRequestByJobId]);
+    }
+    setIsDeleteAlertOpen(false);
+    setDeletingItemId(null);
+  };
+
+  // Filter jobs ที่มี usedInventory (ไม่นับงานที่ถูกยกเลิกแล้ว)
+  const jobsWithInventory = jobs.filter(
+    (job) => job.usedInventory && job.usedInventory.length > 0 && job.status !== 'cancelled'
+  );
 
   const getJobStatusColor = (status: string) => {
     switch (status) {
@@ -433,37 +419,40 @@ const InventoryManagement = () => {
     return statusMap[status] || status;
   };
 
-  // Get approval status for a job (ใช้จาก store)
+  // Returns 'pending' as default when no status exists yet
   const getInventoryRequestStatusForJob = (jobId: string): 'pending' | 'approved' | 'rejected' => {
-    return (getInventoryRequestStatus(jobId) as any) || 'pending';
+    const job = jobs.find(j => j.id === jobId);
+    return (job?.inventoryStatus as 'pending' | 'approved' | 'rejected') || 'pending';
   };
 
   // Handle approve inventory request
-  const handleApproveInventory = (jobId: string) => {
+  const handleApproveInventory = async (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
-    const usedInv = getJobUsedInventory(job);
-    if (usedInv.length === 0) return;
+    if (!job || !job.usedInventory) return;
 
-    const request = getInventoryRequestByJobId(jobId);
-    if (!request) {
-      toast.error("ไม่พบคำขอเบิกวัสดุ");
+    if (job.inventoryStatus === "approved") {
+      toast.error("คำขอนี้ถูกอนุมัติไปแล้ว");
       return;
     }
 
-    // Update approval status in store
-    updateInventoryRequestStatus(
-      request.id,
-      "approved",
-      {
-        id: "admin", // TODO: ใช้ user ID จริงจาก auth
-        name: "ผู้ดูแลระบบ",
-      },
-      null
-    );
+    // ตรวจสอบสต๊อกก่อนอนุมัติ
+    for (const usedInv of job.usedInventory) {
+      const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
+      if (!inventoryItem) {
+        toast.error(`ไม่พบข้อมูลอุปกรณ์รหัส ${usedInv.id} ในระบบ`);
+        return;
+      }
+      if (inventoryItem.quantity < usedInv.qty) {
+        toast.error(`อุปกรณ์ "${inventoryItem.name}" มีไม่เพียงพอ (คงเหลือ ${inventoryItem.quantity} ชิ้น, ต้องการ ${usedInv.qty} ชิ้น)`);
+        return; // หยุดการอนุมัติหากของไม่พอ
+      }
+    }
+
+    // Update approval status in Database through jobStore
+    await updateJob(jobId, { inventoryStatus: "approved" });
 
     // Update inventory quantity and calculate status automatically for approved items
-    getJobUsedInventory(job).forEach(usedInv => {
+    job.usedInventory.forEach(usedInv => {
       const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
       if (inventoryItem) {
         const newQuantity = Math.max(0, inventoryItem.quantity - usedInv.qty);
@@ -480,36 +469,35 @@ const InventoryManagement = () => {
   };
 
   // Handle reject inventory request
-  const handleRejectInventory = (jobId: string) => {
+  const handleRejectInventory = async (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
-    if (!job) {
+    if (!job || !job.usedInventory) {
       toast.error("ไม่พบใบงาน");
       return;
     }
 
-    const request = getInventoryRequestByJobId(jobId);
-    if (!request) {
-      toast.error("ไม่พบคำขอเบิกวัสดุ");
+    if (job.inventoryStatus === "rejected") {
+      toast.error("คำขอนี้ถูกปฏิเสธไปแล้ว");
       return;
     }
 
-    // Update rejection status in store
-    updateInventoryRequestStatus(
-      request.id,
-      "rejected",
-      {
-        id: "admin", // TODO: ใช้ user ID จริงจาก auth
-        name: "ผู้ดูแลระบบ",
-      },
-      null
-    );
-
-    // ✅ ลบ usedInventory ออกจากใบงานเมื่อปฏิเสธ
-    updateJob(jobId, {
-      usedInventory: [] as any,
+    // ✅ ปรับจำนวนวัสดุให้เท่ากับที่มีอยู่ในสต็อก (ถ้าเบิกเกิน) แทนการลบทิ้งทั้งหมด
+    const adjustedUsedInventory = job.usedInventory.map(usedInv => {
+      const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
+      // ถ้าพบอุปกรณ์ในคลัง และจำนวนที่ขอเบิก มากกว่าที่มีในคลัง
+      if (inventoryItem && usedInv.qty > inventoryItem.quantity) {
+        return { ...usedInv, qty: inventoryItem.quantity };
+      }
+      return usedInv;
     });
 
-    toast.error("ปฏิเสธคำขอเบิกวัสดุ");
+    // อัปเดตใบงานด้วยจำนวนที่แก้ไขแล้ว และเปลี่ยนสถานะเป็น rejected
+    await updateJob(jobId, {
+      usedInventory: adjustedUsedInventory,
+      inventoryStatus: "rejected"
+    });
+
+    toast.warning("ปฏิเสธคำขอและปรับยอดรายการให้ตรงตามสต็อกปัจจุบันแล้ว");
   };
 
   // Get approval status badge color
@@ -773,7 +761,7 @@ const InventoryManagement = () => {
                               {getJobDepartments(job).join(", ") || "-"}
                             </TableCell>
                             <TableCell className="text-gray-900 dark:text-white font-semibold">
-                              {getJobUsedInventory(job).length} รายการ
+                              {job.usedInventory?.length || 0} รายการ
                             </TableCell>
                             <TableCell>
                               <Badge
@@ -786,7 +774,7 @@ const InventoryManagement = () => {
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
-                                {getJobUsedInventory(job).slice(0, 2).map((usedInv) => {
+                                {job.usedInventory?.slice(0, 2).map((usedInv) => {
                                   const inventoryItem = inventories.find(
                                     (inv) => inv.id === usedInv.id
                                   );
@@ -799,9 +787,9 @@ const InventoryManagement = () => {
                                     </div>
                                   );
                                 })}
-                                {getJobUsedInventory(job).length > 2 && (
+                                {job.usedInventory && job.usedInventory.length > 2 && (
                                   <div className="text-xs text-gray-500 dark:text-gray-500">
-                                    +{getJobUsedInventory(job).length - 2} รายการเพิ่มเติม
+                                    +{job.usedInventory.length - 2} รายการเพิ่มเติม
                                   </div>
                                 )}
                               </div>
@@ -900,10 +888,10 @@ const InventoryManagement = () => {
                       <div className="space-y-2">
                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                           <span className="font-medium">จำนวนรายการ:</span>{" "}
-                          {getJobUsedInventory(job).length} รายการ
+                          {job.usedInventory?.length || 0} รายการ
                         </div>
                         <div className="space-y-1">
-                          {getJobUsedInventory(job).map((usedInv) => {
+                          {job.usedInventory?.map((usedInv) => {
                             const inventoryItem = inventories.find(
                               (inv) => inv.id === usedInv.id
                             );
@@ -1025,33 +1013,6 @@ const InventoryManagement = () => {
 
             {/* Input Fields Column */}
             <div className="flex flex-col gap-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="sku" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    รหัสสินค้า (SKU)
-                  </Label>
-                  <Input
-                    id="sku"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    placeholder="เช่น HW-001"
-                    className="bg-white dark:bg-[#0f1117] border-gray-200 dark:border-gray-800 rounded-lg placeholder:text-gray-400"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="category" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    หมวดหมู่ (Category)
-                  </Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="เช่น เครื่องมือช่าง"
-                    className="bg-white dark:bg-[#0f1117] border-gray-200 dark:border-gray-800 rounded-lg placeholder:text-gray-400"
-                  />
-                </div>
-              </div>
-
               <div className="grid gap-2">
                 <Label htmlFor="title" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   ชื่ออุปกรณ์ (Equipment Name) <span className="text-red-500">*</span>
@@ -1065,35 +1026,19 @@ const InventoryManagement = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4 w-full">
-                <div className="grid gap-2">
-                  <Label htmlFor="type" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    ประเภท (Type) <span className="text-red-500">*</span>
-                  </Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                    <SelectTrigger className="bg-white dark:bg-[#0f1117] border-gray-200 dark:border-gray-800 w-full rounded-lg">
-                      <SelectValue placeholder="เลือกประเภท..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ต้องคืน">ต้องคืน (Returnable)</SelectItem>
-                      <SelectItem value="ไม่ต้องคืน">ไม่ต้องคืน (Consumable)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="minStock" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    จุดสั่งซื้อขั้นต่ำ (Min Stock)
-                  </Label>
-                  <Input
-                    id="minStock"
-                    type="number"
-                    value={formData.minStock}
-                    onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
-                    placeholder="5"
-                    min="0"
-                    className="bg-white dark:bg-[#0f1117] border-gray-200 dark:border-gray-800 rounded-lg placeholder:text-gray-400"
-                  />
-                </div>
+              <div className="grid gap-2 w-full">
+                <Label htmlFor="type" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  ประเภท (Type) <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                  <SelectTrigger className="bg-white dark:bg-[#0f1117] border-gray-200 dark:border-gray-800 w-full rounded-lg">
+                    <SelectValue placeholder="เลือกประเภท..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ต้องคืน">ต้องคืน (Returnable)</SelectItem>
+                    <SelectItem value="ไม่ต้องคืน">ไม่ต้องคืน (Consumable)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid gap-2">

@@ -123,7 +123,7 @@ const JobsList = () => {
     const statusMap: Record<string, string> = {
       "pending": "รอดำเนินการ",
       "in_progress": "กำลังดำเนินการ",
-      "pending_approval": "รออนุมัติ",
+      "pending_approval": "รออนุมัติเสร็จสิ้นงาน",
       "completed": "เสร็จสิ้น",
       "cancelled": "ยกเลิก",
       "rejected": "ปฏิเสธ",
@@ -278,52 +278,29 @@ const JobsList = () => {
   };
 
   // Completion request handlers
-  const handleApproveRequest = (requestId: string) => {
+  const handleApproveRequest = (jobId: string) => {
     if (!currentUser) {
       toast.error("ไม่พบข้อมูลผู้ใช้");
       return;
     }
 
-    // หา completion request
-    const request = completionRequests.find(req => req.id === requestId);
-    if (!request) {
-      toast.error("ไม่พบคำขอจบงาน");
-      return;
-    }
-
     // หา job ที่เกี่ยวข้อง
-    const job = jobs.find(j => j.id === request.jobId);
+    const job = jobs.find(j => j.id === jobId);
     if (!job) {
       toast.error("ไม่พบใบงาน");
       return;
     }
 
     // Approve completion request
-    approveCompletionRequest(requestId, { id: currentUser.id, name: currentUser.name });
+    approveCompletionRequest(jobId, { id: currentUser.id, name: currentUser.name });
 
-    // คืนวัสดุที่ type เป็น "ต้องคืน" กลับเข้าคลัง
-    if (job.usedInventory && job.usedInventory.length > 0) {
-      job.usedInventory.forEach(usedInv => {
-        const inventoryItem = inventories.find(inv => inv.id === usedInv.id);
-        if (inventoryItem && inventoryItem.type === "ต้องคืน") {
-          // เพิ่ม quantity กลับเข้าไป
-          const newQuantity = inventoryItem.quantity + usedInv.qty;
-          const calculatedStatus = calculateInventoryStatus(newQuantity);
+    // คืนวัสดุที่ type เป็น "ต้องคืน" กลับเข้าคลัง (ตอนนี้ระบบ Backend จะตัดให้ตาม Logic API แบบอัตโนมัติแล้ว)
 
-          updateInventory({
-            ...inventoryItem,
-            quantity: newQuantity,
-            status: calculatedStatus,
-          });
-        }
-      });
-    }
-
-    toast.success("อนุมัติคำขอจบงานแล้ว และคืนวัสดุที่ต้องคืนกลับเข้าคลังแล้ว");
+    toast.success("อนุมัติคำขอจบงานแล้ว ระบบจะคืนอุปกรณ์ที่ตั้งค่า 'ต้องคืน' กลับเข้าคลังอัตโนมัติ");
   };
 
-  const handleRejectRequest = (requestId: string) => {
-    setRejectingRequestId(requestId);
+  const handleRejectRequest = (jobId: string) => {
+    setRejectingRequestId(jobId);
     setRejectionReason("");
     setIsRejectDialogOpen(true);
   };
@@ -348,20 +325,20 @@ const JobsList = () => {
     setRejectionReason("");
   };
 
-  // Filter completion requests
-  const pendingCompletionRequests = completionRequests.filter(req => {
-    if (req.status !== "pending") return false;
+  // Filter jobs pending completion
+  const pendingCompletionJobs = jobs.filter(job => {
+    if (job.status !== "pending_approval") return false;
 
-    // Admin sees all requests
-    if (currentUser?.role === 'admin') return true;
+    // Admin and manager see all requests
+    if (currentUser?.role === 'admin' || currentUser?.role === 'manager') return true;
 
-    const job = jobs.find(j => j.id === req.jobId);
     // Lead technician can only see requests for jobs where they are the lead technician
     return job?.leadTechnician?.id === currentUser?.id;
   });
 
-  // Determine if tabs should be shown (only for admin, manager, lead_technician)
-  const showTabs = currentUser && ['lead_technician'].includes(currentUser.role);
+  // Determine if tabs should be shown (for admin, manager, lead_technician)
+  const isLead = (role: string) => role === 'lead_technician' || role.startsWith('lead_');
+  const showTabs = currentUser && (['admin', 'manager'].includes(currentUser.role) || isLead(currentUser.role));
 
   // ===========================
   // 11. นิยาม Columns สำหรับ Jobs List
@@ -542,7 +519,7 @@ const JobsList = () => {
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Job
               </DropdownMenuItem>
-              {currentUser?.role !== 'lead_technician' && (
+              {!isLead(currentUser?.role || '') && (
                 <DropdownMenuItem
                   onClick={(e) => handleDeleteJob(e, row.id)}
                   className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
@@ -619,7 +596,7 @@ const JobsList = () => {
         <div className="mb-4 sm:mb-4 flex items-center justify-between">
           <div />
           <div>
-            {currentUser?.role !== 'lead_technician' && (
+            {!isLead(currentUser?.role || '') && (
               <Button
                 onClick={handleCreateNewJob} // 15. เปลี่ยน handler
                 className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-full sm:w-auto"
@@ -639,9 +616,9 @@ const JobsList = () => {
             <TabsTrigger value="jobs">รายการงาน</TabsTrigger>
             <TabsTrigger value="completion-requests">
               คำขอจบงาน
-              {pendingCompletionRequests.length > 0 && (
+              {pendingCompletionJobs.length > 0 && (
                 <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500 text-white rounded-full">
-                  {pendingCompletionRequests.length}
+                  {pendingCompletionJobs.length}
                 </span>
               )}
             </TabsTrigger>
@@ -917,19 +894,21 @@ const JobsList = () => {
           <TabsContent value="completion-requests" className="mt-4">
             <Card className="p-4">
               <h2 className="text-xl font-semibold mb-4">คำขอจบงานที่รอการอนุมัติ</h2>
-              {pendingCompletionRequests.length > 0 ? (
+              {pendingCompletionJobs.length > 0 ? (
                 <div className="space-y-4">
-                  {pendingCompletionRequests.map((request) => {
-                    const job = jobs.find(j => j.id === request.jobId);
-                    if (!job) return null;
+                  {pendingCompletionJobs.map((job) => {
+                    const requestLog = job.workLogs?.find(log => log.status === "pending_approval") || job.workLogs?.[0];
+                    const requestedByName = requestLog?.updatedBy?.name || job.assignedEmployees?.[0]?.name || "พนักงาน (Employee)";
+                    const requestedAt = requestLog?.createdAt || job.createdAt;
+
                     return (
-                      <Card key={request.id} className="p-4">
+                      <Card key={job.id} className="p-4 border shadow-sm">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <h3 className="font-semibold text-lg mb-2">{job.title}</h3>
                             <div className="space-y-1 text-sm text-muted-foreground">
-                              <p>ผู้ส่งคำขอ: {request.requestedBy.name}</p>
-                              <p>วันที่ส่งคำขอ: {new Date(request.requestedAt).toLocaleString('th-TH')}</p>
+                              <p>ผู้ส่งคำขอ: {requestedByName}</p>
+                              <p>วันที่ส่งคำขอ: {new Date(requestedAt).toLocaleString('th-TH')}</p>
                               <p>แผนก: {getJobDepartments(job).join(", ") || '-'}</p>
                             </div>
                           </div>
@@ -938,7 +917,7 @@ const JobsList = () => {
                               variant="outline"
                               size="sm"
                               className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 h-8 px-3"
-                              onClick={() => handleApproveRequest(request.id)}
+                              onClick={() => handleApproveRequest(job.id)}
                             >
                               <CheckCircle2 className="h-4 w-4 mr-2" />
                               อนุมัติ
@@ -947,14 +926,14 @@ const JobsList = () => {
                               variant="outline"
                               size="sm"
                               className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800 h-8 px-3"
-                              onClick={() => handleRejectRequest(request.id)}
+                              onClick={() => handleRejectRequest(job.id)}
                             >
                               <XCircle className="h-4 w-4 mr-2" />
                               ปฏิเสธ
                             </Button>
                           </div>
                         </div>
-                        <div>
+                        <div className="mt-4">
                           <Button
                             variant="outline"
                             size="sm"
@@ -968,7 +947,7 @@ const JobsList = () => {
                   })}
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="text-center py-12 text-muted-foreground bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-dashed">
                   <p>ไม่มีคำขอจบงานที่รอการอนุมัติ</p>
                 </div>
               )}

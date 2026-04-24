@@ -1,78 +1,94 @@
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { 
-  sendSuccess, 
-  sendUnauthorized, 
-  sendForbidden, 
-  sendServerError 
-} from '@/lib/api-utils';
 
+/**
+ * @swagger
+ * /api/inventory:
+ *   get:
+ *     summary: ดึงข้อมูลคลังอุปกรณ์ทั้งหมด
+ *     tags: [Inventory]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: รายการอุปกรณ์ทั้งหมด
+ */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return sendUnauthorized();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const items = await prisma.inventory.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { name: 'asc' }
     });
-    return sendSuccess(items, 'ดึงข้อมูลคลังสินค้าสำเร็จ');
+    return NextResponse.json(items);
   } catch (error) {
-    return sendServerError(error);
+    console.error('Error fetching inventory:', error);
+    return NextResponse.json({ error: 'Failed to fetch inventory' }, { status: 500 });
   }
 }
 
+/**
+ * @swagger
+ * /api/inventory:
+ *   post:
+ *     summary: สร้างอุปกรณ์ใหม่
+ *     tags: [Inventory]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *               quantity:
+ *                 type: number
+ *               price:
+ *                 type: number
+ *               status:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: อุปกรณ์ที่ถูกสร้าง
+ */
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return sendUnauthorized();
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const user = session.user as any;
-    const allowedRoles = ['admin', 'manager', 'lead_technician'];
-    
-    if (!allowedRoles.includes(user.role)) return sendForbidden();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { sku, name, category, imageUrl, quantity, minStock, location, status, type, price, requireFrom } = body;
-    
-    const newItem = await prisma.inventory.create({
+    const { name, imageUrl, quantity, location, status, type, price, requireFrom } = body;
+
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    }
+
+    const item = await prisma.inventory.create({
       data: {
-        sku,
         name,
-        category: category || "ทั่วไป",
-        imageUrl,
-        quantity: parseInt(String(quantity)) || 0,
-        minStock: parseInt(String(minStock)) || 5,
-        location,
-        status,
-        type,
-        price: parseFloat(String(price)) || 0,
-        requireFrom,
-      },
+        imageUrl: imageUrl || null,
+        quantity: quantity ?? 0,
+        location: location || null,
+        status: status || 'พร้อมใช้',
+        type: type || 'ไม่ต้องคืน',
+        price: price ?? 0,
+        requireFrom: requireFrom || null,
+      }
     });
 
-    // Create Audit Log with real user data
-    try {
-      await prisma.auditLog.create({
-        data: {
-          action: "CREATE",
-          entityType: "INVENTORY",
-          entityId: newItem.id,
-          entityName: newItem.name,
-          performedById: user.id || "unknown",
-          performedByName: user.name || "Unknown User",
-          performedByRole: user.role || "unknown",
-          details: `Created new inventory item: ${newItem.name} (${newItem.sku || 'No SKU'})`,
-          metadata: JSON.stringify({ newItem }),
-        }
-      });
-    } catch (logError) {
-      console.error("Failed to create audit log:", logError);
-    }
-    
-    return sendSuccess(newItem, 'เพิ่มพัสดุเข้าคลังสำเร็จ');
+    return NextResponse.json(item, { status: 201 });
   } catch (error) {
-    return sendServerError(error);
+    console.error('Error creating inventory item:', error);
+    return NextResponse.json({ error: 'Failed to create inventory item' }, { status: 500 });
   }
 }

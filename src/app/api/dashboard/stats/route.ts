@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
  * /api/dashboard/stats:
  *   get:
  *     summary: Get dashboard statistics
+ *     tags: [Dashboard]
  *     description: Returns aggregated statistics for the dashboard, such as job counts and inventory alerts.
  *     responses:
  *       200:
@@ -41,30 +42,39 @@ export async function GET() {
       })
     ]);
 
-    // Calculate trends (last 180 days) and department stats
     const now = new Date();
-    const past180Milli = now.getTime() - (180 * 24 * 60 * 60 * 1000);
-    const past180Date = new Date(past180Milli);
+    const past180Date = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
 
-    const trends: Record<string, any>[] = [];
+    const trends: { month: string; total: number; completed: number }[] = [];
     const departmentStats: Record<string, number> = {};
 
     allJobs.forEach(job => {
-      // Departments calc
+      // Department stats
       const rawDepts = job.departments;
       let deptsArray: string[] = [];
       if (rawDepts) {
-         try {
-           deptsArray = JSON.parse(rawDepts);
-         } catch {
-           deptsArray = [];
-         }
+        try { deptsArray = JSON.parse(rawDepts); } catch { deptsArray = []; }
       }
-      
       deptsArray.forEach(dept => {
         departmentStats[dept] = (departmentStats[dept] || 0) + 1;
       });
+
+      // Monthly trend (last 180 days only)
+      const jobDate = new Date(job.createdAt);
+      if (jobDate >= past180Date) {
+        const monthKey = `${jobDate.getFullYear()}-${String(jobDate.getMonth() + 1).padStart(2, '0')}`;
+        const existing = trends.find(t => t.month === monthKey);
+        if (existing) {
+          existing.total += 1;
+          if (job.status === 'completed') existing.completed += 1;
+        } else {
+          trends.push({ month: monthKey, total: 1, completed: job.status === 'completed' ? 1 : 0 });
+        }
+      }
     });
+
+    // Sort trends by month ascending
+    trends.sort((a, b) => a.month.localeCompare(b.month));
 
     // Format top departments
     const topDepartments = Object.keys(departmentStats)
@@ -82,7 +92,7 @@ export async function GET() {
         lowStockItems
       },
       topDepartments,
-      message: "Trends logic can be expanded further frontend/backend depending on the exact chart data format needed."
+      trends,
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);

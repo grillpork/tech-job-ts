@@ -1,108 +1,137 @@
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { 
-  sendSuccess, 
-  sendError, 
-  sendUnauthorized, 
-  sendForbidden, 
-  sendServerError 
-} from '@/lib/api-utils';
 
-export async function PUT(
+/**
+ * @swagger
+ * /api/inventory/{id}:
+ *   get:
+ *     summary: ข้อมูลอุปกรณ์ตาม ID
+ *     tags: [Inventory]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: ข้อมูลอุปกรณ์
+ */
+export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return sendUnauthorized();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = session.user as any;
-    const allowedRoles = ['admin', 'manager', 'lead_technician'];
-    if (!allowedRoles.includes(user.role)) return sendForbidden();
+    const { id } = await params;
+    const item = await prisma.inventory.findUnique({ where: { id } });
 
-    const body = await request.json();
-    const { sku, name, category, imageUrl, quantity, minStock, location, status, type, price, requireFrom } = body;
-
-    const originalItem = await prisma.inventory.findUnique({ where: { id } });
-    if (!originalItem) return sendError('ไม่พบข้อมูลพัสดุนี้', 404);
-
-    const updatedItem = await prisma.inventory.update({
-      where: { id },
-      data: {
-        sku,
-        name,
-        category,
-        imageUrl,
-        quantity: parseInt(String(quantity)) || 0,
-        minStock: parseInt(String(minStock)) || 0,
-        location,
-        status,
-        type,
-        price: parseFloat(String(price)) || 0,
-        requireFrom,
-      },
-    });
-
-    // Audit Log
-    try {
-      await prisma.auditLog.create({
-        data: {
-          action: "UPDATE",
-          entityType: "INVENTORY",
-          entityId: id,
-          entityName: updatedItem.name,
-          performedById: user.id,
-          performedByName: user.name || "Unknown",
-          performedByRole: user.role || "unknown",
-          details: `แก้ไขข้อมูลพัสดุ: ${updatedItem.name}`,
-          changes: JSON.stringify({ before: originalItem, after: updatedItem })
-        }
-      });
-    } catch (e) { console.error("Audit log failed", e); }
-
-    return sendSuccess(updatedItem, 'บันทึกการแก้ไขพัสดุสำเร็จ');
+    if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json(item);
   } catch (error) {
-    return sendServerError(error);
+    return NextResponse.json({ error: 'Failed to fetch inventory item' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  _request: Request,
+/**
+ * @swagger
+ * /api/inventory/{id}:
+ *   patch:
+ *     summary: อัปเดตข้อมูลอุปกรณ์
+ *     tags: [Inventory]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               quantity:
+ *                 type: number
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: ข้อมูลอุปกรณ์ที่อัปเดตแล้ว
+ */
+export async function PATCH(
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return sendUnauthorized();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = session.user as any;
-    if (user.role !== 'admin' && user.role !== 'manager') return sendForbidden();
+    const { id } = await params;
+    const body = await request.json();
 
-    const itemToDelete = await prisma.inventory.findUnique({ where: { id } });
-    if (!itemToDelete) return sendError('ไม่พบพัสดุที่ต้องการลบ', 404);
-    
+    // Remove id from body to avoid prisma error
+    const { id: _id, ...data } = body;
+
+    const updated = await prisma.inventory.update({
+      where: { id },
+      data,
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    console.error('Error updating inventory:', error);
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });
+    }
+    return NextResponse.json({ error: 'Failed to update inventory item' }, { status: 500 });
+  }
+}
+
+/**
+ * @swagger
+ * /api/inventory/{id}:
+ *   delete:
+ *     summary: ลบอุปกรณ์
+ *     tags: [Inventory]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: ลบสำเสร็จ
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { id } = await params;
     await prisma.inventory.delete({ where: { id } });
 
-    // Audit Log
-    try {
-      await prisma.auditLog.create({
-        data: {
-          action: "DELETE",
-          entityType: "INVENTORY",
-          entityId: id,
-          entityName: itemToDelete.name,
-          performedById: user.id,
-          performedByName: user.name || "Unknown",
-          performedByRole: user.role || "unknown",
-          details: `ลบพัสดุ: ${itemToDelete.name} (${itemToDelete.sku || 'No SKU'})`,
-        }
-      });
-    } catch (e) { console.error("Audit log failed", e); }
-
-    return sendSuccess(null, 'ลบพัสดุออกจากคลังเรียบร้อยแล้ว');
-  } catch (error) {
-    return sendServerError(error);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting inventory:', error);
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });
+    }
+    return NextResponse.json({ error: 'Failed to delete inventory item' }, { status: 500 });
   }
 }

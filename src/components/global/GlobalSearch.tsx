@@ -39,8 +39,11 @@ export default function GlobalSearch() {
     employee: ["jobs"],
   }), []);
 
-  const canSearch = React.useCallback((type: string) =>
-    role ? rolePermissions[role]?.includes(type) : false, [role, rolePermissions]);
+  const canSearch = React.useCallback((type: string) => {
+    if (!role) return false;
+    const effectiveRole = role.startsWith("lead_") ? "lead_technician" : role;
+    return rolePermissions[effectiveRole]?.includes(type);
+  }, [role, rolePermissions]);
 
   const safeQuery = (query ?? "").toLowerCase();
   const hasQuery = safeQuery.trim().length > 0;
@@ -86,8 +89,10 @@ export default function GlobalSearch() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
+  const isLead = (r?: string) => r === "lead_technician" || (r?.startsWith("lead_") ?? false);
+
   const basePath =
-    role === "admin" || role === "manager" || role === "lead_technician"
+    role === "admin" || role === "manager" || isLead(role)
       ? "/dashboard/admin"
       : "/dashboard/employee";
 
@@ -170,7 +175,7 @@ export default function GlobalSearch() {
                       onSelect={() => {
                         setOpen(false);
                         // ใช้ path ที่ถูกต้องตาม role
-                        const inventoryPath = role === "admin" || role === "manager" || role === "lead_technician"
+                        const inventoryPath = role === "admin" || role === "manager" || isLead(role)
                           ? `/dashboard/admin/inventorys/${item.id}`
                           : `/dashboard/employee/inventorys/${item.id}`;
                         router.push(inventoryPath);

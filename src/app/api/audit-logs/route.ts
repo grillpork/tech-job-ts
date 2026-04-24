@@ -1,31 +1,66 @@
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { 
-  sendSuccess, 
-  sendUnauthorized, 
-  sendForbidden, 
-  sendServerError 
-} from '@/lib/api-utils';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) return sendUnauthorized();
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const user = session.user as any;
-    if (user.role !== 'admin' && user.role !== 'manager') {
-      return sendForbidden('คุณไม่มีสิทธิ์ในการเข้าถึงประวัติการใช้งานระบบ');
-    }
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const logs = await prisma.auditLog.findMany({
       orderBy: { timestamp: 'desc' },
-      take: 200 // Limit to latest 200
+      take: 200, // Limit to latest 200 logs for performance
     });
-    
-    return sendSuccess(logs, 'ดึงข้อมูลประวัติการใช้งานสำเร็จ');
+
+    return NextResponse.json(logs);
   } catch (error) {
-    return sendServerError(error);
+    console.error('Error fetching audit logs:', error);
+    return NextResponse.json({ error: 'Failed to fetch audit logs' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await request.json();
+    const {
+      action,
+      entityType,
+      entityId,
+      entityName,
+      performedById,
+      performedByName,
+      performedByRole,
+      details,
+      changes,
+      metadata,
+    } = body;
+
+    if (!action || !entityType || !entityId || !entityName || !performedById) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const log = await prisma.auditLog.create({
+      data: {
+        action,
+        entityType,
+        entityId,
+        entityName,
+        performedById,
+        performedByName: performedByName || 'Unknown',
+        performedByRole: performedByRole || 'unknown',
+        details: details || null,
+        changes: changes ? JSON.stringify(changes) : null,
+        metadata: metadata ? JSON.stringify(metadata) : null,
+      }
+    });
+
+    return NextResponse.json(log, { status: 201 });
+  } catch (error) {
+    console.error('Error creating audit log:', error);
+    return NextResponse.json({ error: 'Failed to create audit log' }, { status: 500 });
   }
 }

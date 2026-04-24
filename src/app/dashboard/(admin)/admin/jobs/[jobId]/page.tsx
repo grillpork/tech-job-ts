@@ -461,8 +461,8 @@ export default function JobViewPage() {
             </CardContent>
           </Card>
 
-          {/* 3. Execution Evidence (Before/After) */}
-          {(job.beforeImages && job.beforeImages.length > 0 || job.afterImages && job.afterImages.length > 0) && (
+        {/* 3. Execution Evidence (Before/After) */}
+          {(job.beforeImages && job.beforeImages.length > 0 || job.afterImages && job.afterImages.length > 0 || job.signature) && (
             <Card className="shadow-sm border-none ring-1 ring-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -515,10 +515,10 @@ export default function JobViewPage() {
                   </div>
                 )}
 
-                {job.signature && (
+                {job.signature && (job.status === 'completed' || job.status === 'pending_approval') && (
                   <div className="pt-4 border-t">
-                    <p className="text-sm font-medium mb-3">ลายเซ็นลูกค้า</p>
-                    <div className="inline-block border rounded-lg p-4 bg-white">
+                    <p className="text-sm font-medium mb-3">ลายเซ็นลูกค้า {job.status === 'pending_approval' && <span className="text-amber-500 font-normal ml-2">(รอการตรวจสอบ)</span>}</p>
+                    <div className="inline-block border rounded-lg p-4 bg-white shadow-sm">
                       <img
                         src={job.signature}
                         alt="Customer Signature"
@@ -642,7 +642,7 @@ export default function JobViewPage() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-muted-foreground">
-                            {dayjs(log.date).format('DD MMM HH:mm')}
+                            {dayjs(log.createdAt).format('DD MMM HH:mm')}
                           </span>
                           <Badge variant="outline" className="text-[10px] h-5 px-1.5 capitalize">
                             {log.status.replace(/_/g, ' ')}

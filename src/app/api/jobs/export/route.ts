@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth';
  * /api/jobs/export:
  *   get:
  *     summary: Export jobs to CSV
+ *     tags: [Jobs]
  *     description: Exports a list of jobs to a CSV formatted file. Requires Admin or Manager role.
  *     responses:
  *       200:

@@ -119,7 +119,7 @@ export default function InventoryDetailPage() {
   const router = useRouter();
   const inventoryId = params.id as string;
 
-  const { inventories, getInventoryRequestStatus } = useInventoryStore();
+  const { inventories } = useInventoryStore();
   const { jobs } = useJobStore();
 
   // หา inventory ตาม id
@@ -132,8 +132,7 @@ export default function InventoryDetailPage() {
     if (!usesInventory) return false;
     
     // ตรวจสอบว่าได้รับการอนุมัติแล้ว
-    const requestStatus = getInventoryRequestStatus(job.id);
-    return requestStatus === "approved";
+    return job.inventoryStatus === "approved";
   });
 
   // สร้างข้อมูล job พร้อมจำนวนที่ใช้

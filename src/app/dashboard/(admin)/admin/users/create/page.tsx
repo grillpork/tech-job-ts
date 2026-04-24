@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Eye, EyeOff } from "lucide-react";
 import { notificationHelpers } from "@/stores/notificationStore";
 
 export default function CreateUserPage() {
@@ -45,6 +46,7 @@ export default function CreateUserPage() {
     status: "active",
     facebook: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,10 +62,18 @@ export default function CreateUserPage() {
   };
 
   const handleChange = (key: string, value: string) => {
-    setForm((s) => ({ ...s, [key]: value }));
+    setForm((s) => {
+      const next = { ...s, [key]: value };
+      // Auto-sync department if a specific lead role is selected
+      if (key === "role" && value.startsWith("lead_")) {
+        const dept = value.split("_")[1];
+        next.department = dept;
+      }
+      return next;
+    });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.name || !form.email) {
@@ -75,7 +85,7 @@ export default function CreateUserPage() {
       name: form.name,
       email: form.email,
       phone: form.phone || null,
-      role: form.role as "admin" | "manager" | "lead_technician" | "employee",
+      role: form.role as any,
       department: form.department || null,
       bio: form.bio || null,
       skills: form.skills ? form.skills.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
@@ -95,9 +105,9 @@ export default function CreateUserPage() {
     };
 
     try {
-      createUser(newUser);
+      await createUser(newUser);
 
-      // ✅ สร้าง notification เมื่อสร้างผู้ใช้สำเร็จ
+      // ✅ สร้าง notification เมื่อสร้างผู้ใช้สำเร็จ (หา user ล่าสุดจาก store)
       const createdUser = useUserStore.getState().users.find(u => u.email === form.email);
       if (createdUser) {
         notificationHelpers.userCreated(
@@ -108,7 +118,6 @@ export default function CreateUserPage() {
 
       toast.success("สร้างบัญชีผู้ใช้สำเร็จ");
       router.push("/dashboard/admin/users");
-      //
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       if (error.message === "Email already exists") {
         toast.error("อีเมลนี้มีอยู่ในระบบแล้ว");
@@ -137,23 +146,21 @@ export default function CreateUserPage() {
               />
             </div>
             <div>
-              <Label className="text-sm text-gray-500">
-                อีเมล <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="email"
-                className="w-full border rounded px-3 py-2 mt-1"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                required
-              />
-            </div>
-            <div>
               <Label className="text-sm text-gray-500">เบอร์โทรศัพท์</Label>
               <Input
                 className="w-full border rounded px-3 py-2 mt-1"
                 value={form.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label className="text-sm text-gray-500">รหัสพนักงาน</Label>
+              <Input
+                className="w-full border rounded px-3 py-2 mt-1 "
+                value={form.employeeId}
+                onChange={(e) => handleChange("employeeId", e.target.value)}
+                placeholder="รหัสพนักงาน (เช่น TCH-001)"
               />
             </div>
             <div>
@@ -171,25 +178,36 @@ export default function CreateUserPage() {
               </Select>
             </div>
 
-
             <div>
-              <Label className="text-sm text-gray-500">อีเมลพนักงาน</Label>
+              <Label className="text-sm text-gray-500">
+                อีเมล <span className="text-red-500">*</span>
+              </Label>
               <Input
-                className="w-full border rounded px-3 py-2 mt-1 "
-                value={form.employeeId}
-                onChange={(e) => handleChange("employeeId", e.target.value)}
-                placeholder="สร้างอีเมลพนักงาน"
+                type="email"
+                className="w-full border rounded px-3 py-2 mt-1"
+                value={form.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                required
               />
             </div>
             <div>
               <Label className="text-sm text-gray-500">รหัสผ่าน</Label>
-              <Input
-                type="password"
-                className="w-full border rounded px-3 py-2 mt-1"
-                value={form.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-                placeholder="สร้างรหัสผ่าน"
-              />
+              <div className="relative mt-1">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full border rounded px-3 py-2 pr-10"
+                  value={form.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                  placeholder="สร้างรหัสผ่าน"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
                 หากไม่กรอกจะใช้รหัสผ่านเริ่มต้น: password123
               </p>
@@ -202,10 +220,13 @@ export default function CreateUserPage() {
                 <SelectValue placeholder="เลือกบทบาท" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="employee">Employee</SelectItem>
-                <SelectItem value="lead_technician">Lead Technician</SelectItem>
-                <SelectItem value="manager">CEO</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="employee">ช่างทั่วไป (Employee)</SelectItem>
+                <SelectItem value="lead_Electrical">หัวหน้าช่างไฟฟ้า (Lead Electrical)</SelectItem>
+                <SelectItem value="lead_Mechanical">หัวหน้าช่างเครื่องกล (Lead Mechanical)</SelectItem>
+                <SelectItem value="lead_Civil">หัวหน้าช่างโยธา (Lead Civil)</SelectItem>
+                <SelectItem value="lead_Technical">หัวหน้าช่างเทคนิค (Lead Technical)</SelectItem>
+                <SelectItem value="manager">ผู้จัดการ (CEO)</SelectItem>
+                <SelectItem value="admin">ผู้ดูแลระบบ (Admin)</SelectItem>
               </SelectContent>
             </Select>
           </div>

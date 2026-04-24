@@ -1,36 +1,53 @@
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { 
-  sendSuccess, 
-  sendError, 
-  sendUnauthorized, 
-  sendForbidden, 
-  sendServerError 
-} from '@/lib/api-utils';
 
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+/**
+ * @swagger
+ * /api/jobs/{id}:
+ *   get:
+ *     summary: Get a standard job by ID
+ *     tags: [Jobs]
+ *     description: Returns a single job by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Job object corresponding to the ID
+ *       404:
+ *         description: Job not found
+ */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session) return sendUnauthorized();
-
     const job = await prisma.job.findUnique({
       where: { id },
       include: {
         creator: true,
         leadTechnician: true,
         assignedEmployees: true,
-        tasks: { orderBy: { order: 'asc' } },
-        workLogs: { orderBy: { createdAt: 'desc' }, include: { updatedBy: true } }
+        tasks: {
+          orderBy: { order: 'asc' }
+        },
+        workLogs: {
+          orderBy: { createdAt: 'desc' },
+          include: { updatedBy: true }
+        }
       }
     });
 
-    if (!job) return sendError('ไม่พบใบงานนี้', 404);
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
 
+    // Parse JSON fields
     const formattedJob = {
       ...job,
       departments: job.departments ? JSON.parse(job.departments) : [],
@@ -42,36 +59,78 @@ export async function GET(
       usedInventory: job.usedInventory ? JSON.parse(job.usedInventory) : [],
     };
 
-    return sendSuccess(formattedJob);
+    return NextResponse.json(formattedJob);
   } catch (error) {
-    return sendServerError(error);
+    console.error('Error fetching job:', error);
+    return NextResponse.json({ error: 'Failed to fetch job' }, { status: 500 });
   }
 }
 
+/**
+ * @swagger
+ * /api/jobs/{id}:
+ *   put:
+ *     summary: Update an existing job
+ *     tags: [Jobs]
+ *     description: Updates an existing job by ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: The updated job
+ *       404:
+ *         description: Job not found
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) return sendUnauthorized();
+    const existingJob = await prisma.job.findUnique({ where: { id } });
+    if (!existingJob) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
 
-    const user = session.user as any;
     const body = await request.json();
     
-    const existingJob = await prisma.job.findUnique({ where: { id } });
-    if (!existingJob) return sendError('ไม่พบใบงานนี้', 404);
-
+    // Extract relations and json fields that need special handling
     const { 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      creatorId, assignedEmployeeIds, leadTechnicianId, tasks, departments,
-      location, locationImages, attachments, usedInventory, beforeImages, afterImages,
+      creatorId, 
+      assignedEmployeeIds, 
+      leadTechnicianId, 
+      tasks, 
+      departments,
+      department, // Strip this out if it comes from the frontend
+      location,
+      locationImages,
+      attachments,
+      usedInventory,
+      beforeImages,
+      afterImages,
+      startDate,
+      endDate,
+      // relations that shouldn't be updated directly usually, but handle if needed
+      // creator,
+      // leadTechnician,
+      // assignedEmployees,
+      // workLogs,
       ...apiData 
     } = body;
 
+    // Prepare update data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = { ...apiData };
 
+    // Handle Dates
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
+
+    // Handle JSON fields
     if (departments !== undefined) updateData.departments = departments ? JSON.stringify(departments) : null;
     if (location !== undefined) updateData.location = location ? JSON.stringify(location) : null;
     if (locationImages !== undefined) updateData.locationImages = locationImages ? JSON.stringify(locationImages) : null;
@@ -80,20 +139,31 @@ export async function PUT(
     if (beforeImages !== undefined) updateData.beforeImages = beforeImages ? JSON.stringify(beforeImages) : null;
     if (afterImages !== undefined) updateData.afterImages = afterImages ? JSON.stringify(afterImages) : null;
 
+    // Handle Relations
+    if (creatorId) {
+      updateData.creator = { connect: { id: creatorId } };
+    }
+
     if (leadTechnicianId !== undefined) {
-      if (leadTechnicianId === null) updateData.leadTechnician = { disconnect: true };
-      else updateData.leadTechnician = { connect: { id: leadTechnicianId } };
+      if (leadTechnicianId === null) {
+        updateData.leadTechnician = { disconnect: true };
+      } else {
+        updateData.leadTechnician = { connect: { id: leadTechnicianId } };
+      }
     }
 
     if (assignedEmployeeIds !== undefined) {
       updateData.assignedEmployees = {
-        set: assignedEmployeeIds.map((eid: string) => ({ id: eid }))
+        set: assignedEmployeeIds.map((id: string) => ({ id }))
       };
     }
 
+    // Handle Tasks - Strategy: Delete old and create new to ensure sync (or update if complex logic needed)
+    // For simplicity and to ensure order/content matches exactly what's sent:
     if (tasks !== undefined) {
         updateData.tasks = {
             deleteMany: {},
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             create: tasks.map((t: any, i: number) => ({
                 description: t.description,
                 details: t.details,
@@ -110,26 +180,46 @@ export async function PUT(
         creator: true,
         leadTechnician: true,
         assignedEmployees: true,
-        tasks: { orderBy: { order: 'asc' } }
+        tasks: { orderBy: { order: 'asc' } },
+        workLogs: { orderBy: { createdAt: 'desc' }, include: { updatedBy: true } }
       }
     });
 
-    // Create Audit Log
-    try {
-      await prisma.auditLog.create({
-        data: {
-          action: "UPDATE",
-          entityType: "JOB",
-          entityId: id,
-          entityName: updatedJob.title,
-          performedById: user.id,
-          performedByName: user.name || "Unknown",
-          performedByRole: user.role || "unknown",
-          details: `แก้ไขข้อมูลใบงาน: ${updatedJob.title}`,
-          changes: JSON.stringify({ before: existingJob, after: updatedJob })
+    // Handle returning 'ต้องคืน' items when job is completed
+    if (updateData.status === 'completed' && existingJob.status !== 'completed' && existingJob.inventoryStatus === 'approved') {
+      const itemsToReturn = usedInventory || (existingJob.usedInventory ? JSON.parse(existingJob.usedInventory) : []);
+
+      if (Array.isArray(itemsToReturn) && itemsToReturn.length > 0) {
+        try {
+          // Fetch the inventory types
+          const inventoryIds = itemsToReturn.map(i => i.id).filter(Boolean);
+          const inventories = await prisma.inventory.findMany({
+            where: { id: { in: inventoryIds } },
+            select: { id: true, type: true }
+          });
+
+          // Find only the ones that must be returned
+          const returnableIds = new Set(
+            inventories.filter(inv => inv.type === 'ต้องคืน').map(inv => inv.id)
+          );
+
+          const updates = itemsToReturn
+            .filter((item: any) => item.id && item.qty && returnableIds.has(item.id))
+            .map((item: any) =>
+              prisma.inventory.update({
+                where: { id: item.id },
+                data: { quantity: { increment: item.qty } },
+              })
+            );
+
+          if (updates.length > 0) {
+            await prisma.$transaction(updates);
+          }
+        } catch (txError) {
+          console.error('Inventory return transaction failed:', txError);
         }
-      });
-    } catch (e) { console.error("Audit log failed", e); }
+      }
+    }
 
     const formattedUpdatedJob = {
       ...updatedJob,
@@ -142,47 +232,42 @@ export async function PUT(
       usedInventory: updatedJob.usedInventory ? JSON.parse(updatedJob.usedInventory) : [],
     };
 
-    return sendSuccess(formattedUpdatedJob, 'บันทึกการแก้ไขเรียบร้อยแล้ว');
+    return NextResponse.json(formattedUpdatedJob);
   } catch (error) {
-    return sendServerError(error);
+    console.error('Error updating job:', error);
+    return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
   }
 }
 
+/**
+ * @swagger
+ * /api/jobs/{id}:
+ *   delete:
+ *     summary: Delete a job by ID
+ *     tags: [Jobs]
+ *     description: Deletes a specific job.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success message
+ */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) return sendUnauthorized();
-
-    const user = session.user as any;
-    if (user.role !== 'admin' && user.role !== 'manager') return sendForbidden();
-
-    const job = await prisma.job.findUnique({ where: { id } });
-    if (!job) return sendError('ไม่พบใบงานที่ต้องการลบ', 404);
-
-    await prisma.job.delete({ where: { id } });
-
-    // Create Audit Log
-    try {
-      await prisma.auditLog.create({
-        data: {
-          action: "DELETE",
-          entityType: "JOB",
-          entityId: id,
-          entityName: job.title,
-          performedById: user.id,
-          performedByName: user.name || "Unknown",
-          performedByRole: user.role || "unknown",
-          details: `ลบใบงาน: ${job.title}`
-        }
-      });
-    } catch (e) { console.error("Audit log failed", e); }
-
-    return sendSuccess(null, 'ลบใบงานเรียบร้อยแล้ว');
+    await prisma.job.delete({
+      where: { id }
+    });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return sendServerError(error);
+    console.error('Error deleting job:', error);
+    return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
   }
 }

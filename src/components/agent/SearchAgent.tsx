@@ -37,8 +37,8 @@ const SearchAI = () => {
 
   const mutation = useMutation({
     mutationFn: async (question: string) => {
-      const payload = { answer: question };
-      const res = await fetch(N8N_AI_URL as string, {
+      const payload = { question }; // Changed to match backend explicitly
+      const res = await fetch('/api/agent', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -50,17 +50,8 @@ const SearchAI = () => {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
 
-      const raw = await res.text();
-
-      if (!raw || raw.trim() === "") {
-        throw new Error("Response body is empty");
-      }
-
-      try {
-        return JSON.parse(raw);
-      } catch {
-        throw new Error("Response is not JSON: " + raw);
-      }
+      const data = await res.json();
+      return data;
     },
 
     onSuccess: (data) => {

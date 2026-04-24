@@ -107,7 +107,7 @@ export function EventManager({
           event.title.toLowerCase().includes(query) ||
           event.description?.toLowerCase().includes(query) ||
           event.category?.toLowerCase().includes(query) ||
-          event.departments?.some((dept) => dept.toLowerCase().includes(query)) ||
+          event.departments?.some((dept: string) => dept.toLowerCase().includes(query)) ||
           event.tags?.some((tag) => tag.toLowerCase().includes(query))
 
         if (!matchesSearch) return false
@@ -125,7 +125,7 @@ export function EventManager({
       if (selectedDepartments.length > 0) {
         // ตรวจสอบทั้ง category (legacy) และ departments (new)
         const eventDepts = event.departments || (event.category ? [event.category] : [])
-        const hasMatchingDept = eventDepts.some(dept => selectedDepartments.includes(dept))
+        const hasMatchingDept = eventDepts.some((dept: string) => selectedDepartments.includes(dept))
 
         if (!hasMatchingDept) {
           return false
@@ -814,11 +814,11 @@ export function EventManager({
               </Badge>
             )
           })}
-          {selectedDepartments.map((dept) => (
+          {selectedDepartments.map((dept: string) => (
             <Badge key={dept} variant="secondary" className="gap-1">
               {dept}
               <button
-                onClick={() => setSelectedDepartments((prev) => prev.filter((d) => d !== dept))}
+                onClick={() => setSelectedDepartments((prev) => prev.filter((d: string) => d !== dept))}
                 className="ml-1 hover:text-foreground"
               >
                 <X className="h-3 w-3" />
@@ -1332,12 +1332,12 @@ function EventCard({
               {event.title}
             </div>
             {event.description && (
-               <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                 {event.description}
-               </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                {event.description}
+              </div>
             )}
           </div>
-          
+
           <Badge className={cn("text-[10px] sm:text-xs font-medium px-2.5 py-0.5 rounded-full text-white border-0 shadow-none shrink-0", colorClasses.bg)}>
             {event.category || event.priority || "ทั่วไป"}
           </Badge>
@@ -1345,15 +1345,15 @@ function EventCard({
 
         <div className="flex flex-wrap items-center justify-between gap-3 mt-1.5 pt-3 border-t border-gray-100 dark:border-gray-800/60">
           <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
-             <Clock className="h-3.5 w-3.5 text-gray-400" />
-             {formatTime(event.startTime)} - {formatTime(event.endTime)}
+            <Clock className="h-3.5 w-3.5 text-gray-400" />
+            {formatTime(event.startTime)} - {formatTime(event.endTime)}
           </div>
-          
+
           <div className="flex flex-wrap gap-1.5 items-center justify-end">
             {(event.departments?.length ? event.departments : (event.status ? [event.status] : [])).map((item) => (
-               <Badge key={item} variant="secondary" className="text-[10px] font-medium rounded text-gray-600 bg-gray-100 dark:bg-white/10 dark:text-gray-300 hover:bg-gray-200 border-none shrink-0">
-                 {item}
-               </Badge>
+              <Badge key={item} variant="secondary" className="text-[10px] font-medium rounded text-gray-600 bg-gray-100 dark:bg-white/10 dark:text-gray-300 hover:bg-gray-200 border-none shrink-0">
+                {item}
+              </Badge>
             ))}
           </div>
         </div>
@@ -1622,7 +1622,7 @@ function MonthView({
               </DialogTitle>
             </DialogHeader>
           </div>
-          
+
           <div className="p-6 overflow-y-auto max-h-[calc(85vh-85px)] bg-gray-50/50 dark:bg-[#191919]/50">
             {selectedDayInfo?.events && selectedDayInfo.events.length > 0 ? (
               <div className="space-y-3.5 pb-4">

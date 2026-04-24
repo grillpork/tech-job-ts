@@ -47,19 +47,13 @@ export default function Sidebar() {
       },
       { name: "จัดการผู้ใช้", href: "/dashboard/admin/users", icon: Users },
       { name: "จัดการงาน", href: "/dashboard/admin/jobs", icon: Briefcase },
-      // {
-      //   name: "Notifications",
-      //   href: "/dashboard/admin/notifications",
-      //   icon: Bell,
-      // },
       { name: "รายงานปัญหา", href: "/dashboard/admin/reports", icon: FileText },
       {
-        name: "จัดการวัสดุ", href: "/dashboard/admin/inventorys", icon: ToolCase,
+        name: "จัดการอุปกรณ์", href: "/dashboard/admin/inventorys", icon: ToolCase,
       },
       { name: "ปฏิทิน", href: "/dashboard/admin/calendar", icon: Calendar },
       { name: "แผนที่", href: "/dashboard/admin/map", icon: Map },
       { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
-
     ],
     manager: [
       {
@@ -67,6 +61,15 @@ export default function Sidebar() {
         href: "/dashboard/admin/dashboard",
         icon: LayoutDashboard,
       },
+      { name: "จัดการผู้ใช้", href: "/dashboard/admin/users", icon: Users },
+      { name: "จัดการงาน", href: "/dashboard/admin/jobs", icon: Briefcase },
+      { name: "รายงานปัญหา", href: "/dashboard/admin/reports", icon: FileText },
+      {
+        name: "จัดการอุปกรณ์", href: "/dashboard/admin/inventorys", icon: ToolCase,
+      },
+      { name: "ปฏิทิน", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "แผนที่", href: "/dashboard/admin/map", icon: Map },
+      { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
     ],
     lead_technician: [
       {
@@ -74,20 +77,20 @@ export default function Sidebar() {
         href: "/dashboard/admin/dashboard",
         icon: LayoutDashboard,
       },
+      { name: "จัดการงาน", href: "/dashboard/admin/jobs", icon: Briefcase },
       {
-        name: "งาน", href: "/dashboard/admin/jobs", icon: Briefcase,
+        name: "จัดการอุปกรณ์", href: "/dashboard/admin/inventorys", icon: ToolCase,
       },
+      // รายงานปัญหา → page.tsx จะ render LeadReportPage อัตโนมัติตาม role
+      { name: "รายงานปัญหา", href: "/dashboard/admin/reports", icon: FileText },
       { name: "ปฏิทิน", href: "/dashboard/admin/calendar", icon: Calendar },
+      { name: "แผนที่", href: "/dashboard/admin/map", icon: Map },
+      { name: "AI", href: "/dashboard/admin/agent", icon: Bot },
     ],
     employee: [
       { name: "แดชบอร์ด", href: "/dashboard/employee/dashboard", icon: LayoutDashboard },
       { name: "งาน", href: "/dashboard/employee/jobs", icon: Briefcase },
       { name: "รายงานปัญหา", href: "/dashboard/employee/report", icon: FileText },
-      // {
-      //   name: "Notifications",
-      //   href: "/dashboard/employee/notifications",
-      //   icon: Bell,
-      // },
       {
         name: "ปฏิทิน",
         href: "/dashboard/employee/calendar",
@@ -98,7 +101,9 @@ export default function Sidebar() {
 
   };
 
-  const menus = roleMenus[currentUser?.role || "employee"] || [];
+  const userRole = currentUser?.role || "employee";
+  const effectiveRole = userRole.startsWith("lead_") ? "lead_technician" : userRole;
+  const menus = roleMenus[effectiveRole] || [];
 
   return (
     <TooltipProvider>

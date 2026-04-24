@@ -47,6 +47,10 @@ export default function UsersPage() {
     "admin": "ผู้ดูแลระบบ",
     "manager": "ผู้จัดการ",
     "lead_technician": "หัวหน้าช่าง",
+    "lead_Electrical": "หัวหน้าช่างไฟฟ้า",
+    "lead_Mechanical": "หัวหน้าช่างเครื่องกล",
+    "lead_Civil": "หัวหน้าช่างโยธา",
+    "lead_Technical": "หัวหน้าช่างเทคนิค",
     "employee": "พนักงาน",
   };
 
@@ -150,7 +154,14 @@ export default function UsersPage() {
       label: "บทบาท",
       // sortable: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      render: (row: any) => roleLabels[row.role] || row.role
+      render: (row: any) => {
+        if (row.role.startsWith("lead_")) {
+          const dept = row.role.split("_")[1];
+          const deptLabel = departmentLabels[dept] || dept;
+          return `หัวหน้า (${deptLabel})`;
+        }
+        return roleLabels[row.role] || row.role;
+      }
     },
     {
       key: "status",
@@ -267,7 +278,10 @@ export default function UsersPage() {
               options: [
                 { label: "ผู้ดูแลระบบ", value: "admin" },
                 { label: "ผู้จัดการ", value: "manager" },
-                { label: "หัวหน้าช่าง", value: "lead_technician" },
+                { label: "หัวหน้า (ไฟฟ้า)", value: "lead_Electrical" },
+                { label: "หัวหน้า (เครื่องกล)", value: "lead_Mechanical" },
+                { label: "หัวหน้า (โยธา)", value: "lead_Civil" },
+                { label: "หัวหน้า (เทคนิค)", value: "lead_Technical" },
                 { label: "พนักงาน", value: "employee" },
               ],
             },

@@ -1,10 +1,19 @@
 "use client";
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import { Inventory } from "@/lib/types/inventory";
-import { useJobStore } from "./jobStore";
-import { useUIStore } from "@/stores/uiStore";
 import { notificationHelpers } from "@/stores/notificationStore";
+import { useJobStore } from "./jobStore";
+
+export type Inventory = {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+  quantity: number;
+  location?: string | null;
+  status: "พร้อมใช้" | "ใกล้หมด" | "หมด";
+  type: "ต้องคืน" | "ไม่ต้องคืน";
+  price: number;
+  requireFrom?: string | null;
+};
 
 export type InventoryRequestStatus = "pending" | "approved" | "rejected";
 
@@ -12,13 +21,13 @@ export type InventoryRequest = {
   id: string;
   jobId: string;
   status: InventoryRequestStatus;
-  items: string; // JSON from DB
-  requestedById: string;
+  requestedItems: { id: string; qty: number }[];
   requestedBy: { id: string; name: string };
   requestedAt: string;
-  processedById?: string | null;
-  processedBy?: { id: string; name: string } | null;
-  processedAt?: string | null;
+  approvedBy?: { id: string; name: string } | null;
+  approvedAt?: string | null;
+  rejectedBy?: { id: string; name: string } | null;
+  rejectedAt?: string | null;
   note?: string | null;
 };
 
@@ -26,233 +35,229 @@ interface InventoryStore {
   inventories: Inventory[];
   inventoryRequests: InventoryRequest[];
   isHydrated: boolean;
-  addInventory: (item: Inventory) => Promise<boolean>;
-  updateInventory: (item: Inventory) => Promise<boolean>;
-  deleteInventory: (id: string) => Promise<boolean>;
+
+  // Inventory CRUD — all synced to DB
+  addInventory: (item: Omit<Inventory, "id">) => Promise<Inventory | null>;
+  updateInventory: (item: Inventory) => Promise<void>;
+  deleteInventory: (id: string) => Promise<void>;
   clearAll: () => void;
   reorderInventory: (orderedIds: string[]) => void;
   fetchInventory: () => Promise<void>;
-  addInventoryRequest: (request: any) => Promise<void>;
-  getInventoryRequestStatus: (jobId: string) => InventoryRequestStatus | null;
-  getInventoryRequestByJobId: (jobId: string) => InventoryRequest | undefined;
+
+  // Inventory Request functions — local state only for now
+  addInventoryRequest: (request: Omit<InventoryRequest, "id" | "requestedAt">) => string;
   updateInventoryRequestStatus: (
     requestId: string,
     status: InventoryRequestStatus,
     updatedBy: { id: string; name: string },
     note?: string | null
-  ) => Promise<void>;
+  ) => void;
+  getInventoryRequestByJobId: (jobId: string) => InventoryRequest | undefined;
+  getInventoryRequestStatus: (jobId: string) => InventoryRequestStatus | null;
 }
 
-export const useInventoryStore = create<InventoryStore>()(
-  persist(
-    (set, get) => ({
-      inventories: [],
-      inventoryRequests: [],
-      isHydrated: false,
+export const useInventoryStore = create<InventoryStore>()((set, get) => ({
+  inventories: [],
+  inventoryRequests: [],
+  isHydrated: false,
 
-      addInventory: async (item) => {
-        const { addToast } = useUIStore.getState();
-        try {
-          const res = await fetch('/api/inventory', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item),
-          });
-          const result = await res.json();
-          if (res.ok && result.success) {
-            set((state) => ({ inventories: [result.data, ...state.inventories] }));
-            addToast(result.message || "เพิ่มพัสดุสำเร็จ", "success");
-            return true;
-          }
-          addToast(result.message || "ไม่สามารถเพิ่มพัสดุได้", "error");
-          return false;
-        } catch (error) {
-          console.error("Error in addInventory:", error);
-          return false;
-        }
-      },
-
-      updateInventory: async (item) => {
-        const { addToast } = useUIStore.getState();
-        try {
-          const res = await fetch(`/api/inventory/${item.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item),
-          });
-
-          const result = await res.json();
-          if (res.ok && result.success) {
-            set((state) => ({
-              inventories: state.inventories.map((inv) =>
-                inv.id === item.id ? result.data : inv
-              ),
-            }));
-            addToast(result.message || "แก้ไขพัสดุสำเร็จ", "success");
-            return true;
-          }
-          addToast(result.message || "ไม่สามารถแก้ไขพัสดุได้", "error");
-          return false;
-        } catch (error) {
-          console.error("Error in updateInventory:", error);
-          return false;
-        }
-      },
-
-      deleteInventory: async (id) => {
-        const { addToast } = useUIStore.getState();
-        try {
-          const res = await fetch(`/api/inventory/${id}`, {
-            method: 'DELETE',
-          });
-
-          const result = await res.json();
-          if (res.ok && result.success) {
-            set((state) => ({
-              inventories: state.inventories.filter((inv) => inv.id !== id),
-            }));
-            addToast(result.message || "ลบพัสดุสำเร็จ", "success");
-            return true;
-          }
-          addToast(result.message || "ไม่สามารถลบพัสดุได้", "error");
-          return false;
-        } catch (error) {
-          console.error("Error in deleteInventory:", error);
-          return false;
-        }
-      },
-
-      clearAll: () => set({ inventories: [] }),
-
-      reorderInventory: (orderedIds) =>
-        set((state) => {
-          const idToItem = new Map(state.inventories.map((it) => [it.id, it]));
-          const next: Inventory[] = [];
-          for (const id of orderedIds) {
-            const item = idToItem.get(id);
-            if (item) next.push(item);
-          }
-          for (const item of state.inventories) {
-            if (!orderedIds.includes(item.id)) {
-              next.push(item);
-            }
-          }
-          return { inventories: next };
-        }),
-
-      fetchInventory: async () => {
-        try {
-          const [invRes, reqRes] = await Promise.all([
-            fetch('/api/inventory'),
-            fetch('/api/inventory/requests')
-          ]);
-          
-          const invResult = await invRes.json();
-          const reqResult = await reqRes.json();
-
-          if (invRes.ok && invResult.success) {
-            set({ inventories: invResult.data });
-          }
-          
-          if (reqRes.ok && reqResult.success) {
-            set({ inventoryRequests: reqResult.data });
-          }
-        } catch (e) {
-          console.error("Failed to fetch inventory data", e);
-        }
-      },
-
-      addInventoryRequest: async (requestData) => {
-        const { addToast } = useUIStore.getState();
-        try {
-          const res = await fetch('/api/inventory/requests', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jobId: requestData.jobId,
-              requestedItems: requestData.requestedItems,
-              note: requestData.note
-            })
-          });
-          const result = await res.json();
-          if (res.ok && result.success) {
-            set((state) => ({
-              inventoryRequests: [...state.inventoryRequests, result.data],
-            }));
-            
-            const job = useJobStore.getState().getJobById(requestData.jobId);
-            if (job) {
-              notificationHelpers.inventoryRequestCreated(
-                job.title,
-                requestData.requestedBy.name,
-                result.data.id,
-                requestData.jobId
-              );
-            }
-            addToast(result.message || "สร้างคำขอเบิกสำเร็จ", "success");
-          } else {
-            addToast(result.message || "ไม่สามารถสร้างคำขอเบิกได้", "error");
-          }
-        } catch (err) {
-          console.error("Failed to sync inventory request", err);
-        }
-      },
-
-      getInventoryRequestStatus: (jobId: string) => {
-        const req = get().inventoryRequests.find(r => r.jobId === jobId);
-        return req?.status || null;
-      },
-      
-      getInventoryRequestByJobId: (jobId: string) => {
-        return get().inventoryRequests.find(r => r.jobId === jobId);
-      },
-
-      updateInventoryRequestStatus: async (requestId, status, updatedBy, note) => {
-        const { addToast } = useUIStore.getState();
-        try {
-          const res = await fetch(`/api/inventory/requests/${requestId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status, note })
-          });
-
-          const result = await res.json();
-          if (res.ok && result.success) {
-            const updatedRequest = result.data;
-            set((state) => ({
-              inventoryRequests: state.inventoryRequests.map((r) => 
-                r.id === requestId ? updatedRequest : r
-              ),
-            }));
-
-            addToast(result.message || "ปรับปรุงสถานะเรียบร้อยแล้ว", "success");
-            await get().fetchInventory();
-            
-            const job = useJobStore.getState().getJobById(updatedRequest.jobId);
-            if (job) {
-              if (status === "approved") {
-                notificationHelpers.inventoryRequestApproved(job.title, updatedBy.name, requestId, updatedRequest.jobId);
-              } else if (status === "rejected") {
-                notificationHelpers.inventoryRequestRejected(job.title, updatedBy.name, requestId, updatedRequest.jobId, note || undefined);
-              }
-            }
-          } else {
-            addToast(result.message || "ไม่สามารถปรับปรุงสถานะได้", "error");
-          }
-        } catch (error) {
-          console.error("Failed to update inventory request status:", error);
-        }
-      },
-    }),
-    {
-      name: "inventory-storage",
-      storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.isHydrated = true;
-          state.fetchInventory();
-        }
-      },
+  fetchInventory: async () => {
+    try {
+      const res = await fetch('/api/inventory');
+      if (res.ok) {
+        const data = await res.json();
+        // Handle both raw array and structured { data: [] }
+        const inventories = Array.isArray(data) ? data : (data.data ?? []);
+        set({ inventories, isHydrated: true });
+        console.log("✅ InventoryStore: Fetched from API.", inventories.length, "items");
+      } else {
+        console.error("❌ InventoryStore: API error", res.status);
+      }
+    } catch (e) {
+      console.error("❌ InventoryStore: Failed to fetch inventory", e);
     }
-  )
-);
+  },
+
+  addInventory: async (itemData) => {
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemData),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to create inventory item');
+      }
+
+      const newItem: Inventory = await res.json();
+      set((state) => ({ inventories: [...state.inventories, newItem] }));
+      return newItem;
+    } catch (error: any) {
+      console.error("❌ InventoryStore: addInventory failed", error.message);
+      return null;
+    }
+  },
+
+  updateInventory: async (item) => {
+    try {
+      const { id, ...data } = item;
+      const res = await fetch(`/api/inventory/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update inventory item');
+      }
+
+      const updated: Inventory = await res.json();
+      set((state) => ({
+        inventories: state.inventories.map((inv) => (inv.id === id ? updated : inv)),
+      }));
+    } catch (error: any) {
+      console.error("❌ InventoryStore: updateInventory failed", error.message);
+      // Removed 'throw error' to prevent unhandled promise rejections if Ghost data exists
+    }
+  },
+
+  deleteInventory: async (id) => {
+    try {
+      const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to delete inventory item');
+      }
+
+      set((state) => ({
+        inventories: state.inventories.filter((inv) => inv.id !== id),
+      }));
+    } catch (error: any) {
+      console.error("❌ InventoryStore: deleteInventory failed", error.message);
+      throw error;
+    }
+  },
+
+  clearAll: () => set({ inventories: [] }),
+
+  reorderInventory: (orderedIds) =>
+    set((state) => {
+      const idToItem = new Map(state.inventories.map((it) => [it.id, it]));
+      const next: Inventory[] = [];
+      for (const id of orderedIds) {
+        const item = idToItem.get(id);
+        if (item) next.push(item);
+      }
+      for (const item of state.inventories) {
+        if (!orderedIds.includes(item.id)) next.push(item);
+      }
+      return { inventories: next };
+    }),
+
+  // ---- Inventory Request functions (still local state for realtime UX) ----
+  addInventoryRequest: (requestData) => {
+    const newRequest: InventoryRequest = {
+      id: crypto.randomUUID(),
+      ...requestData,
+      requestedAt: new Date().toISOString(),
+      approvedBy: null,
+      approvedAt: null,
+      rejectedBy: null,
+      rejectedAt: null,
+      note: requestData.note || null,
+    };
+    set((state) => ({
+      inventoryRequests: [...state.inventoryRequests, newRequest],
+    }));
+
+    try {
+      const job = useJobStore.getState().getJobById(requestData.jobId);
+      if (job) {
+        notificationHelpers.inventoryRequestCreated(
+          job.title,
+          requestData.requestedBy.name,
+          newRequest.id,
+          requestData.jobId
+        );
+      }
+    } catch (error) {
+      console.error("Failed to create notification:", error);
+    }
+
+    return newRequest.id;
+  },
+
+  updateInventoryRequestStatus: (requestId, status, updatedBy, note) => {
+    const currentRequests = get().inventoryRequests;
+    const targetIndex = currentRequests.findIndex((r) => r.id === requestId);
+    if (targetIndex === -1) return;
+
+    const req = currentRequests[targetIndex];
+    const updateData: Partial<InventoryRequest> = {
+      status,
+      note: note !== undefined ? note : req.note,
+    };
+
+    if (status === "approved") {
+      updateData.approvedBy = updatedBy;
+      updateData.approvedAt = new Date().toISOString();
+      updateData.rejectedBy = null;
+      updateData.rejectedAt = null;
+    } else if (status === "rejected") {
+      updateData.rejectedBy = updatedBy;
+      updateData.rejectedAt = new Date().toISOString();
+      updateData.approvedBy = null;
+      updateData.approvedAt = null;
+    }
+
+    const updatedRequest = { ...req, ...updateData };
+    set((state) => ({
+      inventoryRequests: state.inventoryRequests.map((r, i) =>
+        i === targetIndex ? updatedRequest : r
+      ),
+    }));
+
+    try {
+      const job = useJobStore.getState().getJobById(updatedRequest.jobId);
+      if (job) {
+        if (status === "approved") {
+          notificationHelpers.inventoryRequestApproved(
+            job.title,
+            updatedBy.name,
+            requestId,
+            updatedRequest.jobId
+          );
+        } else if (status === "rejected") {
+          notificationHelpers.inventoryRequestRejected(
+            job.title,
+            updatedBy.name,
+            requestId,
+            updatedRequest.jobId,
+            note || undefined
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Failed to create notification:", error);
+    }
+  },
+
+  getInventoryRequestByJobId: (jobId) => {
+    return get().inventoryRequests.find((req) => req.jobId === jobId);
+  },
+
+  // ✅ Fixed: คืน null แทน "pending" เมื่อไม่มี request
+  getInventoryRequestStatus: (jobId) => {
+    const request = get().inventoryRequests.find((req) => req.jobId === jobId);
+    return request?.status ?? null;
+  },
+}));
+
+// Auto-fetch on first use (call this in your layout or provider)
+export function initInventoryStore() {
+  useInventoryStore.getState().fetchInventory();
+}

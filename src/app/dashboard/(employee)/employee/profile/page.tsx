@@ -342,7 +342,7 @@ const ProfilePage: React.FC = () => {
                     <Button
                       variant="secondary"
                       className="bg-white text-gray-900 hover:bg-gray-100"
-                      onClick={() => router.push("/dashboard/admin/profile/edit")}
+                      onClick={() => router.push("/dashboard/employee/profile/edit")}
                     >
                       Manage your account
                     </Button>
@@ -494,10 +494,10 @@ const ProfilePage: React.FC = () => {
 
                 <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-lg">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-4 underline-offset-4 underline">Teams</h3>
-                  <Button variant="outline" className="w-full" onClick={() => router.push("/dashboard/admin/users/create")}>
+                  <Button variant="outline" className="w-full opacity-50 cursor-not-allowed" disabled>
                     Create a team
                   </Button>
-                  <p className="text-xs text-gray-500 mt-3">Need a new workspace for a project? Spin one up for free.</p>
+                  <p className="text-xs text-gray-500 mt-3">Contact your administrator to create a new team or workspace.</p>
                 </div>
               </aside>
 
@@ -507,7 +507,7 @@ const ProfilePage: React.FC = () => {
                   <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-lg">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Works Progress</h2>
-                      <button className="text-sm text-teal-600 dark:text-teal-400 hover:underline" onClick={() => router.push("/dashboard/admin/jobs")}>
+                      <button className="text-sm text-teal-600 dark:text-teal-400 hover:underline" onClick={() => router.push("/dashboard/employee/jobs")}>
                         View all
                       </button>
                     </div>

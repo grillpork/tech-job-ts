@@ -122,7 +122,7 @@ export default function InventoryDetailPage() {
   const router = useRouter();
   const inventoryId = params.id as string;
 
-  const { inventories, getInventoryRequestStatus } = useInventoryStore();
+  const { inventories } = useInventoryStore();
   const { jobs } = useJobStore();
   const { getAuditLogsByEntity } = useAuditLogStore();
 
@@ -136,8 +136,7 @@ export default function InventoryDetailPage() {
     if (!usesInventory) return false;
 
     // ตรวจสอบว่าได้รับการอนุมัติแล้ว
-    const requestStatus = getInventoryRequestStatus(job.id);
-    return requestStatus === "approved";
+    return job.inventoryStatus === "approved";
   });
 
   // สร้างข้อมูล job พร้อมจำนวนที่ใช้
@@ -317,7 +316,7 @@ export default function InventoryDetailPage() {
                           <TableRow
                             key={job.id}
                             className="cursor-pointer hover:bg-secondary"
-                            onClick={() => router.push(`/dashboard/(admin)/admin/jobs/${job.id}`)}
+                            onClick={() => router.push(`/dashboard/admin/jobs/${job.id}`)}
                           >
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
@@ -348,7 +347,7 @@ export default function InventoryDetailPage() {
                       <div
                         key={job.id}
                         className="border rounded-lg p-4 space-y-2 cursor-pointer hover:bg-secondary transition-colors"
-                        onClick={() => router.push(`/dashboard/(admin)/admin/jobs/${job.id}`)}
+                        onClick={() => router.push(`/dashboard/admin/jobs/${job.id}`)}
                       >
                         <div className="flex items-start justify-between">
                           <h4 className="font-medium flex-1">{job.title}</h4>

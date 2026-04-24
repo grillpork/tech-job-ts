@@ -1,27 +1,36 @@
 import "dotenv/config";
 import { PrismaClient } from '@prisma/client';
 import { fakerTH } from '@faker-js/faker';
+import bcrypt from 'bcryptjs';
 import { MOCK_USERS } from '../src/lib/mocks/user';
 import { MOCK_INVENTORIES } from '../src/lib/mocks/inventory';
 
 const prisma = new PrismaClient();
 
+const DEPT_OPTIONS = ["Electrical", "Mechanical", "Civil", "Technical"];
+
 async function main() {
-  console.log('Start seeding...');
+  console.log('🚀 Start corrected comprehensive seeding...');
 
   // 1. Clean up
-  await prisma.workLog.deleteMany();
-  await prisma.task.deleteMany();
-  await prisma.job.deleteMany();
-  await prisma.report.deleteMany();
-  await prisma.inventory.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.auditLog.deleteMany();
+  const tablenames = await prisma.$queryRaw<
+    Array<{ tablename: string }>
+  >`SELECT tablename FROM pg_tables WHERE schemaname='public'`;
 
-  console.log('Deleted old data.');
+  for (const { tablename } of tablenames) {
+    if (tablename !== '_prisma_migrations') {
+      try {
+        await prisma.$executeRawUnsafe(`TRUNCATE TABLE "public"."${tablename}" CASCADE;`);
+      } catch (error) {
+        console.log(`Could not truncate table ${tablename}: ${error}`);
+      }
+    }
+  }
+  console.log('🗑️ Database cleared.');
 
   // 2. Seed Users
   for (const user of MOCK_USERS) {
+    const hashedPassword = user.password ? await bcrypt.hash(user.password, 10) : null;
     await prisma.user.create({
       data: {
         id: user.id,
@@ -37,14 +46,19 @@ async function main() {
         address: user.address,
         linkedin: user.linkedin,
         employeeId: user.employeeId,
-        github: user.github,
         employmentType: user.employmentType,
         status: user.status || "active",
-        password: user.password
+        password: hashedPassword
       }
     });
   }
-  console.log(`Seeded ${MOCK_USERS.length} users.`);
+  
+  const allUsers = await prisma.user.findMany();
+  const leads = allUsers.filter(u => u.role.startsWith('lead_'));
+  const employees = allUsers.filter(u => u.role === 'employee');
+  const managers = allUsers.filter(u => u.role === 'manager' || u.role === 'admin');
+
+  console.log(`👤 Seeded ${allUsers.length} users.`);
 
   // 3. Seed Inventory
   for (const inv of MOCK_INVENTORIES) {
@@ -62,119 +76,101 @@ async function main() {
       }
     });
   }
-  console.log(`Seeded ${MOCK_INVENTORIES.length} inventory items.`);
+  console.log(`📦 Seeded inventory items.`);
 
-  // 4. Seed Jobs using Faker
-  const creator = MOCK_USERS.find(u => u.role === 'manager') || MOCK_USERS[0];
-  const lead = MOCK_USERS.find(u => u.role === 'lead_technician') || MOCK_USERS[2];
-  const emp = MOCK_USERS.find(u => u.role === 'employee') || MOCK_USERS[5];
-
-  const statuses = ['pending', 'in_progress', 'completed', 'cancelled', 'pending_approval'];
-  const priorities = ['low', 'medium', 'high', 'urgent'];
-  const types = ['อาคาร', 'ออฟฟิศ', 'ระบบไฟฟ้า', 'ประปา', 'แอร์', 'ทำความสะอาด'];
-
-  // Thai localized dummy data
-  const thaiJobTitles = [
-    'ซ่อมแอร์ห้องประชุมใหญ่', 'ตรวจสอบระบบไฟฟ้าชั้น 2', 'เดินสาย LAN ใหม่แผนกบัญชี', 
-    'แก้ไขปัญหาน้ำรั่วซึม', 'ล้างแอร์ประจำปี', 'ติดตั้งกล้องวงจรปิด', 
-    'ซ่อมแซมฝ้าเพดาน', 'เปลี่ยนหลอดไฟสำนักงาน', 'ตรวจสอบโครงสร้างอาคาร', 
-    'บำรุงรักษาระบบ Server', 'ซ่อมเครื่องถ่ายเอกสาร', 'อัปเกรดระบบเครือข่าย'
-  ];
-
-  const actualDepartments = [
-    'ไฟฟ้า', 'เครื่องกล', 'โยธา', 'เทคนิค'
-  ];
-
-  for (let i = 0; i < 30; i++) {
-    const isCompleted = fakerTH.datatype.boolean();
-    
-    // Pick a random Thai job title instead of generic lorem
-    const jobTitle = fakerTH.helpers.arrayElement(thaiJobTitles);
-    
-    await prisma.job.create({
-      data: {
-        title: `${jobTitle} ${fakerTH.string.alphanumeric(4).toUpperCase()}`,
-        description: `แจ้งซ่อมด่วน: ${jobTitle} บริเวณสถานที่ระบุ ต้องการช่างเข้าตรวจสอบและประเมินราคาซ่อมแซมเบื้องต้น`,
-        status: fakerTH.helpers.arrayElement(statuses),
-        departments: JSON.stringify([fakerTH.helpers.arrayElement(actualDepartments)]),
-        type: fakerTH.helpers.arrayElement(types),
-        priority: fakerTH.helpers.arrayElement(priorities),
-        
-        creatorId: creator.id,
-        leadTechnicianId: fakerTH.datatype.boolean() ? lead.id : null,
-        assignedEmployees: {
-          connect: [{ id: emp.id }]
-        },
-        
-        tasks: {
-          create: [
-            { description: 'ตรวจสอบหน้างานเบื้องต้น', order: 0, isCompleted: isCompleted },
-            { description: 'ดำเนินการซ่อมแซม/แก้ไข', order: 1, isCompleted: false },
-            { description: 'ทดสอบการใช้งานหลังซ่อม', order: 2, isCompleted: false }
-          ]
-        },
-        
-        location: JSON.stringify({ 
-           lat: fakerTH.location.latitude({ max: 13.9, min: 13.5 }), 
-           lng: fakerTH.location.longitude({ max: 100.9, min: 100.3 }), 
-           name: `สถานที่: อาคาร ${fakerTH.company.name()}`
-        }),
-        
-        // Add realistic Thai customer details
-        customerName: `${fakerTH.person.firstName()} ${fakerTH.person.lastName()}`,
-        customerPhone: fakerTH.phone.number({ style: 'national' }),
-        customerCompanyName: fakerTH.company.name(),
-        customerAddress: fakerTH.location.streetAddress(),
-        customerType: fakerTH.helpers.arrayElement(['ลูกค้าองค์กร', 'ลูกค้าทั่วไป']),
-
-        usedInventory: fakerTH.datatype.boolean() ? JSON.stringify([
-           { id: "inv-001", qty: fakerTH.number.int({ min: 1, max: 3 }) }
-        ]) : null,
-        
-        createdAt: fakerTH.date.recent({ days: 30 }),
-        startDate: fakerTH.date.soon({ days: 5 }),
-      }
-    });
-  }
-
-  console.log(`Seeded 30 sample jobs using Faker.`);
-
-  // 5. Seed Reports (For Dashboard 'openReports' feature)
-  const reportTypes = ['bug', 'request', 'incident'];
+  // 4. Seed Reports (50 Items)
+  console.log('📝 Seeding 50 reports...');
   const reportStatuses = ['open', 'in_progress', 'resolved', 'closed'];
-
-  const thaiReportIssues = [
-    'แอร์ไม่เย็นเลย รบกวนตรวจสอบด่วน', 
-    'น้ำประปาไหลอ่อนในห้องน้ำชั้น 3', 
-    'อินเทอร์เน็ตหลุดบ่อยมาก แผนกการตลาด', 
-    'ไฟทางเดินอาคาร B กะพริบ', 
-    'ประตูอัตโนมัติค้าง ปิดไม่สนิท', 
-    'คอมพิวเตอร์เปิดไม่ติด', 
-    'ขอเบิกอุปกรณ์เพิ่มเติมสำหรับการซ่อมบำรุง', 
-    'เครื่องพิมพ์แผนกบัญชีกระดาษติดบ่อย', 
-    'ระบบเซิร์ฟเวอร์โหลดช้าผิดปกติ', 
-    'พบรอยร้าวที่ผนังห้องประชุม'
-  ];
   
-  for (let i = 0; i < 30; i++) {
-    const issueTitle = fakerTH.helpers.arrayElement(thaiReportIssues);
+  for (let i = 0; i < 50; i++) {
+    const isMulti = fakerTH.datatype.boolean({ probability: 0.3 });
+    const status = fakerTH.helpers.arrayElement(reportStatuses);
+    const selectedDepts = isMulti 
+      ? fakerTH.helpers.arrayElements(DEPT_OPTIONS, { min: 2, max: 3 })
+      : [fakerTH.helpers.arrayElement(DEPT_OPTIONS)];
+    
     await prisma.report.create({
       data: {
-        title: `ปัญหาแจ้งเตือนขัดข้อง: ${issueTitle}`,
-        description: `ผู้ใช้งานแจ้งปัญหา: ${issueTitle} ขอให้ทีมงานที่เกี่ยวข้องช่วยตรวจสอบและแก้ไขโดยด่วน`,
-        type: fakerTH.helpers.arrayElement(reportTypes),
-        status: fakerTH.helpers.arrayElement(reportStatuses),
-        priority: fakerTH.helpers.arrayElement(priorities),
-        reporterId: creator.id,
-        assigneeId: fakerTH.datatype.boolean() ? lead.id : null,
+        title: fakerTH.hacker.phrase(),
+        description: fakerTH.lorem.paragraph(),
+        type: fakerTH.helpers.arrayElement(['bug', 'request', 'incident']),
+        status: status,
+        priority: fakerTH.helpers.arrayElement(['low', 'medium', 'high', 'urgent']),
+        isMultiDept: isMulti,
+        departments: JSON.stringify(selectedDepts),
+        resolvedDepts: JSON.stringify(status === 'resolved' ? selectedDepts : []),
+        reporterId: fakerTH.helpers.arrayElement([...managers, ...employees]).id,
         createdAt: fakerTH.date.recent({ days: 30 }),
+        resolutionNote: status === 'resolved' ? 'แก้ไขเสร็จสิ้น ตรวจสอบระบบแล้วปกติดี' : null,
       }
     });
   }
-  
-  console.log(`Seeded 30 sample reports using Faker.`);
 
-  console.log('Seeding finished.');
+  // 5. Seed Jobs (5 Items)
+  console.log('🛠️ Seeding 5 items with minimal teams...');
+  const jobStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
+
+  for (let i = 0; i < 5; i++) {
+    const status = fakerTH.helpers.arrayElement(jobStatuses);
+    const dept = fakerTH.helpers.arrayElement(DEPT_OPTIONS);
+    const creator = fakerTH.helpers.arrayElement(managers);
+    const lead = leads.find(l => l.department === dept) || fakerTH.helpers.arrayElement(leads);
+    const teamSize = fakerTH.number.int({ min: 1, max: 2 });
+    const team = fakerTH.helpers.arrayElements(employees, teamSize);
+
+    const job = await prisma.job.create({
+      data: {
+        title: `${fakerTH.helpers.arrayElement(['งานซ่อม', 'ติดตั้งระบบ', 'ตรวจสอบ', 'บำรุงรักษา'])} ${dept} #${i + 1}`,
+        description: fakerTH.lorem.sentence(),
+        status: status,
+        priority: fakerTH.helpers.arrayElement(['low', 'medium', 'high', 'urgent']),
+        type: fakerTH.helpers.arrayElement(['maintenance', 'repair', 'installation', 'emergency']),
+        creator: { connect: { id: creator.id } },
+        leadTechnician: { connect: { id: lead.id } },
+        assignedEmployees: { connect: team.map(t => ({ id: t.id })) },
+        departments: JSON.stringify([dept]),
+        location: JSON.stringify({ 
+          lat: 13.75 + (Math.random() - 0.5) * 0.1, 
+          lng: 100.5 + (Math.random() - 0.5) * 0.1, 
+          name: fakerTH.location.streetAddress() 
+        }),
+        customerName: fakerTH.person.fullName(),
+        customerPhone: fakerTH.phone.number(),
+        createdAt: fakerTH.date.recent({ days: 20 }),
+      }
+    });
+
+    // Seed tasks
+    const taskCount = fakerTH.number.int({ min: 2, max: 5 });
+    for (let j = 0; j < taskCount; j++) {
+      await prisma.task.create({
+        data: {
+          jobId: job.id,
+          description: `ขั้นตอนที่ ${j+1}: ${fakerTH.lorem.words(3)}`,
+          isCompleted: status === 'completed' ? true : fakerTH.datatype.boolean(),
+          order: j
+        }
+      });
+    }
+
+    // Seed worklogs
+    if (status !== 'pending') {
+      const logCount = fakerTH.number.int({ min: 1, max: 3 });
+      for (let k = 0; k < logCount; k++) {
+        await prisma.workLog.create({
+          data: {
+            jobId: job.id,
+            updatedById: fakerTH.helpers.arrayElement([lead, ...team]).id,
+            status: fakerTH.helpers.arrayElement(['เริมงาน', 'พักเที่ยง', 'แก้ไขเสร็จสิ้น', 'รออะไหล่']),
+            note: fakerTH.lorem.sentence(),
+            createdAt: fakerTH.date.recent({ days: 2 })
+          }
+        });
+      }
+    }
+  }
+
+  console.log('✅ Corrected seeding finished successfully!');
 }
 
 main()

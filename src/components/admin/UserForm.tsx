@@ -62,7 +62,7 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
       const newUser = {
         name: values.name,
         email: values.email,
-        role: (values.role || "employee") as "admin" | "manager" | "lead_technician" | "employee",
+        role: values.role as any,
         status: values.status || "active",
         imageUrl: values.imageUrl || null,
         password: values.password || "password123",
@@ -115,20 +115,29 @@ export default function UserForm({ user, onClose }: { user?: User; onClose: () =
 
       <div>
         <Label htmlFor="role">บทบาท</Label>
-        <Select
-          value={roleValue || "employee"}
-          onValueChange={(value) => setValue("role", value)}
-        >
-          <SelectTrigger id="role" className="mt-1">
-            <SelectValue placeholder="เลือกบทบาท" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="employee">Employee</SelectItem>
-            <SelectItem value="lead_technician">Lead Technician</SelectItem>
-            <SelectItem value="manager">Manager</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select
+            value={roleValue || "employee"}
+            onValueChange={(value) => {
+              setValue("role", value);
+              if (value.startsWith("lead_")) {
+                const dept = value.split("_")[1];
+                setValue("department", dept);
+              }
+            }}
+          >
+            <SelectTrigger id="role" className="mt-1">
+              <SelectValue placeholder="เลือกบทบาท" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="employee">ช่างทั่วไป (Employee)</SelectItem>
+              <SelectItem value="lead_Electrical">หัวหน้าช่างไฟฟ้า (Lead Electrical)</SelectItem>
+              <SelectItem value="lead_Mechanical">หัวหน้าช่างเครื่องกล (Lead Mechanical)</SelectItem>
+              <SelectItem value="lead_Civil">หัวหน้าช่างโยธา (Lead Civil)</SelectItem>
+              <SelectItem value="lead_Technical">หัวหน้าช่างเทคนิค (Lead Technical)</SelectItem>
+              <SelectItem value="manager">ผู้จัดการ (Manager)</SelectItem>
+              <SelectItem value="admin">ผู้ดูแลระบบ (Admin)</SelectItem>
+            </SelectContent>
+          </Select>
       </div>
 
       <div>

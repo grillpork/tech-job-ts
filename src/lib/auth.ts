@@ -24,9 +24,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const isPasswordValid = 
-          (await bcrypt.compare(credentials.password, user.password)) || 
-          credentials.password === user.password;
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
           return null;
@@ -37,7 +35,8 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           image: user.imageUrl,
-          role: user.role as "admin" | "manager" | "lead_technician" | "employee",
+          role: user.role as any,
+          department: user.department,
         };
       }
     })
@@ -46,17 +45,16 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.role = (user as any).role;
+        token.department = (user as any).department;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).id = token.id;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).role = token.role;
+        (session.user as any).department = token.department;
       }
       return session;
     }

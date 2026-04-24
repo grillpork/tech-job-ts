@@ -1,58 +1,47 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Standard API Response Structure
+ * ส่ง Response เมื่อสำเร็จ (200 OK)
  */
-export type ApiResponse<T = any> = {
-  success: boolean;
-  message: string;
-  data?: T;
-  requestId: string;
-  error?: any;
-};
-
-/**
- * Send a standardized success response
- */
-export function sendSuccess<T = any>(data: T, message: string = 'ดำเนินการสำเร็จ') {
+export function sendSuccess(data: any, message: string = 'ดำเนินการสำเร็จ') {
   return NextResponse.json({
     success: true,
     message,
-    data,
-    requestId: crypto.randomUUID(),
-  } as ApiResponse<T>);
+    data: data ?? null,
+  }, { status: 200 });
 }
 
 /**
- * Send a standardized error response
+ * ส่ง Response เมื่อเกิดข้อผิดพลาดทั่วไป (ค่าเริ่มต้น 400 Bad Request)
  */
-export function sendError(message: string, status: number = 400, error?: any) {
+export function sendError(message: string, status: number = 400) {
   return NextResponse.json({
     success: false,
     message,
-    requestId: crypto.randomUUID(),
-    error: error || undefined,
-  } as ApiResponse, { status });
+  }, { status });
 }
 
 /**
- * Helper to handle session errors
+ * ส่ง Response เมื่อไม่ได้รับอนุญาต (401 Unauthorized)
  */
-export function sendUnauthorized(message: string = 'สิทธิ์การเข้าถึงไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่') {
+export function sendUnauthorized(message: string = 'กรุณาเข้าสู่ระบบก่อนดำเนินการ') {
   return sendError(message, 401);
 }
 
 /**
- * Helper to handle forbidden errors (role issues)
+ * ส่ง Response เมื่อไม่มีสิทธิ์เข้าถึง (403 Forbidden)
  */
-export function sendForbidden(message: string = 'คุณไม่มีสิทธิ์เข้าถึงฟีเจอร์นี้') {
+export function sendForbidden(message: string = 'คุณไม่มีสิทธิ์ในการดำเนินการนี้') {
   return sendError(message, 403);
 }
 
 /**
- * Helper to handle internal server errors
+ * ส่ง Response เมื่อเกิดข้อผิดพลาดที่ Server (500 Internal Server Error)
  */
-export function sendServerError(error: any, message: string = 'เกิดข้อผิดพลาดภายในระบบ กรุณาติดต่อผู้ดูแล') {
-  console.error("API ERROR:", error);
-  return sendError(message, 500, process.env.NODE_ENV === 'development' ? error : undefined);
+export function sendServerError(error: any) {
+  console.error('[API_ERROR]', error);
+  
+  const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์';
+  
+  return sendError(message, 500);
 }

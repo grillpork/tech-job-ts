@@ -1,8 +1,9 @@
+export type UserRole = 'admin' | 'manager' | 'lead_technician' | 'employee' | `lead_${string}`;
 export interface User {
   id: string;
   name: string;
   imageUrl?: string | null;
-  role: 'admin' | 'manager' | 'lead_technician' | 'employee';
+  role: UserRole;
   department?: string | null; // ✅ เพิ่ม field นี้
   email?: string;
   status? : string
